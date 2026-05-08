@@ -67,6 +67,7 @@ public final class MinecraftServerRuntimePlanWriter {
         root.addProperty("generatedFromCacheOnly", plan.generatedFromCacheOnly());
         root.addProperty("replayableOffline", plan.replayableOffline());
         root.addProperty("modJarsOnMinecraftRuntimeClasspath", plan.modJarsOnMinecraftRuntimeClasspath());
+        root.addProperty("injectionOccurred", plan.injectionOccurred());
         root.addProperty("minecraftModClassesLoaded", plan.minecraftModClassesLoaded());
         root.addProperty("minecraftModClassLoaderAttachedToMinecraft", plan.minecraftModClassLoaderAttachedToMinecraft());
         root.addProperty("minecraftEntrypointsInvoked", plan.minecraftEntrypointsInvoked());

@@ -2,6 +2,7 @@ package com.mcmodloader.core.minecraft;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public record MinecraftRuntimeBoundary(
     int schema,
@@ -21,21 +22,41 @@ public record MinecraftRuntimeBoundary(
     List<MinecraftBoundaryViolation> violations,
     Map<String, String> severityPolicy,
     boolean analysisOnly,
-    String analysisOnlyStatement
+    String analysisOnlyStatement,
+    boolean modJarsOnMinecraftRuntimeClasspath,
+    boolean modClassesLoaded,
+    boolean entrypointsInvoked,
+    boolean injectionOccurred,
+    boolean transformationOccurred,
+    boolean remappingOccurred,
+    boolean mixinOccurred,
+    boolean patchingOccurred
 ) {
     public MinecraftRuntimeBoundary {
         runtimeClasspathEntries = List.copyOf(runtimeClasspathEntries);
-        packageOwnership = Map.copyOf(packageOwnership);
-        resourceOwnership = Map.copyOf(resourceOwnership);
-        serviceProviderOwnership = Map.copyOf(serviceProviderOwnership);
+        packageOwnership = immutableStringListMap(packageOwnership);
+        resourceOwnership = immutableStringListMap(resourceOwnership);
+        serviceProviderOwnership = immutableStringListMap(serviceProviderOwnership);
         moduleInfoJars = List.copyOf(moduleInfoJars);
         multiReleaseJars = List.copyOf(multiReleaseJars);
         nativeLibraryJars = List.copyOf(nativeLibraryJars);
         duplicateRuntimeResources = List.copyOf(duplicateRuntimeResources);
         splitRuntimePackages = List.copyOf(splitRuntimePackages);
-        classpathOwnershipByLayer = Map.copyOf(classpathOwnershipByLayer);
+        classpathOwnershipByLayer = immutableStringMap(classpathOwnershipByLayer);
         futureModBoundaries = List.copyOf(futureModBoundaries);
         violations = List.copyOf(violations);
-        severityPolicy = Map.copyOf(severityPolicy);
+        severityPolicy = immutableStringMap(severityPolicy);
+    }
+
+    private static Map<String, List<String>> immutableStringListMap(Map<String, List<String>> input) {
+        TreeMap<String, List<String>> sorted = new TreeMap<>();
+        for (Map.Entry<String, List<String>> entry : input.entrySet()) {
+            sorted.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return java.util.Collections.unmodifiableMap(sorted);
+    }
+
+    private static Map<String, String> immutableStringMap(Map<String, String> input) {
+        return java.util.Collections.unmodifiableMap(new TreeMap<>(input));
     }
 }

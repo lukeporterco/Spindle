@@ -2,6 +2,7 @@ package com.mcmodloader.core.minecraft;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public record MinecraftJarScanResult(
     String jar,
@@ -24,13 +25,21 @@ public record MinecraftJarScanResult(
         packages = List.copyOf(packages);
         classes = List.copyOf(classes);
         resources = List.copyOf(resources);
-        duplicateEntries = Map.copyOf(duplicateEntries);
-        serviceProviders = Map.copyOf(serviceProviders);
+        duplicateEntries = immutableStringListMap(duplicateEntries);
+        serviceProviders = immutableStringListMap(serviceProviders);
         nativeLibraries = List.copyOf(nativeLibraries);
         suspiciousPaths = List.copyOf(suspiciousPaths);
         signatureFiles = List.copyOf(signatureFiles);
         manifestClasspathAttributes = List.copyOf(manifestClasspathAttributes);
         classFileMajorVersions = List.copyOf(classFileMajorVersions);
         unsupportedClassFiles = List.copyOf(unsupportedClassFiles);
+    }
+
+    private static Map<String, List<String>> immutableStringListMap(Map<String, List<String>> input) {
+        TreeMap<String, List<String>> sorted = new TreeMap<>();
+        for (Map.Entry<String, List<String>> entry : input.entrySet()) {
+            sorted.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return java.util.Collections.unmodifiableMap(sorted);
     }
 }

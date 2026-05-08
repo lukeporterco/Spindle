@@ -35,6 +35,7 @@ public record MinecraftServerRuntimePlan(
     boolean generatedFromCacheOnly,
     boolean replayableOffline,
     boolean modJarsOnMinecraftRuntimeClasspath,
+    boolean injectionOccurred,
     boolean minecraftModClassesLoaded,
     boolean minecraftModClassLoaderAttachedToMinecraft,
     boolean minecraftEntrypointsInvoked,

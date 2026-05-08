@@ -14,7 +14,13 @@ public final class MinecraftRuntimeBoundaryBuilder {
     private static final String MILESTONE_NAME = "Mega-Milestone 7";
     private final MinecraftJarScanner scanner = new MinecraftJarScanner();
 
-    public MinecraftRuntimeBoundary build(MinecraftServerRuntimePlan plan, List<Path> runtimeJars, Function<Path, String> displayPath)
+    public MinecraftRuntimeBoundary build(
+        MinecraftServerRuntimePlan plan,
+        List<Path> runtimeJars,
+        Function<Path, String> displayPath,
+        boolean strictBoundary,
+        boolean strictRuntimeConflicts
+    )
         throws LoaderException {
         TreeMap<String, List<String>> packageOwners = new TreeMap<>();
         TreeMap<String, List<String>> resourceOwners = new TreeMap<>();
@@ -53,13 +59,15 @@ public final class MinecraftRuntimeBoundaryBuilder {
             violations.add(
                 new MinecraftBoundaryViolation(
                     "duplicate-runtime-resource",
-                    MinecraftBoundarySeverity.WARNING,
+                    strictBoundary || strictRuntimeConflicts ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.WARNING,
                     duplicate,
                     String.join(",", resourceOwners.get(duplicate)),
                     null,
-                    false,
+                    strictBoundary || strictRuntimeConflicts,
                     true,
-                    "Runtime classpath contains a duplicate resource; future mods must not add another owner."
+                    strictBoundary || strictRuntimeConflicts
+                        ? "Runtime classpath contains a duplicate resource and strict Minecraft runtime conflict handling is enabled."
+                        : "Runtime classpath contains a duplicate resource; future mods must not add another owner."
                 )
             );
         }
@@ -67,13 +75,15 @@ public final class MinecraftRuntimeBoundaryBuilder {
             violations.add(
                 new MinecraftBoundaryViolation(
                     "split-runtime-package",
-                    MinecraftBoundarySeverity.WARNING,
+                    strictBoundary || strictRuntimeConflicts ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.WARNING,
                     splitPackage,
                     String.join(",", packageOwners.get(splitPackage)),
                     null,
-                    false,
+                    strictBoundary || strictRuntimeConflicts,
                     true,
-                    "Runtime classpath contains a split package; future mods must not claim this package."
+                    strictBoundary || strictRuntimeConflicts
+                        ? "Runtime classpath contains a split package and strict Minecraft runtime conflict handling is enabled."
+                        : "Runtime classpath contains a split package; future mods must not claim this package."
                 )
             );
         }
@@ -113,7 +123,15 @@ public final class MinecraftRuntimeBoundaryBuilder {
             violations,
             severityPolicy,
             true,
-            "The boundary model is analysis-only in Mega-Milestone 7."
+            "The boundary model is analysis-only in Mega-Milestone 7.",
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
         );
     }
 

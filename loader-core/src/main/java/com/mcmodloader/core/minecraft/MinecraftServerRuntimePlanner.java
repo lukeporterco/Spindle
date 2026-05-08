@@ -96,8 +96,8 @@ public final class MinecraftServerRuntimePlanner {
                 config.offlineReplay(),
                 config.cacheStrict(),
                 config.launch() ? "launch" : "plan",
-                displayPath.apply(workingDirectory),
-                displayPath.apply(workingDirectory),
+                ".",
+                ".",
                 List.of("minecraft-artifacts.json", "minecraft-launch-plan.json")
             );
 
@@ -124,9 +124,9 @@ public final class MinecraftServerRuntimePlanner {
                 bundled.extractedFiles(),
                 command.jvmArgs(),
                 command.serverArgs(),
-                displayPath.apply(config.serverDirectory() == null ? workingDirectory : config.serverDirectory()),
-                displayPath.apply(javaExecutable),
-                command.commandPreview(),
+                normalizedWorkingDirectory(workingDirectory, config.serverDirectory()),
+                normalizeExecutable(javaExecutable),
+                normalizeCommandPreview(command.commandPreview(), javaExecutable),
                 cache.displayPath(cache.cacheDirectory()),
                 cache.displayPath(runtimeLayout.runtimeDirectory()),
                 config.offline(),
@@ -142,11 +142,36 @@ public final class MinecraftServerRuntimePlanner {
                 false,
                 false,
                 false,
+                false,
                 provenance
             );
         return new PlannedRuntime(plan, command);
     }
 
     public record PlannedRuntime(MinecraftServerRuntimePlan plan, MinecraftServerLaunchCommand command) {
+    }
+
+    private String normalizedWorkingDirectory(Path workingDirectory, Path configuredServerDirectory) {
+        Path effective = configuredServerDirectory == null ? workingDirectory : configuredServerDirectory;
+        return workingDirectory.toAbsolutePath().normalize().equals(effective.toAbsolutePath().normalize())
+            ? "."
+            : effective.getFileName().toString();
+    }
+
+    private String normalizeExecutable(Path javaExecutable) {
+        return javaExecutable == null || javaExecutable.getFileName() == null ? "java" : javaExecutable.getFileName().toString();
+    }
+
+    private List<String> normalizeCommandPreview(List<String> commandPreview, Path javaExecutable) {
+        List<String> normalized = new ArrayList<>();
+        String executable = javaExecutable == null ? null : javaExecutable.toString();
+        for (String token : commandPreview) {
+            if (executable != null && executable.equals(token)) {
+                normalized.add(normalizeExecutable(javaExecutable));
+            } else {
+                normalized.add(token.replace('\\', '/'));
+            }
+        }
+        return List.copyOf(normalized);
     }
 }

@@ -12,6 +12,8 @@ import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.withType
+import java.security.MessageDigest
+import java.util.HexFormat
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 
@@ -238,6 +240,8 @@ val prepareMinecraftBundledServerFixture by tasks.registering {
 
         val nestedServerJar = project(":sample-server-fixture").tasks.named<Jar>("jar").get().archiveFile.get().asFile
         val outerJar = versionDirectory.resolve("26.1.2-server.jar")
+        val nestedBytes = nestedServerJar.readBytes()
+        val nestedSha1 = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(nestedBytes))
         JarOutputStream(outerJar.outputStream()).use { jar ->
             fun entry(name: String, bytes: ByteArray) {
                 jar.putNextEntry(JarEntry(name))
@@ -245,10 +249,10 @@ val prepareMinecraftBundledServerFixture by tasks.registering {
                 jar.closeEntry()
             }
             entry("META-INF/main-class", "com.mcmodloader.sampleserverfixture.FakeMinecraftServerMain\n".toByteArray())
-            entry("META-INF/versions.list", "0000000000000000000000000000000000000000\tfixture\tfixture-server.jar\n".toByteArray())
-            entry("META-INF/libraries.list", "0000000000000000000000000000000000000000\tfixture-lib\tfixture-lib.jar\n".toByteArray())
-            entry("META-INF/versions/fixture-server.jar", nestedServerJar.readBytes())
-            entry("META-INF/libraries/fixture-lib.jar", nestedServerJar.readBytes())
+            entry("META-INF/versions.list", "${nestedSha1}\tfixture\tfixture-server.jar\n".toByteArray())
+            entry("META-INF/libraries.list", "${nestedSha1}\tfixture-lib\tfixture-lib.jar\n".toByteArray())
+            entry("META-INF/versions/fixture-server.jar", nestedBytes)
+            entry("META-INF/libraries/fixture-lib.jar", nestedBytes)
         }
     }
 }

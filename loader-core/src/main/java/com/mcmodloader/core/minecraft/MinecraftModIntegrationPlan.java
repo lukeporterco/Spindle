@@ -2,6 +2,7 @@ package com.mcmodloader.core.minecraft;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public record MinecraftModIntegrationPlan(
     int schema,
@@ -41,6 +42,70 @@ public record MinecraftModIntegrationPlan(
     boolean remappingOccurred,
     boolean mixinOccurred,
     boolean modClassesLoaded,
-    boolean entrypointsInvoked
+    boolean entrypointsInvoked,
+    boolean patchingOccurred,
+    boolean modJarsOnMinecraftRuntimeClasspath
 ) {
+    public MinecraftModIntegrationPlan {
+        discoveredModCandidates = List.copyOf(discoveredModCandidates);
+        acceptedMods = List.copyOf(acceptedMods);
+        rejectedMods = List.copyOf(rejectedMods);
+        warnings = List.copyOf(warnings);
+        dependencyGraph = immutableStringListMap(dependencyGraph);
+        dependencyGraphTopologicalOrder = List.copyOf(dependencyGraphTopologicalOrder);
+        optionalDependencies = immutableStringMap(optionalDependencies);
+        missingOptionalDependencies = List.copyOf(missingOptionalDependencies);
+        breaksMetadata = immutableNestedStringMap(breaksMetadata);
+        sideCompatibility = immutableStringMap(sideCompatibility);
+        loaderCompatibility = immutableStringMap(loaderCompatibility);
+        javaCompatibility = immutableStringMap(javaCompatibility);
+        minecraftCompatibility = immutableStringMap(minecraftCompatibility);
+        packageOwnershipByMod = immutableStringListMap(packageOwnershipByMod);
+        resourceOwnershipByMod = immutableStringListMap(resourceOwnershipByMod);
+        serviceProviderOwnershipByMod = immutableStringListMap(serviceProviderOwnershipByMod);
+        moduleInfoByMod = immutableStringMap(moduleInfoByMod);
+        automaticModuleNameByMod = immutableNullableStringMap(automaticModuleNameByMod);
+        multiReleaseByMod = immutableStringMap(multiReleaseByMod);
+        classFileMajorVersionsByMod = immutableIntegerListMap(classFileMajorVersionsByMod);
+        nativeLibrariesByMod = immutableStringListMap(nativeLibrariesByMod);
+        duplicateResourcesBetweenMods = List.copyOf(duplicateResourcesBetweenMods);
+        splitPackagesBetweenMods = List.copyOf(splitPackagesBetweenMods);
+        conflictsAgainstMinecraft = List.copyOf(conflictsAgainstMinecraft);
+        conflictsAgainstLoader = List.copyOf(conflictsAgainstLoader);
+        issues = List.copyOf(issues);
+    }
+
+    private static Map<String, List<String>> immutableStringListMap(Map<String, List<String>> input) {
+        TreeMap<String, List<String>> sorted = new TreeMap<>();
+        for (Map.Entry<String, List<String>> entry : input.entrySet()) {
+            sorted.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return java.util.Collections.unmodifiableMap(sorted);
+    }
+
+    private static Map<String, List<Integer>> immutableIntegerListMap(Map<String, List<Integer>> input) {
+        TreeMap<String, List<Integer>> sorted = new TreeMap<>();
+        for (Map.Entry<String, List<Integer>> entry : input.entrySet()) {
+            sorted.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return java.util.Collections.unmodifiableMap(sorted);
+    }
+
+    private static Map<String, String> immutableStringMap(Map<String, String> input) {
+        return java.util.Collections.unmodifiableMap(new TreeMap<>(input));
+    }
+
+    private static Map<String, String> immutableNullableStringMap(Map<String, String> input) {
+        TreeMap<String, String> sorted = new TreeMap<>();
+        sorted.putAll(input);
+        return java.util.Collections.unmodifiableMap(sorted);
+    }
+
+    private static Map<String, Map<String, String>> immutableNestedStringMap(Map<String, Map<String, String>> input) {
+        TreeMap<String, Map<String, String>> sorted = new TreeMap<>();
+        for (Map.Entry<String, Map<String, String>> entry : input.entrySet()) {
+            sorted.put(entry.getKey(), immutableStringMap(entry.getValue()));
+        }
+        return java.util.Collections.unmodifiableMap(sorted);
+    }
 }

@@ -102,6 +102,65 @@ public final class MinecraftModIntegrationPlanner {
                 warnings.add(violation.reason());
             }
 
+            if (!sideOk) {
+                issues.add(
+                    new MinecraftBoundaryViolation(
+                        "mod-side-mismatch",
+                        strictSide ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.ERROR,
+                        metadata.side(),
+                        modId,
+                        "server",
+                        true,
+                        true,
+                        strictSide
+                            ? "Mod side is incompatible with server preflight and strict side validation is enabled."
+                            : "Mod side is incompatible with server preflight."
+                    )
+                );
+            }
+            if (!loaderOk) {
+                issues.add(
+                    new MinecraftBoundaryViolation(
+                        "mod-loader-version-mismatch",
+                        MinecraftBoundarySeverity.ERROR,
+                        metadata.depends().get("loader"),
+                        modId,
+                        LoaderMain.LOADER_VERSION,
+                        true,
+                        true,
+                        "Mod loader dependency does not match the current loader version."
+                    )
+                );
+            }
+            if (!javaOk) {
+                issues.add(
+                    new MinecraftBoundaryViolation(
+                        "mod-java-version-mismatch",
+                        MinecraftBoundarySeverity.ERROR,
+                        metadata.depends().get("java"),
+                        modId,
+                        Integer.toString(context.javaMajorVersion()),
+                        true,
+                        true,
+                        "Mod Java dependency does not match the current Java runtime."
+                    )
+                );
+            }
+            if (!minecraftOk) {
+                issues.add(
+                    new MinecraftBoundaryViolation(
+                        "mod-minecraft-version-mismatch",
+                        MinecraftBoundarySeverity.ERROR,
+                        metadata.depends().get("minecraft"),
+                        modId,
+                        resolvedMinecraftVersion,
+                        true,
+                        true,
+                        "Mod Minecraft dependency does not match the resolved Minecraft runtime."
+                    )
+                );
+            }
+
             if (!sideOk || !loaderOk || !javaOk || !minecraftOk || (strictClassVersions && !classVersionOk)) {
                 String reason =
                     !sideOk
@@ -109,7 +168,8 @@ public final class MinecraftModIntegrationPlanner {
                         : !loaderOk
                             ? "loader dependency mismatch"
                             : !javaOk ? "java dependency mismatch" : !minecraftOk ? "minecraft dependency mismatch" : "class version mismatch";
-                rejected.add(new MinecraftModRejection(modId, reason, strictSide && !sideOk ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.ERROR, true));
+                MinecraftBoundarySeverity rejectionSeverity = strictSide && !sideOk ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.ERROR;
+                rejected.add(new MinecraftModRejection(modId, reason, rejectionSeverity, true));
             } else {
                 accepted.add(new MinecraftModAcceptance(modId, metadata.version(), metadata.side(), "metadata and analysis checks passed"));
             }
@@ -162,6 +222,8 @@ public final class MinecraftModIntegrationPlanner {
             List.copyOf(loaderConflicts),
             List.copyOf(issues),
             true,
+            false,
+            false,
             false,
             false,
             false,

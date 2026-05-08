@@ -3,7 +3,6 @@ package com.mcmodloader.core.metadata;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 public record ModMetadata(
     int schema,
@@ -15,15 +14,13 @@ public record ModMetadata(
     Map<String, String> breaks
 ) {
     public ModMetadata {
-        entrypoints =
-            Map.copyOf(
-                entrypoints
-                    .entrySet()
-                    .stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue()), (left, right) -> left, TreeMap::new))
-            );
-        depends = Map.copyOf(new TreeMap<>(depends));
-        breaks = Map.copyOf(new TreeMap<>(breaks));
+        TreeMap<String, List<String>> sortedEntrypoints = new TreeMap<>();
+        for (Map.Entry<String, List<String>> entry : entrypoints.entrySet()) {
+            sortedEntrypoints.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        entrypoints = java.util.Collections.unmodifiableMap(sortedEntrypoints);
+        depends = java.util.Collections.unmodifiableMap(new TreeMap<>(depends));
+        breaks = java.util.Collections.unmodifiableMap(new TreeMap<>(breaks));
     }
 
     public List<String> mainEntrypoints() {

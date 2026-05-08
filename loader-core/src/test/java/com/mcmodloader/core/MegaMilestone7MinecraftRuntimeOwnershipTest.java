@@ -2,9 +2,13 @@ package com.mcmodloader.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.mcmodloader.core.diagnostics.JsonDiagnosticSink;
+import com.mcmodloader.core.diagnostics.LoaderException;
+import com.mcmodloader.core.minecraft.MinecraftReproducibilityCheck;
+import com.mcmodloader.core.minecraft.MinecraftReproducibilityChecker;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -12,6 +16,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -96,6 +103,37 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
     }
 
     @Test
+    void runtimeBoundaryOutputIsByteStableAcrossRepeatedRuns() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-runtime-plan", "--minecraft-boundary-report"));
+        String first = Files.readString(tempDirectory.resolve("minecraft-runtime-boundary.json"), StandardCharsets.UTF_8);
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-runtime-plan", "--minecraft-boundary-report"));
+        String second = Files.readString(tempDirectory.resolve("minecraft-runtime-boundary.json"), StandardCharsets.UTF_8);
+
+        assertEquals(first, second);
+    }
+
+    @Test
+    void integrationPlanOutputIsByteStableAcrossRepeatedRuns() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/server-mod.jar"),
+            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+        );
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
+        String first = Files.readString(tempDirectory.resolve("minecraft-mod-integration-plan.json"), StandardCharsets.UTF_8);
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
+        String second = Files.readString(tempDirectory.resolve("minecraft-mod-integration-plan.json"), StandardCharsets.UTF_8);
+
+        assertEquals(first, second);
+    }
+
+    @Test
     void integrationPlanDoesNotLoadMinecraftTargetedEntrypoints() throws Exception {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
@@ -128,6 +166,24 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
     }
 
     @Test
+    void minecraftPlanModsAloneWritesIntegrationPlanAndDoesNotLaunch() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/server-mod.jar"),
+            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+        );
+
+        String output = execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
+
+        assertTrue(Files.exists(tempDirectory.resolve("minecraft-server-runtime-plan.json")));
+        assertTrue(Files.exists(tempDirectory.resolve("minecraft-runtime-boundary.json")));
+        assertTrue(Files.exists(tempDirectory.resolve("minecraft-mod-integration-plan.json")));
+        assertFalse(Files.exists(tempDirectory.resolve("minecraft-server-launch-result.json")));
+        assertFalse(output.contains("should not run"));
+    }
+
+    @Test
     void preflightWritesReportsAndDoesNotLaunchMinecraft() throws Exception {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
 
@@ -140,6 +196,137 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         assertTrue(Files.exists(tempDirectory.resolve("minecraft-runtime-boundary.json")));
         assertTrue(Files.exists(tempDirectory.resolve("minecraft-mod-integration-plan.json")));
         assertFalse(Files.exists(tempDirectory.resolve("minecraft-server-launch-result.json")));
+    }
+
+    @Test
+    void rejectedMinecraftTargetedModMakesPreflightFail() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/client-only.jar"),
+            metadataJson("clientonly", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "client"),
+            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+        );
+
+        assertThrows(LoaderException.class, () -> execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-preflight")));
+
+        String preflight = Files.readString(tempDirectory.resolve("minecraft-preflight-result.json"), StandardCharsets.UTF_8);
+        assertTrue(preflight.contains("\"succeeded\": false"));
+        assertTrue(preflight.contains("\"rejectedModCount\": 1"));
+        assertTrue(preflight.contains("clientonly"));
+    }
+
+    @Test
+    void strictSideMismatchFailsPreflight() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/client-only.jar"),
+            metadataJson("clientonly", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "client"),
+            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+        );
+
+        assertThrows(LoaderException.class, () -> execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-preflight", "--minecraft-strict-side")));
+
+        String preflight = Files.readString(tempDirectory.resolve("minecraft-preflight-result.json"), StandardCharsets.UTF_8);
+        assertTrue(preflight.contains("\"type\": \"mod-side-mismatch\""));
+        assertTrue(preflight.contains("\"severity\": \"FATAL\""));
+    }
+
+    @Test
+    void strictClassVersionMismatchFailsPreflight() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/too-new.jar"),
+            metadataJson("toonew", "com.example.TooNew", Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            Map.of("com/example/TooNew.class", classFileHeader(70))
+        );
+
+        assertThrows(LoaderException.class, () -> execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-preflight", "--minecraft-strict-class-versions")));
+
+        String preflight = Files.readString(tempDirectory.resolve("minecraft-preflight-result.json"), StandardCharsets.UTF_8);
+        assertTrue(preflight.contains("\"type\": \"mod-class-version-too-new\""));
+        assertTrue(preflight.contains("\"fatalCount\": 1"));
+    }
+
+    @Test
+    void strictBundledRuntimeVerificationPassesForValidFixture() throws Exception {
+        Path minecraftDir = createBundledFixtureMinecraftDirectory(tempDirectory.resolve("minecraft-bundled-strict"));
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-runtime-plan", "--minecraft-cache-strict"));
+
+        String plan = Files.readString(tempDirectory.resolve("minecraft-server-runtime-plan.json"), StandardCharsets.UTF_8);
+        assertTrue(plan.contains("\"verificationStatus\": \"verified\""));
+    }
+
+    @Test
+    void strictBundledRuntimeVerificationFailsForHashMismatch() throws Exception {
+        Path minecraftDir = createBundledFixtureMinecraftDirectory(tempDirectory.resolve("minecraft-bundled-bad-hash"), false, false);
+
+        assertThrows(LoaderException.class, () -> execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-runtime-plan", "--minecraft-cache-strict")));
+    }
+
+    @Test
+    void bundledRuntimeTraversalCannotEscapeRuntimeCache() throws Exception {
+        Path minecraftDir = createBundledFixtureMinecraftDirectory(tempDirectory.resolve("minecraft-bundled-traversal"), true, true);
+
+        assertThrows(LoaderException.class, () -> execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-runtime-plan", "--minecraft-cache-strict")));
+        assertFalse(Files.exists(tempDirectory.resolve("minecraft-cache/versions/26.1.2/escape.jar")));
+    }
+
+    @Test
+    void modJarPathTraversalIsRejectedInIntegrationPlan() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/path-traversal.jar"),
+            metadataJson("pathtraversal", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            Map.of(
+                ThrowingEntrypoint.class.getName().replace('.', '/') + ".class",
+                readClassBytes(ThrowingEntrypoint.class),
+                "../escape.txt",
+                "escape".getBytes(StandardCharsets.UTF_8)
+            )
+        );
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
+
+        String plan = Files.readString(tempDirectory.resolve("minecraft-mod-integration-plan.json"), StandardCharsets.UTF_8);
+        assertTrue(plan.contains("\"type\": \"mod-suspicious-path\""));
+        assertTrue(plan.contains("pathtraversal"));
+    }
+
+    @Test
+    void launchCommandClasspathExcludesPlannedModJars() throws Exception {
+        Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
+        createModJar(
+            tempDirectory.resolve("mods/server-mod.jar"),
+            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+        );
+
+        execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
+
+        String runtimePlan = Files.readString(tempDirectory.resolve("minecraft-server-runtime-plan.json"), StandardCharsets.UTF_8);
+        String integrationPlan = Files.readString(tempDirectory.resolve("minecraft-mod-integration-plan.json"), StandardCharsets.UTF_8);
+        assertFalse(runtimePlan.contains("server-mod.jar"));
+        assertTrue(integrationPlan.contains("future-mod-classloader:servermod"));
+        assertTrue(runtimePlan.contains("\"modJarsOnMinecraftRuntimeClasspath\": false"));
+    }
+
+    @Test
+    void reproducibilityCheckerReportsIntentionalReportChanges() throws Exception {
+        Path first = tempDirectory.resolve("first.json");
+        Path second = tempDirectory.resolve("second.json");
+        Files.writeString(first, "{\n  \"value\": 1\n}\n", StandardCharsets.UTF_8);
+        Files.writeString(second, "{\n  \"value\": 2\n}\n", StandardCharsets.UTF_8);
+
+        MinecraftReproducibilityCheck check =
+            new MinecraftReproducibilityChecker().check(
+                "Mega-Milestone 7",
+                java.util.List.of(new MinecraftReproducibilityChecker.ReportPair("runtime-plan", first, second)),
+                false
+            );
+
+        assertFalse(check.byteForByteEqual());
+        assertTrue(check.failures().stream().anyMatch(failure -> failure.contains("bytes differ")));
     }
 
     private String[] serverArgs(Path minecraftDir, String... extraArgs) {
@@ -173,16 +360,24 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
     }
 
     private Path createBundledFixtureMinecraftDirectory(Path minecraftDir) throws IOException {
+        return createBundledFixtureMinecraftDirectory(minecraftDir, true, false);
+    }
+
+    private Path createBundledFixtureMinecraftDirectory(Path minecraftDir, boolean validHashes, boolean traversalPath) throws IOException {
         Path versionDirectory = minecraftDir.resolve("versions/26.1.2");
         Files.createDirectories(versionDirectory);
         Files.writeString(versionDirectory.resolve("26.1.2.json"), versionJson(), StandardCharsets.UTF_8);
         Path outerJar = versionDirectory.resolve("26.1.2-server.jar");
         byte[] nestedJar = Files.readAllBytes(createFakeServerJar(tempDirectory.resolve("nested-server.jar")));
+        String versionPath = traversalPath ? "../escape.jar" : "fixture-server.jar";
+        String libraryPath = "fixture-lib.jar";
+        String versionSha = validHashes ? sha1(nestedJar) : "0000000000000000000000000000000000000000";
+        String librarySha = validHashes ? sha1(nestedJar) : "0000000000000000000000000000000000000000";
         try (OutputStream outputStream = Files.newOutputStream(outerJar); JarOutputStream jar = new JarOutputStream(outputStream)) {
             put(jar, "META-INF/main-class", FakeServerMain.class.getName().getBytes(StandardCharsets.UTF_8));
-            put(jar, "META-INF/versions.list", "0000000000000000000000000000000000000000\tfixture\tfixture-server.jar\n".getBytes(StandardCharsets.UTF_8));
-            put(jar, "META-INF/libraries.list", "0000000000000000000000000000000000000000\tfixture-lib\tfixture-lib.jar\n".getBytes(StandardCharsets.UTF_8));
-            put(jar, "META-INF/versions/fixture-server.jar", nestedJar);
+            put(jar, "META-INF/versions.list", (versionSha + "\tfixture\t" + versionPath + "\n").getBytes(StandardCharsets.UTF_8));
+            put(jar, "META-INF/libraries.list", (librarySha + "\tfixture-lib\t" + libraryPath + "\n").getBytes(StandardCharsets.UTF_8));
+            put(jar, "META-INF/versions/" + versionPath, nestedJar);
             put(jar, "META-INF/libraries/fixture-lib.jar", nestedJar);
         }
         return minecraftDir;
@@ -268,6 +463,27 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         jar.closeEntry();
     }
 
+    private byte[] classFileHeader(int majorVersion) {
+        return new byte[] {
+            (byte) 0xCA,
+            (byte) 0xFE,
+            (byte) 0xBA,
+            (byte) 0xBE,
+            0,
+            0,
+            (byte) ((majorVersion >> 8) & 0xFF),
+            (byte) (majorVersion & 0xFF)
+        };
+    }
+
+    private String sha1(byte[] bytes) throws IOException {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(bytes));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IOException("SHA-1 unavailable", exception);
+        }
+    }
+
     private byte[] readClassBytes(Class<?> type) throws IOException {
         String resourceName = type.getName().replace('.', '/') + ".class";
         try (var inputStream = type.getClassLoader().getResourceAsStream(resourceName)) {
@@ -280,9 +496,11 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
 
     private String execute(Path workingDirectory, String[] args) throws Exception {
         JsonDiagnosticSink sink = new JsonDiagnosticSink(workingDirectory.resolve("diagnostics/startup-trace.json"));
-        String output = captureStdout(() -> LoaderMain.execute(workingDirectory, args, sink));
-        sink.write();
-        return output;
+        try {
+            return captureStdout(() -> LoaderMain.execute(workingDirectory, args, sink));
+        } finally {
+            sink.write();
+        }
     }
 
     private String captureStdout(ThrowingRunnable runnable) throws Exception {

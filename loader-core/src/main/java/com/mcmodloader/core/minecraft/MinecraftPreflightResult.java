@@ -17,12 +17,21 @@ public record MinecraftPreflightResult(
     boolean remappingOccurred,
     boolean mixinOccurred,
     boolean patchingOccurred,
+    boolean modJarsOnMinecraftRuntimeClasspath,
     List<String> reportsWritten,
+    List<MinecraftModRejection> rejectedMods,
     List<MinecraftBoundaryViolation> issues,
+    int acceptedModCount,
+    int rejectedModCount,
+    int warningCount,
+    int fatalCount,
+    List<String> failureReasons,
     boolean succeeded
 ) {
     public MinecraftPreflightResult {
         reportsWritten = List.copyOf(reportsWritten);
+        rejectedMods = List.copyOf(rejectedMods);
         issues = List.copyOf(issues);
+        failureReasons = List.copyOf(failureReasons);
     }
 }

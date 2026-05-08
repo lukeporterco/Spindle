@@ -43,10 +43,12 @@ import com.mcmodloader.core.minecraft.MinecraftMetadataResolver;
 import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlan;
 import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlanner;
 import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlanWriter;
+import com.mcmodloader.core.minecraft.MinecraftModRejection;
 import com.mcmodloader.core.minecraft.MinecraftProviderConfig;
 import com.mcmodloader.core.minecraft.MinecraftPreflightResult;
 import com.mcmodloader.core.minecraft.MinecraftPreflightResultWriter;
 import com.mcmodloader.core.minecraft.MinecraftReproducibilityCheck;
+import com.mcmodloader.core.minecraft.MinecraftReproducibilityChecker;
 import com.mcmodloader.core.minecraft.MinecraftReproducibilityCheckWriter;
 import com.mcmodloader.core.minecraft.MinecraftRuntimeBoundary;
 import com.mcmodloader.core.minecraft.MinecraftRuntimeBoundaryBuilder;
@@ -79,6 +81,7 @@ import com.mcmodloader.core.state.ModpackStateWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -1141,7 +1144,7 @@ public final class LoaderMain {
         boolean needsRuntimePlanning =
             config.side() == MinecraftSide.SERVER &&
             artifactResolution.serverJarPath() != null &&
-            (config.runtimePlan() || config.boundaryReport() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck() || config.launch());
+            (config.runtimePlan() || config.planMods() || config.boundaryReport() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck() || config.launch());
         if (needsRuntimePlanning) {
             MinecraftArtifactCache finalArtifactCache = artifactCache;
             plannedRuntime =
@@ -1190,19 +1193,22 @@ public final class LoaderMain {
                 printMinecraftRuntimeExplain(finalPlannedRuntime.plan());
             }
 
-            if (config.boundaryReport() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck()) {
-                List<Path> runtimeJars = new ArrayList<>();
-                runtimeJars.add(artifactResolution.serverJarPath());
-                for (MinecraftServerRuntimeClasspath.Entry entry : finalPlannedRuntime.plan().classpathEntries()) {
-                    Path path = Path.of(entry.path());
-                    runtimeJars.add(path.isAbsolute() ? path : context.workingDirectory().resolve(path));
-                }
+            if (config.boundaryReport() || config.planMods() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck()) {
+                List<Path> runtimeJars = runtimeJarsForPlan(context, artifactResolution.serverJarPath(), finalPlannedRuntime.plan());
                 runtimeBoundary =
                     measure(
                         diagnosticSink,
                         "minecraft.runtime_boundary.create",
                         LaunchPhase.COMPLETE,
-                        () -> new MinecraftRuntimeBoundaryBuilder().build(finalPlannedRuntime.plan(), runtimeJars, path -> displayPath(context, path)),
+                        () ->
+                            new MinecraftRuntimeBoundaryBuilder()
+                                .build(
+                                    finalPlannedRuntime.plan(),
+                                    runtimeJars,
+                                    path -> displayPath(context, path),
+                                    config.strictBoundary(),
+                                    config.strictRuntimeConflicts()
+                                ),
                         boundary -> details(
                             "packageCount",
                             Integer.toString(boundary.packageOwnership().size()),
@@ -1278,6 +1284,29 @@ public final class LoaderMain {
                 if (integrationPlan != null) {
                     issues.addAll(integrationPlan.issues());
                 }
+                List<MinecraftModRejection> rejectedMods = integrationPlan == null ? List.of() : integrationPlan.rejectedMods();
+                int warningCount =
+                    (int)
+                        issues
+                            .stream()
+                            .filter(issue -> issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.WARNING)
+                            .count();
+                int fatalCount =
+                    (int)
+                        issues
+                            .stream()
+                            .filter(issue -> issue.fatalNow() || issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.FATAL)
+                            .count();
+                List<String> failureReasons = new ArrayList<>();
+                for (com.mcmodloader.core.minecraft.MinecraftBoundaryViolation issue : issues) {
+                    if (issue.fatalNow() || issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.FATAL) {
+                        failureReasons.add(issue.type() + ": " + issue.reason());
+                    }
+                }
+                for (MinecraftModRejection rejection : rejectedMods) {
+                    failureReasons.add("rejected-mod " + rejection.candidate() + ": " + rejection.reason());
+                }
+                boolean preflightSucceeded = failureReasons.isEmpty();
                 MinecraftPreflightResult preflightResult =
                     new MinecraftPreflightResult(
                         1,
@@ -1294,9 +1323,16 @@ public final class LoaderMain {
                         false,
                         false,
                         false,
+                        false,
                         List.copyOf(megaMilestoneReports),
+                        rejectedMods,
                         issues,
-                        issues.stream().noneMatch(issue -> issue.fatalNow() || issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.FATAL)
+                        integrationPlan == null ? 0 : integrationPlan.acceptedMods().size(),
+                        rejectedMods.size(),
+                        warningCount,
+                        fatalCount,
+                        failureReasons,
+                        preflightSucceeded
                     );
                 measure(
                     diagnosticSink,
@@ -1310,19 +1346,25 @@ public final class LoaderMain {
                     outputPath -> details("preflightOutputPath", displayPath(context, outputPath))
                 );
                 megaMilestoneReports.add("minecraft-preflight-result.json");
+                if (!preflightSucceeded) {
+                    throw new LoaderException("Minecraft preflight failed. See minecraft-preflight-result.json for failure reasons.");
+                }
             }
 
             if (config.reproducibilityCheck()) {
                 MinecraftReproducibilityCheck check =
-                    new MinecraftReproducibilityCheck(
-                        1,
-                        "Mega-Milestone 7",
-                        List.copyOf(megaMilestoneReports),
-                        true,
-                        false,
-                        false,
-                        config.offline() && artifactResolution.networkRequestCount() > 0,
-                        config.offline() && artifactResolution.networkRequestCount() > 0 ? List.of("offline replay used network") : List.of()
+                    createReproducibilityCheck(
+                        context,
+                        config,
+                        artifactCache,
+                        artifactResolution,
+                        parsedMods,
+                        resolvedMods,
+                        metadata.id(),
+                        finalPlannedRuntime.plan(),
+                        runtimeBoundary,
+                        integrationPlan,
+                        megaMilestoneReports
                     );
                 measure(
                     diagnosticSink,
@@ -1335,6 +1377,9 @@ public final class LoaderMain {
                     },
                     outputPath -> details("reproducibilityOutputPath", displayPath(context, outputPath))
                 );
+                if (!check.byteForByteEqual() || !check.failures().isEmpty()) {
+                    throw new LoaderException("Minecraft reproducibility check failed. See minecraft-reproducibility-check.json for details.");
+                }
             }
         }
 
@@ -2005,6 +2050,195 @@ public final class LoaderMain {
         } catch (IllegalArgumentException exception) {
             return normalizedPath.toString().replace('\\', '/');
         }
+    }
+
+    private static List<Path> runtimeJarsForPlan(
+        LaunchContext context,
+        Path serverJarPath,
+        MinecraftServerRuntimePlan runtimePlan
+    ) {
+        List<Path> runtimeJars = new ArrayList<>();
+        runtimeJars.add(serverJarPath);
+        for (MinecraftServerRuntimeClasspath.Entry entry : runtimePlan.classpathEntries()) {
+            Path path = Path.of(entry.path());
+            runtimeJars.add(path.isAbsolute() ? path : context.workingDirectory().resolve(path));
+        }
+        return runtimeJars;
+    }
+
+    private static MinecraftReproducibilityCheck createReproducibilityCheck(
+        LaunchContext context,
+        MinecraftProviderConfig config,
+        MinecraftArtifactCache artifactCache,
+        MinecraftArtifactResolver.Resolution artifactResolution,
+        List<ModCandidate> parsedMods,
+        ResolvedModSet resolvedMods,
+        String resolvedMinecraftVersion,
+        MinecraftServerRuntimePlan firstRuntimePlan,
+        MinecraftRuntimeBoundary firstRuntimeBoundary,
+        MinecraftModIntegrationPlan firstIntegrationPlan,
+        List<String> reportsWritten
+    ) throws LoaderException {
+        Path snapshotDirectory = context.workingDirectory().resolve(".minecraft-reproducibility").resolve("second-run");
+        try {
+            Files.createDirectories(snapshotDirectory);
+        } catch (IOException exception) {
+            throw new LoaderException("Failed to create reproducibility snapshot directory", exception);
+        }
+
+        MinecraftServerRuntimePlanner.PlannedRuntime secondRuntime =
+            new MinecraftServerRuntimePlanner().plan(
+                context.workingDirectory(),
+                config,
+                artifactCache,
+                artifactResolution,
+                path -> displayPath(context, path)
+            );
+        Path secondRuntimePlanPath = snapshotDirectory.resolve("minecraft-server-runtime-plan.json");
+        new MinecraftServerRuntimePlanWriter().write(secondRuntimePlanPath, secondRuntime.plan());
+
+        MinecraftRuntimeBoundary secondBoundary = null;
+        Path secondBoundaryPath = snapshotDirectory.resolve("minecraft-runtime-boundary.json");
+        if (firstRuntimeBoundary != null) {
+            secondBoundary =
+                new MinecraftRuntimeBoundaryBuilder()
+                    .build(
+                        secondRuntime.plan(),
+                        runtimeJarsForPlan(context, artifactResolution.serverJarPath(), secondRuntime.plan()),
+                        path -> displayPath(context, path),
+                        config.strictBoundary(),
+                        config.strictRuntimeConflicts()
+                    );
+            new MinecraftRuntimeBoundaryWriter().write(secondBoundaryPath, secondBoundary);
+        }
+
+        MinecraftModIntegrationPlan secondIntegrationPlan = null;
+        Path secondIntegrationPlanPath = snapshotDirectory.resolve("minecraft-mod-integration-plan.json");
+        if (firstIntegrationPlan != null && secondBoundary != null) {
+            secondIntegrationPlan =
+                new MinecraftModIntegrationPlanner()
+                    .plan(
+                        context,
+                        parsedMods,
+                        resolvedMods,
+                        secondBoundary,
+                        resolvedMinecraftVersion,
+                        config.strictSide(),
+                        config.strictClassVersions(),
+                        config.strictRuntimeConflicts(),
+                        path -> displayPath(context, path)
+                    );
+            new MinecraftModIntegrationPlanWriter().write(secondIntegrationPlanPath, secondIntegrationPlan);
+        }
+
+        Path secondPreflightPath = snapshotDirectory.resolve("minecraft-preflight-result.json");
+        if (config.preflight() && secondBoundary != null) {
+            MinecraftPreflightResult secondPreflight = buildPreflightResult(resolvedMinecraftVersion, reportsWritten, secondBoundary, secondIntegrationPlan);
+            new MinecraftPreflightResultWriter().write(secondPreflightPath, secondPreflight);
+        }
+
+        List<MinecraftReproducibilityChecker.ReportPair> pairs = new ArrayList<>();
+        pairs.add(
+            new MinecraftReproducibilityChecker.ReportPair(
+                "minecraft-server-runtime-plan.json",
+                context.workingDirectory().resolve("minecraft-server-runtime-plan.json"),
+                secondRuntimePlanPath
+            )
+        );
+        if (firstRuntimeBoundary != null) {
+            pairs.add(
+                new MinecraftReproducibilityChecker.ReportPair(
+                    "minecraft-runtime-boundary.json",
+                    context.workingDirectory().resolve("minecraft-runtime-boundary.json"),
+                    secondBoundaryPath
+                )
+            );
+        }
+        if (firstIntegrationPlan != null) {
+            pairs.add(
+                new MinecraftReproducibilityChecker.ReportPair(
+                    "minecraft-mod-integration-plan.json",
+                    context.workingDirectory().resolve("minecraft-mod-integration-plan.json"),
+                    secondIntegrationPlanPath
+                )
+            );
+        }
+        if (config.preflight() && Files.isRegularFile(context.workingDirectory().resolve("minecraft-preflight-result.json"))) {
+            pairs.add(
+                new MinecraftReproducibilityChecker.ReportPair(
+                    "minecraft-preflight-result.json",
+                    context.workingDirectory().resolve("minecraft-preflight-result.json"),
+                    secondPreflightPath
+                )
+            );
+        }
+
+        return new MinecraftReproducibilityChecker().check(
+            "Mega-Milestone 7",
+            pairs,
+            config.offline() && artifactResolution.networkRequestCount() > 0
+        );
+    }
+
+    private static MinecraftPreflightResult buildPreflightResult(
+        String minecraftVersion,
+        List<String> reportsWritten,
+        MinecraftRuntimeBoundary runtimeBoundary,
+        MinecraftModIntegrationPlan integrationPlan
+    ) {
+        List<com.mcmodloader.core.minecraft.MinecraftBoundaryViolation> issues = new ArrayList<>(runtimeBoundary.violations());
+        if (integrationPlan != null) {
+            issues.addAll(integrationPlan.issues());
+        }
+        List<MinecraftModRejection> rejectedMods = integrationPlan == null ? List.of() : integrationPlan.rejectedMods();
+        int warningCount =
+            (int)
+                issues
+                    .stream()
+                    .filter(issue -> issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.WARNING)
+                    .count();
+        int fatalCount =
+            (int)
+                issues
+                    .stream()
+                    .filter(issue -> issue.fatalNow() || issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.FATAL)
+                    .count();
+        List<String> failureReasons = new ArrayList<>();
+        for (com.mcmodloader.core.minecraft.MinecraftBoundaryViolation issue : issues) {
+            if (issue.fatalNow() || issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.FATAL) {
+                failureReasons.add(issue.type() + ": " + issue.reason());
+            }
+        }
+        for (MinecraftModRejection rejection : rejectedMods) {
+            failureReasons.add("rejected-mod " + rejection.candidate() + ": " + rejection.reason());
+        }
+        boolean preflightSucceeded = failureReasons.isEmpty();
+        return new MinecraftPreflightResult(
+            1,
+            "Mega-Milestone 7",
+            minecraftVersion,
+            true,
+            runtimeBoundary != null,
+            integrationPlan != null,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            List.copyOf(reportsWritten),
+            rejectedMods,
+            issues,
+            integrationPlan == null ? 0 : integrationPlan.acceptedMods().size(),
+            rejectedMods.size(),
+            warningCount,
+            fatalCount,
+            failureReasons,
+            preflightSucceeded
+        );
     }
 
     private static String pluralize(int count) {

@@ -205,7 +205,7 @@ Milestone 5 adds an explicit verified vanilla server artifact cache under `runti
 
 Milestone 6 also adds an explicit offline replay path. Offline replay uses only cached manifest metadata, cached version JSON, and a cached verified server jar. It performs zero network requests, writes the normal artifact and launch-plan reports, and writes a deterministic baseline report.
 
-Mega-Milestone 7 adds a server runtime planning layer between artifact resolution and process launch. Server planning writes `runtime/minecraft-server-runtime-plan.json`, selects simple-jar or bundled-server mode, records the structured launch command preview, materializes bundled runtime libraries under `runtime/minecraft-cache/versions/<version>/server-runtime/`, verifies cache-owned runtime files, and proves analysis-only behavior.
+Mega-Milestone 7 adds a server runtime planning layer between artifact resolution and process launch. Server planning writes `runtime/minecraft-server-runtime-plan.json`, selects simple-jar or bundled-server mode, records a deterministic structured launch command preview, materializes bundled runtime libraries under `runtime/minecraft-cache/versions/<version>/server-runtime/`, verifies cache-owned runtime files, and proves analysis-only behavior.
 
 Mega-Milestone 7 also writes:
 
@@ -215,13 +215,17 @@ Mega-Milestone 7 also writes:
 - `runtime/minecraft-runtime-provenance.json`
 - `runtime/minecraft-reproducibility-check.json`
 
-The runtime boundary report indexes Minecraft runtime packages, resources, services, module-info presence, multi-release jars, native libraries, duplicate resources, split packages, and classpath ownership by layer. It is analysis-only and defines boundaries future mods must not cross.
+The runtime boundary report indexes Minecraft runtime packages, resources, services, module-info presence, multi-release jars, native libraries, duplicate resources, split packages, classpath ownership by layer, and explicit proof fields showing that no Minecraft injection, mod class loading, entrypoint invocation, Mixin, remapping, transformation, patching, or mod-runtime classpath attachment occurred. It is analysis-only and defines boundaries future mods must not cross.
 
-The mod integration plan discovers MC ModLoader mod jars intended for Minecraft server usage, parses `loader.mod.json`, validates loader, Java, Minecraft, side, dependency, and breaks metadata, scans jar bytes, and freezes a would-load order. It never defines, reflects, initializes, or loads scanned classes and never invokes `ModInitializer`.
+The mod integration plan discovers MC ModLoader mod jars intended for Minecraft server usage, parses `loader.mod.json`, validates loader, Java, Minecraft, side, dependency, and breaks metadata, scans jar bytes, and freezes a would-load order. `--minecraft-plan-mods` performs the required prerequisite runtime analysis first, writes the runtime plan and boundary report, writes `runtime/minecraft-mod-integration-plan.json`, never launches Minecraft, never defines or loads scanned mod classes, and never invokes `ModInitializer`.
+
+The preflight report is now a real gate instead of a declarative summary. `runtime/minecraft-preflight-result.json` keeps accepted and rejected counts, warning and fatal counts, rejected mod details, and explicit failure reasons. Preflight exits non-zero when fatal runtime boundary issues exist, fatal integration issues exist, or any discovered Minecraft-targeted mod candidate is rejected.
+
+The reproducibility report is also real. `runtime/minecraft-reproducibility-check.json` compares the generated runtime plan, runtime boundary, mod integration plan, and preflight report when present against a controlled second run, records both file paths and SHA-256 hashes, reports byte equality, and flags nondeterministic ordering, timestamp leakage, path instability, or offline-network violations.
 
 Downloads remain explicit and limited to Minecraft version metadata plus the vanilla server jar. This milestone does not download client jars, client assets, client libraries, client natives, mappings, or source.
 
-Managed Minecraft behavior remains server-only. Minecraft client launch is still not implemented. The loader does not inject mods into Minecraft, put mod jars on the Minecraft server classpath, create a mod classloader for Minecraft server launch, invoke mod entrypoints on the Minecraft server launch path, patch entrypoints, transform classes, remap classes, or perform authentication.
+Managed Minecraft behavior remains server-only. Minecraft client launch is still not implemented. The loader does not inject mods into Minecraft, put mod jars on the Minecraft server classpath, create a mod classloader for Minecraft server launch, invoke mod entrypoints on the Minecraft server launch path, patch entrypoints, transform classes, remap classes, or perform authentication. Bundled official server runtime support is still fixture-proven and verification-hardened here; it is not yet presented as broad real-world mod loading support.
 
 Use `--strict-resources` to fail on duplicate non-class resources, and `--strict-packages` to fail on split packages. Without those flags, duplicate resources and split packages are recorded as diagnostics only.
 
@@ -303,17 +307,21 @@ Behavior notes:
 - `--minecraft-offline` forbids all network fetches and downloads.
 - `--minecraft-cache-inspect` inspects cache state, writes `runtime/minecraft-artifacts.json`, writes diagnostics/profile output, and does not launch Minecraft.
 - `--minecraft-cache-repair` may repair missing or invalid cached metadata and the cached server jar, but only when downloads are otherwise allowed.
-- `--minecraft-cache-strict` promotes cache warnings such as lock mismatches to failures.
+- `--minecraft-cache-strict` fails missing, corrupt, or hash-mismatched cache-owned runtime files and cache lock mismatches.
 - `--minecraft-force-redownload` refreshes allowed cache artifacts even when a cached copy already exists.
 - `--minecraft-dir` defaults to the standard user Minecraft directory only when it can be determined safely for the current OS.
 - `--minecraft-download-server` by itself never downloads anything except metadata needed to identify the server jar and the vanilla server jar itself.
 - `--minecraft-runtime-plan` writes `runtime/minecraft-server-runtime-plan.json` and `runtime/minecraft-runtime-provenance.json`.
 - `--minecraft-boundary-report` writes `runtime/minecraft-runtime-boundary.json`.
+- `--minecraft-plan-mods` performs runtime planning plus boundary analysis before writing `runtime/minecraft-mod-integration-plan.json`.
 - `--minecraft-integration-plan` writes `runtime/minecraft-mod-integration-plan.json`.
-- `--minecraft-preflight` runs runtime planning, boundary reporting, and mod integration planning, then exits before launch or class loading.
+- `--minecraft-preflight` runs runtime planning, boundary reporting, and mod integration planning, writes `runtime/minecraft-preflight-result.json`, and exits non-zero on fatal issues or rejected required mod candidates before launch or class loading.
 - `--minecraft-offline-preflight` combines preflight with offline cache-only behavior.
-- `--minecraft-reproducibility-check` writes `runtime/minecraft-reproducibility-check.json`.
-- `--minecraft-strict-runtime-conflicts`, `--minecraft-strict-side`, and `--minecraft-strict-class-versions` promote selected Mega-Milestone 7 warnings to fatal planning issues.
+- `--minecraft-reproducibility-check` writes `runtime/minecraft-reproducibility-check.json` after rerunning the relevant report generation path and comparing deterministic outputs byte-for-byte.
+- `--minecraft-strict-boundary` promotes boundary warnings such as runtime duplicate-resource and split-package findings to fatal now.
+- `--minecraft-strict-runtime-conflicts` promotes runtime and mod-vs-runtime package/resource conflict findings to fatal now.
+- `--minecraft-strict-side` makes side mismatch a fatal mod-planning issue.
+- `--minecraft-strict-class-versions` makes unsupported or too-new class files a fatal mod-planning issue.
 - `--minecraft-explain-runtime`, `--minecraft-explain-boundary`, and `--minecraft-explain-mods` print deterministic CI-friendly reasons for runtime mode, boundary ownership, and mod acceptance/rejection.
 
 When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-server-launch-result.json` with the managed process command preview, launch outcome, timing, and bounded stdout/stderr tails.
