@@ -1,0 +1,15 @@
+package com.mcmodloader.core.launch;
+
+public enum LaunchPhase {
+    ARGUMENT_PARSE,
+    GAME_PROVIDER_RESOLVE,
+    MOD_DISCOVERY,
+    METADATA_PARSE,
+    DEPENDENCY_RESOLUTION,
+    LOCKFILE,
+    CLASSPATH_PLAN,
+    CLASSLOADER_CREATE,
+    ENTRYPOINT_INVOKE,
+    GAME_LAUNCH,
+    COMPLETE
+}

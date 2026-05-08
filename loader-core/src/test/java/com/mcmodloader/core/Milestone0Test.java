@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.mcmodloader.core.classpath.ModClassLoader;
+import com.mcmodloader.core.classpath.RuntimeClasspathPlan;
 import com.mcmodloader.core.diagnostics.LoaderException;
 import com.mcmodloader.core.discovery.ModCandidate;
 import com.mcmodloader.core.entrypoint.EntrypointInvoker;
 import com.mcmodloader.core.launch.LaunchContext;
+import com.mcmodloader.core.ownership.ClassOwnershipIndex;
 import com.mcmodloader.core.lockfile.LockfileVerifier;
 import com.mcmodloader.core.lockfile.LockfileWriter;
 import com.mcmodloader.core.metadata.ModMetadata;
@@ -290,16 +292,22 @@ class Milestone0Test {
                 )
             );
 
-        try (ModClassLoader classLoader = ModClassLoader.create(resolvedModSet, getClass().getClassLoader())) {
+        try (
+            ModClassLoader classLoader =
+                ModClassLoader.create(new RuntimeClasspathPlan(List.of(jarPath), List.of(), List.of()), getClass().getClassLoader())
+        ) {
             LoaderException exception =
-                assertThrows(LoaderException.class, () -> new EntrypointInvoker().invoke(resolvedModSet, classLoader));
+                assertThrows(
+                    LoaderException.class,
+                    () -> new EntrypointInvoker().invoke(resolvedModSet, classLoader, ClassOwnershipIndex.build(resolvedModSet))
+                );
 
             assertTrue(exception.getMessage().contains("ModInitializer"));
         }
     }
 
     private LaunchContext context() {
-        return new LaunchContext(tempDirectory, tempDirectory.resolve("mods"), "com.example.Game", "0.1.0", 25, "26.1.2");
+        return new LaunchContext(tempDirectory, tempDirectory.resolve("mods"), "com.example.Game", "sample", List.of(), "0.1.0", 25, "26.1.2");
     }
 
     private ModMetadata metadata(String id, String version, Map<String, String> depends) {

@@ -66,7 +66,6 @@ tasks.register<JavaExec>("runMilestone0") {
     mainClass.set("com.mcmodloader.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args("--game-main", "com.mcmodloader.samplegame.SampleGameMain")
-    setExecutable(System.getenv("JAVA_HOME")?.let { "$it\\bin\\java.exe" } ?: "java")
 
     doFirst {
         workingDir.mkdirs()
