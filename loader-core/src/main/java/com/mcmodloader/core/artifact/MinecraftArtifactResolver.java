@@ -2,6 +2,7 @@ package com.mcmodloader.core.artifact;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.mcmodloader.core.LoaderMain;
 import com.mcmodloader.core.diagnostics.DiagnosticEvent;
@@ -98,7 +99,7 @@ public final class MinecraftArtifactResolver {
         ServerJarResolution serverJarResolution = resolveServerJar(config, diagnosticSink, metadata, warnings);
         artifacts.add(serverJarResolution.serverRecord());
 
-        Path artifactLockPath = cache.artifactLockPath();
+        Path artifactLockPath = cache.artifactLockPath(metadata.id());
         verifyLockIfPresent(config, serverJarResolution.serverRecord(), artifactLockPath, warnings, diagnosticSink);
         if (serverJarResolution.serverJarPath() != null && serverJarResolution.serverRecord().verified()) {
             cacheWriter.writeServerLock(
@@ -400,7 +401,7 @@ public final class MinecraftArtifactResolver {
                         0L,
                         "ok",
                         "Minecraft server jar verified",
-                        details(config, null, cacheRecord, cache.artifactReportPath(), cache.artifactLockPath())
+                        details(config, null, cacheRecord, cache.artifactReportPath(), cache.artifactLockPath(metadata.id()))
                     )
                 );
                 return new ServerJarResolution(cachedServerJar, "cache", cacheRecord);
@@ -481,7 +482,7 @@ public final class MinecraftArtifactResolver {
                 0L,
                 "ok",
                 "Minecraft server jar verified",
-                details(config, null, downloadedRecord, cache.artifactReportPath(), cache.artifactLockPath())
+                details(config, null, downloadedRecord, cache.artifactReportPath(), cache.artifactLockPath(metadata.id()))
             )
         );
         return new ServerJarResolution(cachedServerJar, "downloaded", downloadedRecord);
@@ -509,7 +510,7 @@ public final class MinecraftArtifactResolver {
                     result.durationMs(),
                     "ok",
                     "Minecraft network request completed",
-                    details(config, null, null, cache.artifactReportPath(), cache.artifactLockPath(), artifactId, uri.toString())
+                    details(config, null, null, cache.artifactReportPath(), cache.artifactLockPath(selectedRequest(config)), artifactId, uri.toString())
                 )
             );
         }
@@ -537,7 +538,7 @@ public final class MinecraftArtifactResolver {
                         result.verified() ? ArtifactStatus.VERIFIED : ArtifactStatus.PRESENT
                     ),
                     cache.artifactReportPath(),
-                    cache.artifactLockPath()
+                    cache.artifactLockPath(selectedRequest(config))
                 )
             )
         );
@@ -554,15 +555,25 @@ public final class MinecraftArtifactResolver {
         if (serverRecord == null || !Files.isRegularFile(artifactLockPath)) {
             return;
         }
-        JsonObject root = JsonParser.parseString(readString(artifactLockPath)).getAsJsonObject();
-        JsonArray artifacts = root.getAsJsonArray("artifacts");
-        if (artifacts == null || artifacts.isEmpty()) {
-            return;
+        String lockedSha1;
+        String lockedSha256;
+        Long lockedSize;
+        try {
+            JsonObject root = JsonParser.parseString(readString(artifactLockPath)).getAsJsonObject();
+            JsonArray artifacts = root.getAsJsonArray("artifacts");
+            if (artifacts == null || artifacts.isEmpty()) {
+                return;
+            }
+            JsonObject artifact = artifacts.get(0).getAsJsonObject();
+            lockedSha1 = stringOrNull(artifact, "sha1");
+            lockedSha256 = stringOrNull(artifact, "sha256");
+            lockedSize = artifact.has("size") && !artifact.get("size").isJsonNull() ? artifact.get("size").getAsLong() : null;
+        } catch (IllegalStateException | JsonParseException exception) {
+            throw new LoaderException(
+                "Minecraft server artifact lock is malformed: " + cache.displayPath(artifactLockPath),
+                exception
+            );
         }
-        JsonObject artifact = artifacts.get(0).getAsJsonObject();
-        String lockedSha1 = stringOrNull(artifact, "sha1");
-        String lockedSha256 = stringOrNull(artifact, "sha256");
-        Long lockedSize = artifact.has("size") && !artifact.get("size").isJsonNull() ? artifact.get("size").getAsLong() : null;
 
         boolean matches =
             Objects.equals(lockedSha1, serverRecord.sha1()) &&

@@ -130,7 +130,10 @@ public final class MinecraftArtifactCacheWriter {
 
     private void writeJson(Path outputPath, JsonObject root, String label) throws LoaderException {
         try {
-            Files.createDirectories(outputPath.toAbsolutePath().normalize().getParent());
+            Path parent = outputPath.toAbsolutePath().normalize().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             try (Writer writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
                 gson.toJson(root, writer);
             }

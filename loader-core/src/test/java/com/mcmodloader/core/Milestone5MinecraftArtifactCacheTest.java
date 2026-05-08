@@ -57,8 +57,8 @@ class Milestone5MinecraftArtifactCacheTest {
         );
         assertEquals(tempDirectory.resolve("runtime/minecraft-cache/tmp").toAbsolutePath().normalize(), cache.tmpDirectory());
         assertEquals(
-            tempDirectory.resolve("runtime/minecraft-cache/server-artifacts.lock.json").toAbsolutePath().normalize(),
-            cache.artifactLockPath()
+            tempDirectory.resolve("runtime/minecraft-cache/versions/26.1.2/server-artifacts.lock.json").toAbsolutePath().normalize(),
+            cache.artifactLockPath("26.1.2")
         );
         assertEquals(tempDirectory.resolve("minecraft-artifacts.json").toAbsolutePath().normalize(), cache.artifactReportPath());
     }
@@ -305,7 +305,7 @@ class Milestone5MinecraftArtifactCacheTest {
         MinecraftArtifactResolver resolver = new MinecraftArtifactResolver(cache);
         resolver.resolve(tempDirectory, serverConfig(versionJson, cacheDir, true, false, false, false), new JsonDiagnosticSink(tempDirectory.resolve("diagnostics/startup-trace.json")));
 
-        String lockJson = Files.readString(cache.artifactLockPath(), StandardCharsets.UTF_8);
+        String lockJson = Files.readString(cache.artifactLockPath("26.1.2"), StandardCharsets.UTF_8);
         assertTrue(lockJson.contains("\"id\": \"server-jar\""));
         assertTrue(lockJson.contains("\"sha1\": \"" + sha1(serverBytes) + "\""));
     }
@@ -324,9 +324,9 @@ class Milestone5MinecraftArtifactCacheTest {
             sha1(serverBytes),
             (long) serverBytes.length
         );
-        Files.createDirectories(cache.artifactLockPath().getParent());
+        Files.createDirectories(cache.artifactLockPath("26.1.2").getParent());
         Files.writeString(
-            cache.artifactLockPath(),
+            cache.artifactLockPath("26.1.2"),
             """
             {
               "schema": 1,

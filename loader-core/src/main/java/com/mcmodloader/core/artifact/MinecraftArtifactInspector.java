@@ -2,6 +2,7 @@ package com.mcmodloader.core.artifact;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.mcmodloader.core.diagnostics.DiagnosticEvent;
 import com.mcmodloader.core.diagnostics.DiagnosticSink;
@@ -86,7 +87,7 @@ public final class MinecraftArtifactInspector {
             inspectPresent("server-jar", ArtifactKind.SERVER, serverJarPath, expectedSha1, expectedSize, config.cacheStrict(), warnings);
         artifacts.add(serverRecord);
 
-        verifyLockIfPresent(config, serverRecord, warnings, diagnosticSink);
+        verifyLockIfPresent(config, metadata == null ? config.requestedVersion() : metadata.id(), serverRecord, warnings, diagnosticSink);
 
         if (!Files.isRegularFile(versionJsonPath)) {
             warnings.add("Cached version JSON is missing.");
@@ -115,7 +116,7 @@ public final class MinecraftArtifactInspector {
                 0L,
                 "ok",
                 "Minecraft artifact cache report written",
-                details(config, cache.artifactReportPath(), cache.artifactLockPath())
+                details(config, cache.artifactReportPath(), cache.artifactLockPath(config.requestedVersion()))
             )
         );
         diagnosticSink.record(
@@ -125,7 +126,7 @@ public final class MinecraftArtifactInspector {
                 0L,
                 "ok",
                 "Minecraft cache inspection complete",
-                details(config, cache.artifactReportPath(), cache.artifactLockPath())
+                details(config, cache.artifactReportPath(), cache.artifactLockPath(config.requestedVersion()))
             )
         );
         return report;
@@ -174,24 +175,32 @@ public final class MinecraftArtifactInspector {
 
     private void verifyLockIfPresent(
         MinecraftProviderConfig config,
+        String version,
         MinecraftArtifactRecord serverRecord,
         List<String> warnings,
         DiagnosticSink diagnosticSink
     ) throws LoaderException {
-        Path lockPath = cache.artifactLockPath();
+        Path lockPath = cache.artifactLockPath(version);
         if (!Files.isRegularFile(lockPath) || !serverRecord.present()) {
             return;
         }
-        JsonObject root = JsonParser.parseString(readString(lockPath)).getAsJsonObject();
-        JsonArray artifacts = root.getAsJsonArray("artifacts");
-        if (artifacts == null || artifacts.isEmpty()) {
-            return;
-        }
+        String sha1;
+        String sha256;
+        Long size;
+        try {
+            JsonObject root = JsonParser.parseString(readString(lockPath)).getAsJsonObject();
+            JsonArray artifacts = root.getAsJsonArray("artifacts");
+            if (artifacts == null || artifacts.isEmpty()) {
+                return;
+            }
 
-        JsonObject entry = artifacts.get(0).getAsJsonObject();
-        String sha1 = entry.has("sha1") && !entry.get("sha1").isJsonNull() ? entry.get("sha1").getAsString() : null;
-        String sha256 = entry.has("sha256") && !entry.get("sha256").isJsonNull() ? entry.get("sha256").getAsString() : null;
-        Long size = entry.has("size") && !entry.get("size").isJsonNull() ? entry.get("size").getAsLong() : null;
+            JsonObject entry = artifacts.get(0).getAsJsonObject();
+            sha1 = entry.has("sha1") && !entry.get("sha1").isJsonNull() ? entry.get("sha1").getAsString() : null;
+            sha256 = entry.has("sha256") && !entry.get("sha256").isJsonNull() ? entry.get("sha256").getAsString() : null;
+            size = entry.has("size") && !entry.get("size").isJsonNull() ? entry.get("size").getAsLong() : null;
+        } catch (IllegalStateException | JsonParseException exception) {
+            throw new LoaderException("Minecraft server artifact lock is malformed: " + cache.displayPath(lockPath), exception);
+        }
         boolean matches =
             Objects.equals(sha1, serverRecord.sha1()) &&
             Objects.equals(sha256, serverRecord.sha256()) &&

@@ -35,8 +35,8 @@ public final class MinecraftArtifactCache {
         return cacheDirectory.resolve("tmp").toAbsolutePath().normalize();
     }
 
-    public Path artifactLockPath() {
-        return cacheDirectory.resolve("server-artifacts.lock.json").toAbsolutePath().normalize();
+    public Path artifactLockPath(String version) {
+        return cacheDirectory.resolve("versions").resolve(version).resolve("server-artifacts.lock.json").toAbsolutePath().normalize();
     }
 
     public Path artifactReportPath() {

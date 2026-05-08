@@ -198,7 +198,7 @@ class Milestone6MinecraftRealBaselineTest {
             )
         );
 
-        String lockJson = Files.readString(cacheDir.resolve("server-artifacts.lock.json"), StandardCharsets.UTF_8);
+        String lockJson = Files.readString(cacheDir.resolve("versions/1.21.8/server-artifacts.lock.json"), StandardCharsets.UTF_8);
         assertTrue(lockJson.contains("\"baselineMinecraft\": \"1.21.8\""));
         assertTrue(lockJson.contains("\"id\": \"server-jar\""));
     }
@@ -209,7 +209,7 @@ class Milestone6MinecraftRealBaselineTest {
         Path serverJar = createFakeServerJar(tempDirectory.resolve("fake-server.jar"), false);
         prepareCachedBaseline(cacheDir, serverJar, true);
         Files.writeString(
-            cacheDir.resolve("server-artifacts.lock.json"),
+            cacheDir.resolve("versions/1.21.8/server-artifacts.lock.json"),
             """
             {
               "schema": 1,
@@ -393,7 +393,7 @@ class Milestone6MinecraftRealBaselineTest {
 
         if (createLock) {
             Files.writeString(
-                cacheDir.resolve("server-artifacts.lock.json"),
+                cacheDir.resolve("versions/1.21.8/server-artifacts.lock.json"),
                 """
                 {
                   "schema": 1,

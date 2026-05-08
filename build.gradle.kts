@@ -166,6 +166,12 @@ fun minecraftRuntimeClasspath() =
     project(":loader-core").the<SourceSetContainer>()["main"].runtimeClasspath +
         project(":loader-api").the<SourceSetContainer>()["main"].output
 
+fun JavaExec.ensureRuntimeWorkingDir() {
+    doFirst {
+        workingDir.mkdirs()
+    }
+}
+
 val prepareMinecraftServerLaunchFixture by tasks.registering {
     dependsOn(":sample-server-fixture:jar")
 
@@ -206,20 +212,15 @@ tasks.register<JavaExec>("runMilestone0") {
 
     val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
     val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
-    val loaderApiSourceSets = project(":loader-api").the<SourceSetContainer>()
-
     classpath =
         loaderCoreSourceSets["main"].runtimeClasspath +
-            sampleGameSourceSets["main"].output +
-            loaderApiSourceSets["main"].output
+            sampleGameSourceSets["main"].output
 
     mainClass.set("com.mcmodloader.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args("--game-main", "com.mcmodloader.samplegame.SampleGameMain")
 
-    doFirst {
-        workingDir.mkdirs()
-    }
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("validateMilestone0") {
@@ -229,20 +230,15 @@ tasks.register<JavaExec>("validateMilestone0") {
 
     val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
     val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
-    val loaderApiSourceSets = project(":loader-api").the<SourceSetContainer>()
-
     classpath =
         loaderCoreSourceSets["main"].runtimeClasspath +
-            sampleGameSourceSets["main"].output +
-            loaderApiSourceSets["main"].output
+            sampleGameSourceSets["main"].output
 
     mainClass.set("com.mcmodloader.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args("--game-main", "com.mcmodloader.samplegame.SampleGameMain", "--validate-only")
 
-    doFirst {
-        workingDir.mkdirs()
-    }
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("explainMilestone0") {
@@ -252,20 +248,15 @@ tasks.register<JavaExec>("explainMilestone0") {
 
     val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
     val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
-    val loaderApiSourceSets = project(":loader-api").the<SourceSetContainer>()
-
     classpath =
         loaderCoreSourceSets["main"].runtimeClasspath +
-            sampleGameSourceSets["main"].output +
-            loaderApiSourceSets["main"].output
+            sampleGameSourceSets["main"].output
 
     mainClass.set("com.mcmodloader.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args("--game-main", "com.mcmodloader.samplegame.SampleGameMain", "--validate-only", "--explain")
 
-    doFirst {
-        workingDir.mkdirs()
-    }
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftDryRun") {
@@ -289,10 +280,7 @@ tasks.register<JavaExec>("minecraftDryRun") {
         "client",
         "--minecraft-dry-run"
     )
-
-    doFirst {
-        workingDir.mkdirs()
-    }
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftServerDryRun") {
@@ -316,10 +304,7 @@ tasks.register<JavaExec>("minecraftServerDryRun") {
         "server",
         "--minecraft-dry-run"
     )
-
-    doFirst {
-        workingDir.mkdirs()
-    }
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("macheReferenceScan") {
@@ -341,6 +326,7 @@ tasks.register<JavaExec>("macheReferenceScan") {
     }
 
     doFirst {
+        workingDir.mkdirs()
         val macheDir = providers.gradleProperty("macheDir").get()
         args(
             "--game-main",
@@ -394,6 +380,7 @@ tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
         "--minecraft-output-plan",
         "minecraft-launch-plan.json"
     )
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
@@ -414,6 +401,7 @@ tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
     }
 
     doFirst {
+        workingDir.mkdirs()
         val minecraftDir = providers.gradleProperty("minecraftDir").get()
         args(
             "--game-main",
@@ -459,6 +447,7 @@ tasks.register<JavaExec>("minecraftServerCacheInspect") {
         "--minecraft-dry-run",
         "--minecraft-cache-inspect"
     )
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
@@ -483,6 +472,7 @@ tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
         "--minecraft-verify-files",
         "--minecraft-cache-strict"
     )
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftServerCacheRepair") {
@@ -508,6 +498,7 @@ tasks.register<JavaExec>("minecraftServerCacheRepair") {
         "--minecraft-cache-repair",
         "--minecraft-verify-files"
     )
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
@@ -539,6 +530,7 @@ tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
         "--minecraft-output-plan",
         "minecraft-launch-plan.json"
     )
+    ensureRuntimeWorkingDir()
 }
 
 fun JavaExec.configureRealBaselineTask(
@@ -582,8 +574,8 @@ fun JavaExec.configureRealBaselineTask(
         }
         argsList += extraArgs
         setArgs(argsList)
-        workingDir.mkdirs()
     }
+    ensureRuntimeWorkingDir()
 }
 
 tasks.register<JavaExec>("minecraftRealServerAcquire") {

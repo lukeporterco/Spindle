@@ -157,7 +157,7 @@ If Mache reference scanning is enabled, it also writes:
 
 - `runtime/mache-reference-report.json`
 
-Milestone 5 adds an explicit verified vanilla server artifact cache under `runtime/minecraft-cache/`. Milestone 6 extends that into a real official vanilla server baseline flow. The loader can resolve an official Mojang server version, cache version metadata, cache only the vanilla server jar, verify cached server artifacts, write `runtime/minecraft-artifacts.json`, write `runtime/minecraft-cache/server-artifacts.lock.json`, and write `runtime/minecraft-server-baseline.json` after a successful baseline resolution.
+Milestone 5 adds an explicit verified vanilla server artifact cache under `runtime/minecraft-cache/`. Milestone 6 extends that into a real official vanilla server baseline flow. The loader can resolve an official Mojang server version, cache version metadata, cache only the vanilla server jar, verify cached server artifacts, write `runtime/minecraft-artifacts.json`, write `runtime/minecraft-cache/versions/<version>/server-artifacts.lock.json`, and write `runtime/minecraft-server-baseline.json` after a successful baseline resolution.
 
 Milestone 6 also adds an explicit offline replay path. Offline replay uses only cached manifest metadata, cached version JSON, and a cached verified server jar. It performs zero network requests, writes the normal artifact and launch-plan reports, and writes a deterministic baseline report.
 
@@ -252,7 +252,7 @@ When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-ser
 
 `minecraftServerOfflineCacheCheck` verifies that a previously populated cache is complete enough to run offline. It is allowed to fail when the cache has not been populated yet.
 
-`minecraftServerDownloadSmoke` is the explicit network-enabled smoke path. It fetches metadata if needed, fetches and verifies the vanilla server jar if needed, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-cache/server-artifacts.lock.json`, writes `runtime/minecraft-launch-plan.json`, and then attempts a managed vanilla server launch. It does not pass `--minecraft-accept-eula-for-test` by default.
+`minecraftServerDownloadSmoke` is the explicit network-enabled smoke path. It fetches metadata if needed, fetches and verifies the vanilla server jar if needed, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-cache/versions/<version>/server-artifacts.lock.json`, writes `runtime/minecraft-launch-plan.json`, and then attempts a managed vanilla server launch. It does not pass `--minecraft-accept-eula-for-test` by default.
 
 `minecraftRealServerAcquire` is the explicit real-baseline acquisition path. It resolves the real official server version from Mojang metadata, fetches only manifest metadata, version metadata, and the vanilla server jar, verifies those artifacts, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-launch-plan.json`, writes `runtime/minecraft-server-baseline.json`, and does not launch the server.
 
