@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 public final class LockfileVerifier {
     private final Gson gson = new GsonBuilder().create();
@@ -22,6 +23,7 @@ public final class LockfileVerifier {
 
     public void verify(Path lockfilePath, LaunchContext context, ResolvedModSet resolvedModSet) throws LoaderException {
         Lockfile actual = read(lockfilePath);
+        validate(actual);
         Lockfile expected = Lockfile.from(context, resolvedModSet);
 
         if (actual.schema() != expected.schema()) {
@@ -70,8 +72,42 @@ public final class LockfileVerifier {
             return lockfile;
         } catch (JsonParseException exception) {
             throw new LoaderException("loader.lock.json is invalid", exception);
+        } catch (RuntimeException exception) {
+            throw new LoaderException("loader.lock.json is invalid", exception);
         } catch (IOException exception) {
             throw new LoaderException("Failed to read loader.lock.json", exception);
+        }
+    }
+
+    private void validate(Lockfile lockfile) throws LoaderException {
+        if (lockfile.mods() == null) {
+            throw new LoaderException("loader.lock.json mods is missing");
+        }
+        if (lockfile.loader() == null) {
+            throw new LoaderException("loader.lock.json loader is missing");
+        }
+        if (lockfile.minecraftVersion() == null) {
+            throw new LoaderException("loader.lock.json Minecraft version is missing");
+        }
+
+        List<Lockfile.LockedMod> mods = lockfile.mods();
+        for (int index = 0; index < mods.size(); index++) {
+            Lockfile.LockedMod mod = mods.get(index);
+            if (mod == null) {
+                throw new LoaderException("loader.lock.json mod is missing at index " + index);
+            }
+            if (Objects.requireNonNullElse(mod.id(), "").isEmpty()) {
+                throw new LoaderException("loader.lock.json mod id is missing at index " + index);
+            }
+            if (Objects.requireNonNullElse(mod.version(), "").isEmpty()) {
+                throw new LoaderException("loader.lock.json mod version is missing at index " + index);
+            }
+            if (Objects.requireNonNullElse(mod.path(), "").isEmpty()) {
+                throw new LoaderException("loader.lock.json mod path is missing at index " + index);
+            }
+            if (Objects.requireNonNullElse(mod.sha256(), "").isEmpty()) {
+                throw new LoaderException("loader.lock.json mod sha256 is missing at index " + index);
+            }
         }
     }
 }

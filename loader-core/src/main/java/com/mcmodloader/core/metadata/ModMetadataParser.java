@@ -10,6 +10,7 @@ import com.mcmodloader.core.discovery.ModCandidate;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -151,7 +152,12 @@ public final class ModMetadataParser {
         if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
             throw new LoaderException("Missing integer field " + key + " in " + sourceName);
         }
-        return element.getAsInt();
+
+        try {
+            return new BigDecimal(element.getAsString()).intValueExact();
+        } catch (NumberFormatException | ArithmeticException exception) {
+            throw new LoaderException("Missing integer field " + key + " in " + sourceName);
+        }
     }
 
     private String requiredString(JsonObject jsonObject, String key, String sourceName) throws LoaderException {

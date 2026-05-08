@@ -71,6 +71,14 @@ class Milestone0Test {
     }
 
     @Test
+    void schemaMustBeExactInteger() {
+        assertThrows(LoaderException.class, () -> metadataParser.parse(SAMPLE_METADATA.replace("\"schema\": 1", "\"schema\": 1.5"), "decimal-schema"));
+        assertThrows(LoaderException.class, () -> metadataParser.parse(SAMPLE_METADATA.replace("\"schema\": 1", "\"schema\": \"1\""), "string-schema"));
+        assertThrows(LoaderException.class, () -> metadataParser.parse(SAMPLE_METADATA.replace("\"schema\": 1", "\"schema\": null"), "null-schema"));
+        assertThrows(LoaderException.class, () -> metadataParser.parse(SAMPLE_METADATA.replace("\"schema\": 1,\n", ""), "missing-schema"));
+    }
+
+    @Test
     void missingDependencyFails() throws LoaderException {
         ModMetadata metadata = metadata(
             "samplemod",
@@ -156,6 +164,116 @@ class Milestone0Test {
     }
 
     @Test
+    void lockfileNullModsFailsWithLoaderException() throws IOException {
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": "0.1.0",
+              "java": 25,
+              "minecraft": "26.1.2",
+              "mods": null
+            }
+            """);
+    }
+
+    @Test
+    void lockfileNullLoaderFailsWithLoaderException() throws IOException {
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": null,
+              "java": 25,
+              "minecraft": "26.1.2",
+              "mods": []
+            }
+            """);
+    }
+
+    @Test
+    void lockfileNullMinecraftFailsWithLoaderException() throws IOException {
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": "0.1.0",
+              "java": 25,
+              "minecraft": null,
+              "mods": []
+            }
+            """);
+    }
+
+    @Test
+    void lockfileNullModFieldsFailWithLoaderException() throws IOException {
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": "0.1.0",
+              "java": 25,
+              "minecraft": "26.1.2",
+              "mods": [
+                {
+                  "id": null,
+                  "version": "1.0.0",
+                  "path": "mods/sample-mod.jar",
+                  "sha256": "aaa"
+                }
+              ]
+            }
+            """);
+
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": "0.1.0",
+              "java": 25,
+              "minecraft": "26.1.2",
+              "mods": [
+                {
+                  "id": "samplemod",
+                  "version": null,
+                  "path": "mods/sample-mod.jar",
+                  "sha256": "aaa"
+                }
+              ]
+            }
+            """);
+
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": "0.1.0",
+              "java": 25,
+              "minecraft": "26.1.2",
+              "mods": [
+                {
+                  "id": "samplemod",
+                  "version": "1.0.0",
+                  "path": null,
+                  "sha256": "aaa"
+                }
+              ]
+            }
+            """);
+
+        assertMalformedLockfileFails("""
+            {
+              "schema": 1,
+              "loader": "0.1.0",
+              "java": 25,
+              "minecraft": "26.1.2",
+              "mods": [
+                {
+                  "id": "samplemod",
+                  "version": "1.0.0",
+                  "path": "mods/sample-mod.jar",
+                  "sha256": null
+                }
+              ]
+            }
+            """);
+    }
+
+    @Test
     void entrypointMustImplementModInitializer() throws IOException, LoaderException {
         Path jarPath = createEmptyJar(tempDirectory.resolve("sample-mod.jar"));
         ResolvedModSet resolvedModSet =
@@ -200,6 +318,27 @@ class Milestone0Test {
             jarOutputStream.closeEntry();
         }
         return jarPath;
+    }
+
+    private void assertMalformedLockfileFails(String lockfileJson) throws IOException {
+        Path lockfilePath = tempDirectory.resolve("loader.lock.json");
+        Files.writeString(lockfilePath, lockfileJson);
+
+        ResolvedModSet resolvedModSet =
+            new ResolvedModSet(
+                List.of(
+                    new ResolvedModSet.ResolvedMod(
+                        "samplemod",
+                        "1.0.0",
+                        Path.of("mods/sample-mod.jar"),
+                        tempDirectory.resolve("sample-mod.jar"),
+                        "aaa",
+                        List.of("com.example.Sample")
+                    )
+                )
+            );
+
+        assertThrows(LoaderException.class, () -> new LockfileVerifier().verify(lockfilePath, context(), resolvedModSet));
     }
 
     public static final class PlainEntrypoint {
