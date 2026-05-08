@@ -9,12 +9,17 @@ import com.mcmodloader.core.classpath.RuntimeClasspathPlan;
 import com.mcmodloader.core.diagnostics.LoaderException;
 import com.mcmodloader.core.discovery.ModCandidate;
 import com.mcmodloader.core.entrypoint.EntrypointInvoker;
+import com.mcmodloader.core.game.SampleGameProvider;
+import com.mcmodloader.core.graph.FrozenModGraph;
+import com.mcmodloader.core.graph.FrozenModGraphBuilder;
 import com.mcmodloader.core.launch.LaunchContext;
 import com.mcmodloader.core.ownership.ClassOwnershipIndex;
+import com.mcmodloader.core.ownership.PackageOwnershipIndex;
 import com.mcmodloader.core.lockfile.LockfileVerifier;
 import com.mcmodloader.core.lockfile.LockfileWriter;
 import com.mcmodloader.core.metadata.ModMetadata;
 import com.mcmodloader.core.metadata.ModMetadataParser;
+import com.mcmodloader.core.resource.ResourceConflictIndex;
 import com.mcmodloader.core.resolve.DependencyResolver;
 import com.mcmodloader.core.resolve.ResolvedModSet;
 import java.io.IOException;
@@ -148,13 +153,21 @@ class Milestone0Test {
     @Test
     void lockfileDetectsHashMismatch() throws LoaderException {
         ResolvedModSet resolvedModSet =
-            new ResolvedModSet(List.of(new ResolvedModSet.ResolvedMod("samplemod", "1.0.0", Path.of("mods/sample-mod.jar"), tempDirectory.resolve("sample-mod.jar"), "aaa", List.of("com.example.Sample"))));
+            new ResolvedModSet(
+                List.of(
+                    resolvedMod("samplemod", "1.0.0", Path.of("mods/sample-mod.jar"), tempDirectory.resolve("sample-mod.jar"), "aaa", List.of("com.example.Sample"))
+                )
+            );
         Path lockfilePath = tempDirectory.resolve("loader.lock.json");
 
         new LockfileWriter().write(lockfilePath, context(), resolvedModSet);
 
         ResolvedModSet changedResolvedModSet =
-            new ResolvedModSet(List.of(new ResolvedModSet.ResolvedMod("samplemod", "1.0.0", Path.of("mods/sample-mod.jar"), tempDirectory.resolve("sample-mod.jar"), "bbb", List.of("com.example.Sample"))));
+            new ResolvedModSet(
+                List.of(
+                    resolvedMod("samplemod", "1.0.0", Path.of("mods/sample-mod.jar"), tempDirectory.resolve("sample-mod.jar"), "bbb", List.of("com.example.Sample"))
+                )
+            );
 
         LoaderException exception =
             assertThrows(
@@ -287,19 +300,31 @@ class Milestone0Test {
                         Path.of("mods/sample-mod.jar"),
                         jarPath,
                         "aaa",
-                        List.of(PlainEntrypoint.class.getName())
+                        Map.of("main", List.of(PlainEntrypoint.class.getName())),
+                        Map.of(),
+                        Map.of()
                     )
                 )
             );
 
-        try (
-            ModClassLoader classLoader =
-                ModClassLoader.create(new RuntimeClasspathPlan(List.of(jarPath), List.of(), List.of()), getClass().getClassLoader())
-        ) {
+        RuntimeClasspathPlan classpathPlan = new RuntimeClasspathPlan(List.of(jarPath), List.of(), List.of());
+        FrozenModGraph frozenModGraph =
+            new FrozenModGraphBuilder()
+                .build(
+                    context(),
+                    new SampleGameProvider(LoaderMain.TARGET_MINECRAFT_VERSION),
+                    resolvedModSet,
+                    classpathPlan,
+                    ClassOwnershipIndex.build(resolvedModSet),
+                    PackageOwnershipIndex.build(resolvedModSet),
+                    ResourceConflictIndex.build(resolvedModSet)
+                );
+
+        try (ModClassLoader classLoader = ModClassLoader.create(classpathPlan, getClass().getClassLoader())) {
             LoaderException exception =
                 assertThrows(
                     LoaderException.class,
-                    () -> new EntrypointInvoker().invoke(resolvedModSet, classLoader, ClassOwnershipIndex.build(resolvedModSet))
+                    () -> new EntrypointInvoker().invoke(frozenModGraph, classLoader, ClassOwnershipIndex.build(resolvedModSet))
                 );
 
             assertTrue(exception.getMessage().contains("ModInitializer"));
@@ -307,11 +332,24 @@ class Milestone0Test {
     }
 
     private LaunchContext context() {
-        return new LaunchContext(tempDirectory, tempDirectory.resolve("mods"), "com.example.Game", "sample", List.of(), "0.1.0", 25, "26.1.2");
+        return new LaunchContext(
+            tempDirectory,
+            tempDirectory.resolve("mods"),
+            "com.example.Game",
+            "sample",
+            List.of(),
+            false,
+            false,
+            false,
+            false,
+            "0.1.0",
+            25,
+            "26.1.2"
+        );
     }
 
     private ModMetadata metadata(String id, String version, Map<String, String> depends) {
-        return new ModMetadata(1, id, version, "universal", Map.of("main", List.of("com.example.Entrypoint")), depends);
+        return new ModMetadata(1, id, version, "universal", Map.of("main", List.of("com.example.Entrypoint")), depends, Map.of());
     }
 
     private ModCandidate candidate(String relativePath, String sha256, ModMetadata metadata) {
@@ -341,7 +379,9 @@ class Milestone0Test {
                         Path.of("mods/sample-mod.jar"),
                         tempDirectory.resolve("sample-mod.jar"),
                         "aaa",
-                        List.of("com.example.Sample")
+                        Map.of("main", List.of("com.example.Sample")),
+                        Map.of(),
+                        Map.of()
                     )
                 )
             );
@@ -352,5 +392,16 @@ class Milestone0Test {
     public static final class PlainEntrypoint {
         public PlainEntrypoint() {
         }
+    }
+
+    private ResolvedModSet.ResolvedMod resolvedMod(
+        String id,
+        String version,
+        Path relativePath,
+        Path jarPath,
+        String sha256,
+        List<String> entrypoints
+    ) {
+        return new ResolvedModSet.ResolvedMod(id, version, relativePath, jarPath, sha256, Map.of("main", entrypoints), Map.of(), Map.of());
     }
 }

@@ -11,28 +11,37 @@ import java.util.jar.JarFile;
 
 public final class ClassOwnershipIndex {
     private final Map<String, String> classOwners;
+    private final Map<String, Integer> classCountByMod;
 
-    private ClassOwnershipIndex(Map<String, String> classOwners) {
+    private ClassOwnershipIndex(Map<String, String> classOwners, Map<String, Integer> classCountByMod) {
         this.classOwners = Map.copyOf(new TreeMap<>(classOwners));
+        this.classCountByMod = Map.copyOf(new TreeMap<>(classCountByMod));
     }
 
     public static ClassOwnershipIndex build(ResolvedModSet resolvedMods) throws LoaderException {
         Map<String, String> classOwners = new LinkedHashMap<>();
+        Map<String, Integer> classCountByMod = new TreeMap<>();
         for (ResolvedModSet.ResolvedMod mod : resolvedMods.mods()) {
+            int modClassCount = 0;
             try (JarFile jarFile = new JarFile(mod.jarPath().toFile())) {
-                jarFile
-                    .stream()
-                    .filter(entry -> !entry.isDirectory())
-                    .map(entry -> entry.getName())
-                    .filter(name -> name.endsWith(".class"))
-                    .filter(name -> !"module-info.class".equals(name))
-                    .map(ClassOwnershipIndex::toBinaryClassName)
-                    .forEach(className -> classOwners.compute(className, (ignored, existingOwner) -> {
+                for (var entries = jarFile.entries(); entries.hasMoreElements();) {
+                    var entry = entries.nextElement();
+                    if (entry.isDirectory()) {
+                        continue;
+                    }
+                    String name = entry.getName();
+                    if (!name.endsWith(".class") || "module-info.class".equals(name)) {
+                        continue;
+                    }
+                    modClassCount++;
+                    String className = toBinaryClassName(name);
+                    classOwners.compute(className, (ignored, existingOwner) -> {
                         if (existingOwner != null && !existingOwner.equals(mod.id())) {
                             throw new DuplicateClassOwnershipException(existingOwner, mod.id(), className);
                         }
                         return mod.id();
-                    }));
+                    });
+                }
             } catch (DuplicateClassOwnershipException exception) {
                 throw new LoaderException(
                     "Duplicate class " +
@@ -45,9 +54,10 @@ public final class ClassOwnershipIndex {
             } catch (IOException exception) {
                 throw new LoaderException("Failed to index classes for mod " + mod.id(), exception);
             }
+            classCountByMod.put(mod.id(), modClassCount);
         }
 
-        return new ClassOwnershipIndex(classOwners);
+        return new ClassOwnershipIndex(classOwners, classCountByMod);
     }
 
     public Optional<String> ownerOfClass(String binaryClassName) {
@@ -56,6 +66,14 @@ public final class ClassOwnershipIndex {
 
     public Map<String, String> classOwners() {
         return classOwners;
+    }
+
+    public Map<String, Integer> classCountByMod() {
+        return classCountByMod;
+    }
+
+    public int totalClasses() {
+        return classOwners.size();
     }
 
     private static String toBinaryClassName(String entryName) {

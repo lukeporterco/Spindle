@@ -71,3 +71,49 @@ tasks.register<JavaExec>("runMilestone0") {
         workingDir.mkdirs()
     }
 }
+
+tasks.register<JavaExec>("validateMilestone0") {
+    group = "application"
+    description = "Builds the sample mod and validates the frozen Milestone 0 modpack without launching the game."
+    dependsOn(":loader-core:classes", ":sample-game:classes", ":loader-api:classes", prepareMilestone0Mods)
+
+    val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
+    val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
+    val loaderApiSourceSets = project(":loader-api").the<SourceSetContainer>()
+
+    classpath =
+        loaderCoreSourceSets["main"].runtimeClasspath +
+            sampleGameSourceSets["main"].output +
+            loaderApiSourceSets["main"].output
+
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+    args("--game-main", "com.mcmodloader.samplegame.SampleGameMain", "--validate-only")
+
+    doFirst {
+        workingDir.mkdirs()
+    }
+}
+
+tasks.register<JavaExec>("explainMilestone0") {
+    group = "application"
+    description = "Builds the sample mod and prints an explain summary for the frozen Milestone 0 modpack."
+    dependsOn(":loader-core:classes", ":sample-game:classes", ":loader-api:classes", prepareMilestone0Mods)
+
+    val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
+    val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
+    val loaderApiSourceSets = project(":loader-api").the<SourceSetContainer>()
+
+    classpath =
+        loaderCoreSourceSets["main"].runtimeClasspath +
+            sampleGameSourceSets["main"].output +
+            loaderApiSourceSets["main"].output
+
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+    args("--game-main", "com.mcmodloader.samplegame.SampleGameMain", "--validate-only", "--explain")
+
+    doFirst {
+        workingDir.mkdirs()
+    }
+}

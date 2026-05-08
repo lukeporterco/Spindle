@@ -66,6 +66,10 @@ class Milestone1LaunchArchitectureTest {
                     arguments.gameMainClass(),
                     arguments.gameProviderId(),
                     arguments.launchArguments(),
+                    false,
+                    false,
+                    false,
+                    false,
                     LoaderMain.LOADER_VERSION,
                     25,
                     LoaderMain.TARGET_MINECRAFT_VERSION
@@ -88,6 +92,10 @@ class Milestone1LaunchArchitectureTest {
                         "com.example.Game",
                         "unknown",
                         List.of(),
+                        false,
+                        false,
+                        false,
+                        false,
                         LoaderMain.LOADER_VERSION,
                         25,
                         LoaderMain.TARGET_MINECRAFT_VERSION
@@ -111,6 +119,10 @@ class Milestone1LaunchArchitectureTest {
                     " ",
                     "sample",
                     List.of(),
+                    false,
+                    false,
+                    false,
+                    false,
                     LoaderMain.LOADER_VERSION,
                     25,
                     LoaderMain.TARGET_MINECRAFT_VERSION
@@ -126,6 +138,10 @@ class Milestone1LaunchArchitectureTest {
                     null,
                     "sample",
                     List.of(),
+                    false,
+                    false,
+                    false,
+                    false,
                     LoaderMain.LOADER_VERSION,
                     25,
                     LoaderMain.TARGET_MINECRAFT_VERSION
@@ -140,7 +156,7 @@ class Milestone1LaunchArchitectureTest {
         Path unresolvedJar = createJarWithEntries(tempDirectory.resolve("unresolved.jar"), Map.of("placeholder.txt", new byte[] {2}));
         ResolvedModSet resolvedModSet =
             new ResolvedModSet(
-                List.of(new ResolvedModSet.ResolvedMod("samplemod", "1.0.0", Path.of("mods/resolved.jar"), resolvedJar, "aaa", List.of()))
+                List.of(new ResolvedModSet.ResolvedMod("samplemod", "1.0.0", Path.of("mods/resolved.jar"), resolvedJar, "aaa", Map.of(), Map.of(), Map.of()))
             );
 
         RuntimeClasspathPlan plan =
@@ -151,6 +167,10 @@ class Milestone1LaunchArchitectureTest {
                     "com.example.Game",
                     "sample",
                     List.of(),
+                    false,
+                    false,
+                    false,
+                    false,
                     LoaderMain.LOADER_VERSION,
                     25,
                     LoaderMain.TARGET_MINECRAFT_VERSION
@@ -171,7 +191,7 @@ class Milestone1LaunchArchitectureTest {
             );
         ResolvedModSet resolvedModSet =
             new ResolvedModSet(
-                List.of(new ResolvedModSet.ResolvedMod("samplemod", "1.0.0", Path.of("mods/owner.jar"), jarPath, "aaa", List.of()))
+                List.of(new ResolvedModSet.ResolvedMod("samplemod", "1.0.0", Path.of("mods/owner.jar"), jarPath, "aaa", Map.of(), Map.of(), Map.of()))
             );
 
         ClassOwnershipIndex index = ClassOwnershipIndex.build(resolvedModSet);
@@ -187,8 +207,8 @@ class Milestone1LaunchArchitectureTest {
         ResolvedModSet resolvedModSet =
             new ResolvedModSet(
                 List.of(
-                    new ResolvedModSet.ResolvedMod("leftmod", "1.0.0", Path.of("mods/left.jar"), leftJar, "aaa", List.of()),
-                    new ResolvedModSet.ResolvedMod("rightmod", "1.0.0", Path.of("mods/right.jar"), rightJar, "bbb", List.of())
+                    new ResolvedModSet.ResolvedMod("leftmod", "1.0.0", Path.of("mods/left.jar"), leftJar, "aaa", Map.of(), Map.of(), Map.of()),
+                    new ResolvedModSet.ResolvedMod("rightmod", "1.0.0", Path.of("mods/right.jar"), rightJar, "bbb", Map.of(), Map.of(), Map.of())
                 )
             );
 
@@ -231,8 +251,14 @@ class Milestone1LaunchArchitectureTest {
         assertTrue(diagnostics.contains("\"name\": \"dependency.resolution\""));
         assertTrue(diagnostics.contains("\"name\": \"lockfile.verify_or_write\""));
         assertTrue(diagnostics.contains("\"name\": \"classpath.plan\""));
+        assertTrue(diagnostics.contains("\"name\": \"frozen_mod_graph.create\""));
         assertTrue(diagnostics.contains("\"name\": \"classpath.create\""));
         assertTrue(diagnostics.contains("\"name\": \"ownership.index\""));
+        assertTrue(diagnostics.contains("\"name\": \"package.index\""));
+        assertTrue(diagnostics.contains("\"name\": \"resource.index\""));
+        assertTrue(diagnostics.contains("\"name\": \"modpack_state.write\""));
+        assertTrue(diagnostics.contains("\"name\": \"dependency_graph.write\""));
+        assertTrue(diagnostics.contains("\"name\": \"startup_profile.write\""));
         assertTrue(diagnostics.contains("\"name\": \"entrypoint.invoke\""));
         assertTrue(diagnostics.contains("\"name\": \"game.launch\""));
         assertTrue(diagnostics.contains("\"phase\": \"ARGUMENT_PARSE\""));

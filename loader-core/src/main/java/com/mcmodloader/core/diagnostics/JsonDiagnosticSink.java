@@ -25,6 +25,10 @@ public final class JsonDiagnosticSink implements DiagnosticSink {
         events.add(event);
     }
 
+    public List<DiagnosticEvent> events() {
+        return List.copyOf(events);
+    }
+
     @Override
     public void write() throws IOException {
         Files.createDirectories(outputPath.getParent());

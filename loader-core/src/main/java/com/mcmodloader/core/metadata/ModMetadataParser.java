@@ -79,7 +79,8 @@ public final class ModMetadataParser {
 
         Map<String, List<String>> entrypoints = parseEntrypoints(jsonObject, sourceName);
         Map<String, String> depends = parseDepends(jsonObject, sourceName);
-        return new ModMetadata(schema, id, version, side, entrypoints, depends);
+        Map<String, String> breaks = parseStringMap(jsonObject, "breaks", sourceName);
+        return new ModMetadata(schema, id, version, side, entrypoints, depends, breaks);
     }
 
     private Map<String, List<String>> parseEntrypoints(JsonObject jsonObject, String sourceName) throws LoaderException {
@@ -107,24 +108,28 @@ public final class ModMetadataParser {
     }
 
     private Map<String, String> parseDepends(JsonObject jsonObject, String sourceName) throws LoaderException {
+        return parseStringMap(jsonObject, "depends", sourceName);
+    }
+
+    private Map<String, String> parseStringMap(JsonObject jsonObject, String fieldName, String sourceName) throws LoaderException {
         JsonObject dependsObject;
-        if (!jsonObject.has("depends") || jsonObject.get("depends").isJsonNull()) {
+        if (!jsonObject.has(fieldName) || jsonObject.get(fieldName).isJsonNull()) {
             dependsObject = new JsonObject();
-        } else if (jsonObject.get("depends").isJsonObject()) {
-            dependsObject = jsonObject.getAsJsonObject("depends");
+        } else if (jsonObject.get(fieldName).isJsonObject()) {
+            dependsObject = jsonObject.getAsJsonObject(fieldName);
         } else {
-            throw new LoaderException("depends must be an object in " + sourceName);
+            throw new LoaderException(fieldName + " must be an object in " + sourceName);
         }
 
         Map<String, String> depends = new TreeMap<>();
         for (Map.Entry<String, JsonElement> entry : dependsObject.entrySet()) {
             JsonElement element = entry.getValue();
             if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
-                throw new LoaderException("Dependency version must be a string for " + entry.getKey() + " in " + sourceName);
+                throw new LoaderException(fieldName + " version must be a string for " + entry.getKey() + " in " + sourceName);
             }
             String requirement = element.getAsString().trim();
             if (requirement.isEmpty()) {
-                throw new LoaderException("Dependency version must be non-empty for " + entry.getKey() + " in " + sourceName);
+                throw new LoaderException(fieldName + " version must be non-empty for " + entry.getKey() + " in " + sourceName);
             }
             depends.put(entry.getKey(), requirement);
         }

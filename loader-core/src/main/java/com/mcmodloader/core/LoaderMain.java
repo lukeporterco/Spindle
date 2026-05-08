@@ -12,14 +12,24 @@ import com.mcmodloader.core.discovery.ModDiscoverer;
 import com.mcmodloader.core.entrypoint.EntrypointInvoker;
 import com.mcmodloader.core.game.GameProvider;
 import com.mcmodloader.core.game.GameProviderResolver;
+import com.mcmodloader.core.graph.DependencyGraphWriter;
+import com.mcmodloader.core.graph.FrozenModGraph;
+import com.mcmodloader.core.graph.FrozenModGraphBuilder;
 import com.mcmodloader.core.launch.LaunchContext;
 import com.mcmodloader.core.launch.LaunchPhase;
 import com.mcmodloader.core.lockfile.LockfileVerifier;
 import com.mcmodloader.core.lockfile.LockfileWriter;
 import com.mcmodloader.core.metadata.ModMetadataParser;
 import com.mcmodloader.core.ownership.ClassOwnershipIndex;
+import com.mcmodloader.core.ownership.PackageOwnershipIndex;
+import com.mcmodloader.core.profile.StartupProfile;
+import com.mcmodloader.core.profile.StartupProfileWriter;
+import com.mcmodloader.core.resource.ResourceConflict;
+import com.mcmodloader.core.resource.ResourceConflictIndex;
 import com.mcmodloader.core.resolve.DependencyResolver;
 import com.mcmodloader.core.resolve.ResolvedModSet;
+import com.mcmodloader.core.state.ModpackState;
+import com.mcmodloader.core.state.ModpackStateWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -78,7 +88,11 @@ public final class LoaderMain {
                     "gameProviderId",
                     parsedArguments.gameProviderId(),
                     "launchArgumentCount",
-                    Integer.toString(parsedArguments.launchArguments().size())
+                    Integer.toString(parsedArguments.launchArguments().size()),
+                    "validateOnly",
+                    Boolean.toString(parsedArguments.validateOnly()),
+                    "explain",
+                    Boolean.toString(parsedArguments.explain())
                 )
             );
 
@@ -106,6 +120,10 @@ public final class LoaderMain {
         String gameMainClass = null;
         String gameProviderId = DEFAULT_GAME_PROVIDER_ID;
         List<String> launchArguments = new ArrayList<>();
+        boolean validateOnly = false;
+        boolean explain = false;
+        boolean strictResources = false;
+        boolean strictPackages = false;
 
         for (int index = 0; index < args.length; index++) {
             String argument = args[index];
@@ -125,6 +143,26 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--validate-only".equals(argument)) {
+                validateOnly = true;
+                continue;
+            }
+
+            if ("--explain".equals(argument)) {
+                explain = true;
+                continue;
+            }
+
+            if ("--strict-resources".equals(argument)) {
+                strictResources = true;
+                continue;
+            }
+
+            if ("--strict-packages".equals(argument)) {
+                strictPackages = true;
+                continue;
+            }
+
             launchArguments.add(argument);
         }
 
@@ -132,7 +170,7 @@ public final class LoaderMain {
             throw new LoaderException("Missing required argument --game-main");
         }
 
-        return new LaunchArguments(gameMainClass, gameProviderId, launchArguments);
+        return new LaunchArguments(gameMainClass, gameProviderId, launchArguments, validateOnly, explain, strictResources, strictPackages);
     }
 
     private static void run(LaunchContext context, GameProvider gameProvider, DiagnosticSink diagnosticSink) throws LoaderException {
@@ -142,6 +180,10 @@ public final class LoaderMain {
         LockfileWriter lockfileWriter = new LockfileWriter();
         LockfileVerifier lockfileVerifier = new LockfileVerifier();
         RuntimeClasspathPlanner classpathPlanner = new RuntimeClasspathPlanner();
+        FrozenModGraphBuilder frozenModGraphBuilder = new FrozenModGraphBuilder();
+        ModpackStateWriter modpackStateWriter = new ModpackStateWriter();
+        DependencyGraphWriter dependencyGraphWriter = new DependencyGraphWriter();
+        StartupProfileWriter startupProfileWriter = new StartupProfileWriter();
         EntrypointInvoker entrypointInvoker = new EntrypointInvoker();
 
         List<ModCandidate> discoveredMods =
@@ -174,15 +216,15 @@ public final class LoaderMain {
         System.out.println("[loader] resolved " + resolvedMods.mods().size() + " " + pluralize(resolvedMods.mods().size()));
 
         Path lockfilePath = context.workingDirectory().resolve("loader.lock.json");
-        boolean wroteLockfile =
+        String lockfileAction =
             measure(
                 diagnosticSink,
                 "lockfile.verify_or_write",
                 LaunchPhase.LOCKFILE,
                 () -> verifyOrWriteLockfile(lockfilePath, context, resolvedMods, lockfileWriter, lockfileVerifier),
-                wrote -> details("lockfileAction", Boolean.TRUE.equals(wrote) ? "write" : "verify")
+                action -> details("lockfileAction", action)
             );
-        System.out.println(wroteLockfile ? "[loader] wrote loader.lock.json" : "[loader] verified loader.lock.json");
+        System.out.println("wrote".equals(lockfileAction) ? "[loader] wrote loader.lock.json" : "[loader] verified loader.lock.json");
 
         RuntimeClasspathPlan classpathPlan =
             measure(
@@ -198,6 +240,128 @@ public final class LoaderMain {
                 )
             );
 
+        ClassOwnershipIndex ownershipIndex =
+            measure(
+                diagnosticSink,
+                "ownership.index",
+                LaunchPhase.CLASSPATH_PLAN,
+                () -> ClassOwnershipIndex.build(resolvedMods),
+                index -> details("classOwnershipCount", Integer.toString(index.totalClasses()))
+            );
+
+        PackageOwnershipIndex packageOwnershipIndex =
+            measure(
+                diagnosticSink,
+                "package.index",
+                LaunchPhase.CLASSPATH_PLAN,
+                () -> PackageOwnershipIndex.build(resolvedMods),
+                index -> details("splitPackageCount", Integer.toString(index.splitPackages().size()))
+            );
+        recordSplitPackageDiagnostics(diagnosticSink, packageOwnershipIndex);
+        enforceStrictPackages(context, packageOwnershipIndex);
+
+        ResourceConflictIndex resourceConflictIndex =
+            measure(
+                diagnosticSink,
+                "resource.index",
+                LaunchPhase.CLASSPATH_PLAN,
+                () -> ResourceConflictIndex.build(resolvedMods),
+                index -> details("duplicateResourceCount", Integer.toString(index.conflicts().size()))
+            );
+        recordResourceDiagnostics(diagnosticSink, resourceConflictIndex);
+        enforceStrictResources(context, resourceConflictIndex);
+
+        FrozenModGraph frozenModGraph =
+            measure(
+                diagnosticSink,
+                "frozen_mod_graph.create",
+                LaunchPhase.FROZEN_MOD_GRAPH,
+                () -> frozenModGraphBuilder.build(
+                    context,
+                    gameProvider,
+                    resolvedMods,
+                    classpathPlan,
+                    ownershipIndex,
+                    packageOwnershipIndex,
+                    resourceConflictIndex
+                ),
+                graph -> details(
+                    "frozenModCount",
+                    Integer.toString(graph.mods().size()),
+                    "gameProviderId",
+                    graph.gameProviderId(),
+                    "gameProviderVersion",
+                    graph.gameProviderVersion()
+                )
+            );
+
+        if (context.explain()) {
+            printExplain(context, frozenModGraph, discoveredMods.size(), lockfileAction);
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "explain.print",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Explain summary printed",
+                    details(
+                        "dependencyGraphOutputPath",
+                        "dependency-graph.json",
+                        "modpackStateOutputPath",
+                        "modpack-state.json"
+                    )
+                )
+            );
+        }
+
+        Path modpackStatePath = context.workingDirectory().resolve("modpack-state.json");
+        ModpackState modpackState = modpackStateWriter.create(frozenModGraph, context.workingDirectory());
+        measure(
+            diagnosticSink,
+            "modpack_state.write",
+            LaunchPhase.COMPLETE,
+            () -> {
+                modpackStateWriter.write(modpackStatePath, modpackState);
+                return modpackStatePath;
+            },
+            outputPath -> details("modpackStateOutputPath", displayPath(context, outputPath))
+        );
+
+        Path dependencyGraphPath = context.workingDirectory().resolve("dependency-graph.json");
+        measure(
+            diagnosticSink,
+            "dependency_graph.write",
+            LaunchPhase.COMPLETE,
+            () -> {
+                dependencyGraphWriter.write(dependencyGraphPath, frozenModGraph);
+                return dependencyGraphPath;
+            },
+            outputPath -> details("dependencyGraphOutputPath", displayPath(context, outputPath))
+        );
+
+        if (context.validateOnly()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "validation.complete",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Validation complete",
+                    details(
+                        "resolvedModCount",
+                        Integer.toString(frozenModGraph.mods().size()),
+                        "modpackStateOutputPath",
+                        displayPath(context, modpackStatePath),
+                        "dependencyGraphOutputPath",
+                        displayPath(context, dependencyGraphPath)
+                    )
+                )
+            );
+            writeStartupProfile(context, diagnosticSink, startupProfileWriter);
+            System.out.println("[loader] validation complete");
+            return;
+        }
+
         try (
             ModClassLoader modClassLoader =
                 measure(
@@ -208,21 +372,12 @@ public final class LoaderMain {
                     ignored -> details("modJarCount", Integer.toString(classpathPlan.modJars().size()))
                 )
         ) {
-            ClassOwnershipIndex ownershipIndex =
-                measure(
-                    diagnosticSink,
-                    "ownership.index",
-                    LaunchPhase.ENTRYPOINT_INVOKE,
-                    () -> ClassOwnershipIndex.build(resolvedMods),
-                    index -> details("classOwnershipCount", Integer.toString(index.classOwners().size()))
-                );
-
             List<EntrypointInvoker.EntrypointInvocation> invocations =
                 measure(
                     diagnosticSink,
                     "entrypoint.invoke",
                     LaunchPhase.ENTRYPOINT_INVOKE,
-                    () -> entrypointInvoker.invoke(resolvedMods, modClassLoader, ownershipIndex),
+                    () -> entrypointInvoker.invoke(frozenModGraph, modClassLoader, ownershipIndex),
                     results -> details(
                         "entrypointCount",
                         Integer.toString(results.size()),
@@ -274,9 +429,10 @@ public final class LoaderMain {
                 0L,
                 "ok",
                 "Startup complete",
-                details("resolvedModCount", Integer.toString(resolvedMods.mods().size()))
+                details("resolvedModCount", Integer.toString(frozenModGraph.mods().size()))
             )
         );
+        writeStartupProfile(context, diagnosticSink, startupProfileWriter);
     }
 
     private static LaunchContext createLaunchContext(Path workingDirectory, LaunchArguments launchArguments) {
@@ -286,6 +442,10 @@ public final class LoaderMain {
             launchArguments.gameMainClass(),
             launchArguments.gameProviderId(),
             launchArguments.launchArguments(),
+            launchArguments.validateOnly(),
+            launchArguments.explain(),
+            launchArguments.strictResources(),
+            launchArguments.strictPackages(),
             LOADER_VERSION,
             Runtime.version().feature(),
             TARGET_MINECRAFT_VERSION
@@ -301,7 +461,7 @@ public final class LoaderMain {
         return List.copyOf(parsedMods);
     }
 
-    private static boolean verifyOrWriteLockfile(
+    private static String verifyOrWriteLockfile(
         Path lockfilePath,
         LaunchContext context,
         ResolvedModSet resolvedMods,
@@ -310,11 +470,100 @@ public final class LoaderMain {
     ) throws LoaderException {
         if (lockfileVerifier.exists(lockfilePath)) {
             lockfileVerifier.verify(lockfilePath, context, resolvedMods);
-            return false;
+            return "verified";
         }
 
         lockfileWriter.write(lockfilePath, context, resolvedMods);
-        return true;
+        return "wrote";
+    }
+
+    private static void recordResourceDiagnostics(DiagnosticSink diagnosticSink, ResourceConflictIndex resourceConflictIndex) {
+        for (ResourceConflict conflict : resourceConflictIndex.conflicts()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "resource.duplicate",
+                    LaunchPhase.CLASSPATH_PLAN.name(),
+                    0L,
+                    "ok",
+                    "Duplicate resource detected",
+                    details("resource", conflict.resourcePath(), "mods", String.join(",", conflict.modIds()))
+                )
+            );
+        }
+    }
+
+    private static void recordSplitPackageDiagnostics(DiagnosticSink diagnosticSink, PackageOwnershipIndex packageOwnershipIndex) {
+        for (PackageOwnershipIndex.SplitPackage splitPackage : packageOwnershipIndex.splitPackages()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "package.split",
+                    LaunchPhase.CLASSPATH_PLAN.name(),
+                    0L,
+                    "ok",
+                    "Split package detected",
+                    details("package", splitPackage.packageName(), "mods", String.join(",", splitPackage.modIds()))
+                )
+            );
+        }
+    }
+
+    private static void enforceStrictResources(LaunchContext context, ResourceConflictIndex resourceConflictIndex) throws LoaderException {
+        if (!context.strictResources() || resourceConflictIndex.conflicts().isEmpty()) {
+            return;
+        }
+        ResourceConflict conflict = resourceConflictIndex.conflicts().getFirst();
+        throw new LoaderException(
+            "Duplicate resource " + conflict.resourcePath() + " found in mods " + String.join(",", conflict.modIds())
+        );
+    }
+
+    private static void enforceStrictPackages(LaunchContext context, PackageOwnershipIndex packageOwnershipIndex) throws LoaderException {
+        if (!context.strictPackages() || packageOwnershipIndex.splitPackages().isEmpty()) {
+            return;
+        }
+        PackageOwnershipIndex.SplitPackage splitPackage = packageOwnershipIndex.splitPackages().getFirst();
+        throw new LoaderException(
+            "Split package " + splitPackage.packageName() + " found in mods " + String.join(",", splitPackage.modIds())
+        );
+    }
+
+    private static void printExplain(LaunchContext context, FrozenModGraph frozenModGraph, int discoveredModCount, String lockfileAction) {
+        System.out.println("[loader] explain: provider " + frozenModGraph.gameProviderId() + " " + frozenModGraph.gameProviderVersion());
+        System.out.println("[loader] explain: discovered " + discoveredModCount + " " + pluralize(discoveredModCount));
+        System.out.println("[loader] explain: resolved " + frozenModGraph.mods().size() + " " + pluralize(frozenModGraph.mods().size()));
+        System.out.println("[loader] explain: lockfile " + lockfileAction);
+        System.out.println("[loader] explain: duplicate resources " + frozenModGraph.resourceConflicts().size());
+        System.out.println("[loader] explain: split packages " + frozenModGraph.packageOwnershipIndex().splitPackages().size());
+        System.out.println("[loader] explain: dependency graph " + displayPath(context, context.workingDirectory().resolve("dependency-graph.json")));
+        System.out.println("[loader] explain: modpack state " + displayPath(context, context.workingDirectory().resolve("modpack-state.json")));
+    }
+
+    private static void writeStartupProfile(
+        LaunchContext context,
+        DiagnosticSink diagnosticSink,
+        StartupProfileWriter startupProfileWriter
+    ) throws LoaderException {
+        if (!(diagnosticSink instanceof JsonDiagnosticSink jsonDiagnosticSink)) {
+            return;
+        }
+
+        Path startupProfilePath = context.workingDirectory().resolve("diagnostics/startup-profile.json");
+        StartupProfile profile = StartupProfile.from(jsonDiagnosticSink.events());
+        startupProfileWriter.write(startupProfilePath, profile);
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "startup_profile.write",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Startup profile written",
+                details("startupProfileOutputPath", displayPath(context, startupProfilePath))
+            )
+        );
+    }
+
+    private static String displayPath(LaunchContext context, Path path) {
+        return context.workingDirectory().relativize(path.toAbsolutePath().normalize()).toString().replace('\\', '/');
     }
 
     private static String pluralize(int count) {
@@ -372,7 +621,15 @@ public final class LoaderMain {
         return Math.max(0L, (System.nanoTime() - start) / 1_000_000L);
     }
 
-    record LaunchArguments(String gameMainClass, String gameProviderId, List<String> launchArguments) {
+    record LaunchArguments(
+        String gameMainClass,
+        String gameProviderId,
+        List<String> launchArguments,
+        boolean validateOnly,
+        boolean explain,
+        boolean strictResources,
+        boolean strictPackages
+    ) {
         LaunchArguments {
             launchArguments = List.copyOf(launchArguments);
         }

@@ -9,6 +9,10 @@ public record LaunchContext(
     String gameMainClass,
     String gameProviderId,
     List<String> launchArguments,
+    boolean validateOnly,
+    boolean explain,
+    boolean strictResources,
+    boolean strictPackages,
     String loaderVersion,
     int javaMajorVersion,
     String targetMinecraftVersion

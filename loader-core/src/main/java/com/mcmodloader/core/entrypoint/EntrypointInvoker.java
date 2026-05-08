@@ -2,21 +2,22 @@ package com.mcmodloader.core.entrypoint;
 
 import com.mcmodloader.api.ModInitializer;
 import com.mcmodloader.core.diagnostics.LoaderException;
+import com.mcmodloader.core.graph.FrozenModGraph;
+import com.mcmodloader.core.graph.FrozenMod;
 import com.mcmodloader.core.ownership.ClassOwnershipIndex;
-import com.mcmodloader.core.resolve.ResolvedModSet;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class EntrypointInvoker {
     public List<EntrypointInvocation> invoke(
-        ResolvedModSet resolvedModSet,
+        FrozenModGraph frozenModGraph,
         ClassLoader classLoader,
         ClassOwnershipIndex ownershipIndex
     ) throws LoaderException {
         List<EntrypointInvocation> invocations = new ArrayList<>();
-        for (ResolvedModSet.ResolvedMod mod : resolvedModSet.mods()) {
-            for (String entrypointClassName : mod.entrypoints()) {
+        for (FrozenMod mod : frozenModGraph.mods()) {
+            for (String entrypointClassName : mod.entrypoints().getOrDefault("main", List.of())) {
                 invocations.add(invokeEntrypoint(mod.id(), entrypointClassName, classLoader, ownershipIndex));
             }
         }
