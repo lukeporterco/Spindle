@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "samplemod",
+  "version": "1.0.0",
+  "side": "universal",
+  "entrypoints": {
+    "main": [
+      "com.mcmodloader.samplemod.SampleMod"
+    ]
+  },
+  "depends": {
+    "loader": ">=0.1.0",
+    "java": ">=25",
+    "minecraft": ">=26.1.2"
+  }
+}

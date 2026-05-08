@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+**/build/
+build/
+
+# Generated runtime artifacts
+runtime/
+
+# Local scratch space used during development
+.tools/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS-specific clutter
+.DS_Store
+Thumbs.db
+
+# Logs and crash dumps
+*.log
+hs_err_pid*
+replay_pid*

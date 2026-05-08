@@ -1,0 +1,164 @@
+package com.mcmodloader.core.metadata;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.mcmodloader.core.diagnostics.LoaderException;
+import com.mcmodloader.core.discovery.ModCandidate;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.jar.JarFile;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+
+public final class ModMetadataParser {
+    private static final Pattern MOD_ID_PATTERN = Pattern.compile("[a-z][a-z0-9_-]{1,63}");
+    private static final Set<String> VALID_SIDES = Set.of("universal", "client", "server");
+
+    public ModMetadata parse(ModCandidate candidate) throws LoaderException {
+        Path jarPath = candidate.jarPath();
+        try (JarFile jarFile = new JarFile(jarPath.toFile())) {
+            ZipEntry entry = jarFile.getEntry("loader.mod.json");
+            if (entry == null || entry.isDirectory()) {
+                throw new LoaderException("Missing loader.mod.json in " + candidate.normalizedRelativePath());
+            }
+            try (Reader reader = new java.io.InputStreamReader(jarFile.getInputStream(entry), java.nio.charset.StandardCharsets.UTF_8)) {
+                return parse(reader, candidate.normalizedRelativePath());
+            }
+        } catch (IOException exception) {
+            throw new LoaderException("Failed to read metadata from " + candidate.normalizedRelativePath(), exception);
+        }
+    }
+
+    public ModMetadata parse(String json, String sourceName) throws LoaderException {
+        return parse(new StringReader(json), sourceName);
+    }
+
+    public ModMetadata parse(Reader reader, String sourceName) throws LoaderException {
+        JsonObject jsonObject;
+        try {
+            jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+        } catch (IllegalStateException | JsonParseException exception) {
+            throw new LoaderException("Invalid metadata JSON in " + sourceName, exception);
+        }
+
+        int schema = requiredInt(jsonObject, "schema", sourceName);
+        if (schema != 1) {
+            throw new LoaderException("Unsupported metadata schema in " + sourceName + ": " + schema);
+        }
+
+        String id = requiredString(jsonObject, "id", sourceName).trim();
+        if (!MOD_ID_PATTERN.matcher(id).matches()) {
+            throw new LoaderException("Invalid mod id in " + sourceName + ": " + id);
+        }
+
+        String version = requiredString(jsonObject, "version", sourceName).trim();
+        if (version.isEmpty()) {
+            throw new LoaderException("Mod version must be non-empty in " + sourceName);
+        }
+
+        String side = requiredString(jsonObject, "side", sourceName).trim();
+        if (!VALID_SIDES.contains(side)) {
+            throw new LoaderException("Invalid mod side in " + sourceName + ": " + side);
+        }
+        if (!"universal".equals(side)) {
+            throw new LoaderException("Only universal mods are supported in Milestone 0: " + id);
+        }
+
+        Map<String, List<String>> entrypoints = parseEntrypoints(jsonObject, sourceName);
+        Map<String, String> depends = parseDepends(jsonObject, sourceName);
+        return new ModMetadata(schema, id, version, side, entrypoints, depends);
+    }
+
+    private Map<String, List<String>> parseEntrypoints(JsonObject jsonObject, String sourceName) throws LoaderException {
+        JsonObject entrypointsObject = requiredObject(jsonObject, "entrypoints", sourceName);
+        JsonArray mainArray = requiredArray(entrypointsObject, "main", sourceName);
+        if (mainArray.size() == 0) {
+            throw new LoaderException("entrypoints.main must contain at least one class in " + sourceName);
+        }
+
+        List<String> mainEntrypoints = new ArrayList<>();
+        for (JsonElement element : mainArray) {
+            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                throw new LoaderException("entrypoints.main must contain class names in " + sourceName);
+            }
+            String className = element.getAsString().trim();
+            if (className.isEmpty()) {
+                throw new LoaderException("Entrypoint class name must be non-empty in " + sourceName);
+            }
+            mainEntrypoints.add(className);
+        }
+
+        Map<String, List<String>> entrypoints = new LinkedHashMap<>();
+        entrypoints.put("main", List.copyOf(mainEntrypoints));
+        return Map.copyOf(entrypoints);
+    }
+
+    private Map<String, String> parseDepends(JsonObject jsonObject, String sourceName) throws LoaderException {
+        JsonObject dependsObject;
+        if (!jsonObject.has("depends") || jsonObject.get("depends").isJsonNull()) {
+            dependsObject = new JsonObject();
+        } else if (jsonObject.get("depends").isJsonObject()) {
+            dependsObject = jsonObject.getAsJsonObject("depends");
+        } else {
+            throw new LoaderException("depends must be an object in " + sourceName);
+        }
+
+        Map<String, String> depends = new TreeMap<>();
+        for (Map.Entry<String, JsonElement> entry : dependsObject.entrySet()) {
+            JsonElement element = entry.getValue();
+            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                throw new LoaderException("Dependency version must be a string for " + entry.getKey() + " in " + sourceName);
+            }
+            String requirement = element.getAsString().trim();
+            if (requirement.isEmpty()) {
+                throw new LoaderException("Dependency version must be non-empty for " + entry.getKey() + " in " + sourceName);
+            }
+            depends.put(entry.getKey(), requirement);
+        }
+        return Map.copyOf(depends);
+    }
+
+    private JsonObject requiredObject(JsonObject jsonObject, String key, String sourceName) throws LoaderException {
+        JsonElement element = jsonObject.get(key);
+        if (element == null || !element.isJsonObject()) {
+            throw new LoaderException("Missing object field " + key + " in " + sourceName);
+        }
+        return element.getAsJsonObject();
+    }
+
+    private JsonArray requiredArray(JsonObject jsonObject, String key, String sourceName) throws LoaderException {
+        JsonElement element = jsonObject.get(key);
+        if (element == null || !element.isJsonArray()) {
+            throw new LoaderException("Missing array field " + key + " in " + sourceName);
+        }
+        return element.getAsJsonArray();
+    }
+
+    private int requiredInt(JsonObject jsonObject, String key, String sourceName) throws LoaderException {
+        JsonElement element = jsonObject.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new LoaderException("Missing integer field " + key + " in " + sourceName);
+        }
+        return element.getAsInt();
+    }
+
+    private String requiredString(JsonObject jsonObject, String key, String sourceName) throws LoaderException {
+        JsonElement element = jsonObject.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new LoaderException("Missing string field " + key + " in " + sourceName);
+        }
+        return Objects.requireNonNull(element.getAsString());
+    }
+}
