@@ -114,10 +114,10 @@ class Milestone4MinecraftServerLaunchTest {
             }
         );
 
-        Path expected = tempDirectory.resolve("runtime/minecraft-server/26.1.2");
+        Path expected = tempDirectory.resolve("minecraft-server/26.1.2");
         assertTrue(Files.isDirectory(expected));
-        String result = Files.readString(tempDirectory.resolve("runtime/minecraft-server-launch-result.json"));
-        assertTrue(result.contains("\"serverDirectory\": \"runtime/minecraft-server/26.1.2\""));
+        String result = Files.readString(tempDirectory.resolve("minecraft-server-launch-result.json"));
+        assertTrue(result.contains("\"serverDirectory\": \"minecraft-server/26.1.2\""));
     }
 
     @Test
@@ -236,7 +236,7 @@ class Milestone4MinecraftServerLaunchTest {
             }
         );
 
-        String resultJson = Files.readString(tempDirectory.resolve("runtime/minecraft-server-launch-result.json"));
+        String resultJson = Files.readString(tempDirectory.resolve("minecraft-server-launch-result.json"));
         assertTrue(resultJson.contains("\"commandPreview\""));
         assertTrue(resultJson.contains("\"started\": true"));
         assertTrue(resultJson.contains("\"readyDetected\": true"));
@@ -310,7 +310,7 @@ class Milestone4MinecraftServerLaunchTest {
             );
 
         assertTrue(exception.getMessage().contains("26.1.2-server.jar"));
-        assertFalse(Files.exists(tempDirectory.resolve("runtime/minecraft-server-launch-result.json")));
+        assertFalse(Files.exists(tempDirectory.resolve("minecraft-server-launch-result.json")));
     }
 
     private MinecraftProcessResult launchProcess(Path serverJar, List<String> serverArgs, boolean stopAfterReady, int timeoutSeconds, int readyTimeoutSeconds)

@@ -201,20 +201,34 @@ public final class MinecraftArtifactResolver {
 
         Path cachedVersionJson = cache.versionJsonPath(config.requestedVersion());
         if (!config.forceRedownload() && Files.isRegularFile(cachedVersionJson)) {
-            artifacts.add(manifestRecord.withPresence(Files.isRegularFile(manifestRecord.path()), Files.isRegularFile(manifestRecord.path()) ? ArtifactStatus.PRESENT : ArtifactStatus.MISSING));
-            MinecraftArtifactRecord versionRecord =
-                buildPresentRecord("version-json", ArtifactKind.METADATA, cachedVersionJson, null, null, false, false);
-            return new ResolvedVersion(
-                new MinecraftMetadataResolver.ResolvedVersionJson(config.requestedVersion(), cachedVersionJson, readString(cachedVersionJson), "cache"),
-                Files.isRegularFile(manifestRecord.path()) ? manifestParser.parse(readString(manifestRecord.path()), manifestRecord.path().toString()) : null,
-                List.of(
+            try {
+                String cachedJson = readString(cachedVersionJson);
+                metadataParser.parse(cachedJson, cachedVersionJson.toString(), config.side());
+                artifacts.add(
                     manifestRecord.withPresence(
                         Files.isRegularFile(manifestRecord.path()),
                         Files.isRegularFile(manifestRecord.path()) ? ArtifactStatus.PRESENT : ArtifactStatus.MISSING
-                    ),
-                    versionRecord
-                )
-            );
+                    )
+                );
+                MinecraftArtifactRecord versionRecord =
+                    buildPresentRecord("version-json", ArtifactKind.METADATA, cachedVersionJson, null, null, false, false);
+                return new ResolvedVersion(
+                    new MinecraftMetadataResolver.ResolvedVersionJson(config.requestedVersion(), cachedVersionJson, cachedJson, "cache"),
+                    Files.isRegularFile(manifestRecord.path()) ? parseManifest(manifestRecord.path(), config) : null,
+                    List.of(
+                        manifestRecord.withPresence(
+                            Files.isRegularFile(manifestRecord.path()),
+                            Files.isRegularFile(manifestRecord.path()) ? ArtifactStatus.PRESENT : ArtifactStatus.MISSING
+                        ),
+                        versionRecord
+                    )
+                );
+            } catch (LoaderException exception) {
+                if (!config.cacheRepair()) {
+                    throw exception;
+                }
+                warnings.add("Cached Minecraft version metadata was invalid and will be repaired: " + cache.displayPath(cachedVersionJson));
+            }
         }
 
         if (config.offline()) {
@@ -228,13 +242,13 @@ public final class MinecraftArtifactResolver {
             throw missingMetadataException(config.requestedVersion(), localVersionJson);
         }
 
-        ManifestResolution manifestResolution = resolveManifest(config);
+        ManifestResolution manifestResolution = resolveManifest(config, warnings);
         MinecraftVersionManifest manifest = manifestResolution.manifest();
         MinecraftVersionManifest.VersionEntry versionEntry = manifest.findVersion(config.requestedVersion()).orElseThrow(() -> missingVersionInManifest(config.requestedVersion(), manifest));
         MinecraftArtifactRecord downloadedManifestRecord =
             manifestResolution.record().withPresence(true, manifestResolution.record().verified() ? ArtifactStatus.VERIFIED : ArtifactStatus.PRESENT);
 
-        if (config.forceRedownload() || !Files.isRegularFile(cachedVersionJson)) {
+        if (config.forceRedownload() || !Files.isRegularFile(cachedVersionJson) || config.cacheRepair()) {
             DownloadResult downloadResult =
                 downloader.download(
                     java.net.URI.create(versionEntry.url()),
@@ -288,7 +302,7 @@ public final class MinecraftArtifactResolver {
         );
     }
 
-    private ManifestResolution resolveManifest(MinecraftProviderConfig config) throws LoaderException {
+    private ManifestResolution resolveManifest(MinecraftProviderConfig config, List<String> warnings) throws LoaderException {
         if (config.manifestJson() != null) {
             if (!Files.isRegularFile(config.manifestJson())) {
                 throw new LoaderException("Minecraft version manifest JSON does not exist: " + config.manifestJson());
@@ -300,9 +314,16 @@ public final class MinecraftArtifactResolver {
 
         Path manifestPath = cache.manifestPath();
         if (!config.forceRedownload() && Files.isRegularFile(manifestPath)) {
-            MinecraftVersionManifest manifest = manifestParser.parse(readString(manifestPath), manifestPath.toString());
-            MinecraftArtifactRecord record = buildPresentRecord("version-manifest", ArtifactKind.METADATA, manifestPath, DEFAULT_MANIFEST_URL, null, false, false);
-            return new ManifestResolution(manifest, record);
+            try {
+                MinecraftVersionManifest manifest = parseManifest(manifestPath, config);
+                MinecraftArtifactRecord record = buildPresentRecord("version-manifest", ArtifactKind.METADATA, manifestPath, DEFAULT_MANIFEST_URL, null, false, false);
+                return new ManifestResolution(manifest, record);
+            } catch (LoaderException exception) {
+                if (!config.cacheRepair()) {
+                    throw exception;
+                }
+                warnings.add("Cached Minecraft version manifest was invalid and will be repaired: " + cache.displayPath(manifestPath));
+            }
         }
 
         DownloadResult downloadResult = downloader.download(java.net.URI.create(DEFAULT_MANIFEST_URL), manifestPath, cache.tmpDirectory(), null, null);
@@ -345,24 +366,31 @@ public final class MinecraftArtifactResolver {
 
         Path cachedServerJar = cache.serverJarPath(metadata.id());
         if (!config.forceRedownload() && Files.isRegularFile(cachedServerJar)) {
-            MinecraftArtifactRecord cacheRecord =
-                verifyExisting(
-                    new MinecraftArtifactRecord(
-                        "server-jar",
-                        ArtifactKind.SERVER,
-                        cachedServerJar,
-                        serverDownload == null ? null : serverDownload.url(),
-                        expectedSha1,
-                        null,
-                        null,
-                        true,
-                        false,
-                        false,
-                        ArtifactStatus.PRESENT
-                    ),
-                    expectedSize
-                );
-            return new ServerJarResolution(cachedServerJar, "cache", cacheRecord);
+            try {
+                MinecraftArtifactRecord cacheRecord =
+                    verifyExisting(
+                        new MinecraftArtifactRecord(
+                            "server-jar",
+                            ArtifactKind.SERVER,
+                            cachedServerJar,
+                            serverDownload == null ? null : serverDownload.url(),
+                            expectedSha1,
+                            null,
+                            null,
+                            true,
+                            false,
+                            false,
+                            ArtifactStatus.PRESENT
+                        ),
+                        expectedSize
+                    );
+                return new ServerJarResolution(cachedServerJar, "cache", cacheRecord);
+            } catch (LoaderException exception) {
+                if (!config.cacheRepair()) {
+                    throw exception;
+                }
+                warnings.add("Cached Minecraft server jar was invalid and will be repaired: " + cache.displayPath(cachedServerJar));
+            }
         }
 
         if (serverDownload == null || serverDownload.url() == null || serverDownload.url().isBlank()) {
@@ -591,6 +619,17 @@ public final class MinecraftArtifactResolver {
             return Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException exception) {
             throw new LoaderException("Failed to read artifact file " + path.toString().replace('\\', '/'), exception);
+        }
+    }
+
+    private MinecraftVersionManifest parseManifest(Path manifestPath, MinecraftProviderConfig config) throws LoaderException {
+        try {
+            return manifestParser.parse(readString(manifestPath), manifestPath.toString());
+        } catch (RuntimeException exception) {
+            throw new LoaderException(
+                "Cached Minecraft version manifest is invalid: " + cache.displayPath(manifestPath),
+                exception
+            );
         }
     }
 

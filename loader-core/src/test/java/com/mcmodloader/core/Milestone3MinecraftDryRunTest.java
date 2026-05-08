@@ -225,6 +225,25 @@ class Milestone3MinecraftDryRunTest {
     }
 
     @Test
+    void minecraftArgumentResolverAllowsNullClientPaths() throws Exception {
+        MinecraftVersionMetadata metadata =
+            new MinecraftVersionMetadataParser().parse(readFixture("minecraft/version-26.1.2.json"), "fixture", MinecraftSide.CLIENT);
+        MinecraftArgumentResolver.ResolvedArguments arguments =
+            new MinecraftArgumentResolver()
+                .resolve(
+                    clientConfig(null),
+                    metadata,
+                    null,
+                    null,
+                    tempDirectory.resolve("runtime/natives"),
+                    List.of(tempDirectory.resolve("libs/a.jar"), tempDirectory.resolve("versions/26.1.2/26.1.2.jar"))
+                );
+
+        assertFalse(arguments.gameArguments().contains("${assets_root}"));
+        assertFalse(arguments.gameArguments().contains("${game_directory}"));
+    }
+
+    @Test
     void minecraftClientLaunchPlanIsDeterministic() throws Exception {
         MinecraftLaunchPlan first = buildClientPlan(tempDirectory.resolve("one"));
         MinecraftLaunchPlan second = buildClientPlan(tempDirectory.resolve("two"));
@@ -252,6 +271,17 @@ class Milestone3MinecraftDryRunTest {
         assertTrue(plan.commandPreview().contains("-jar"));
         assertTrue(plan.commandPreview().stream().anyMatch(argument -> argument.endsWith("versions/26.1.2/26.1.2-server.jar")));
         assertTrue(written.contains("\"provider\": \"minecraft\""));
+    }
+
+    @Test
+    void minecraftLaunchPlanWriterAllowsBareFilename() throws Exception {
+        Path bareOutputPath = Path.of("minecraft-launch-plan-" + System.nanoTime() + ".json");
+        try {
+            new MinecraftLaunchPlanWriter().write(bareOutputPath, buildPlan(tempDirectory.resolve("bare-plan"), MinecraftSide.SERVER));
+            assertTrue(Files.exists(bareOutputPath));
+        } finally {
+            Files.deleteIfExists(bareOutputPath);
+        }
     }
 
     @Test
@@ -346,6 +376,46 @@ class Milestone3MinecraftDryRunTest {
         assertFalse(diagnostics.contains("\"name\": \"entrypoint.invoke\""));
         assertFalse(diagnostics.contains("\"name\": \"game.launch\""));
         assertTrue(diagnostics.contains("\"name\": \"minecraft.dry_run.complete\""));
+    }
+
+    @Test
+    void minecraftMetadataResolverHandlesMissingMetadataWithoutMinecraftDirectory() {
+        LoaderException exception =
+            assertThrows(
+                LoaderException.class,
+                () ->
+                    new MinecraftMetadataResolver().validateAvailability(
+                        tempDirectory,
+                        new MinecraftProviderConfig(
+                            "26.1.2",
+                            null,
+                            null,
+                            null,
+                            MinecraftSide.CLIENT,
+                            true,
+                            false,
+                            false,
+                            false,
+                            tempDirectory.resolve("runtime/minecraft-cache"),
+                            false,
+                            false,
+                            false,
+                            false,
+                            false,
+                            tempDirectory.resolve("minecraft-launch-plan.json"),
+                            false,
+                            null,
+                            false,
+                            List.of(),
+                            List.of(),
+                            30,
+                            false,
+                            20
+                        )
+                    )
+            );
+
+        assertTrue(exception.getMessage().contains("26.1.2.json"));
     }
 
     @Test
@@ -463,7 +533,7 @@ class Milestone3MinecraftDryRunTest {
         return new MinecraftProviderConfig(
             "26.1.2",
             minecraftDir,
-            minecraftDir.resolve("versions/26.1.2/26.1.2.json"),
+            minecraftDir == null ? null : minecraftDir.resolve("versions/26.1.2/26.1.2.json"),
             null,
             MinecraftSide.CLIENT,
             true,

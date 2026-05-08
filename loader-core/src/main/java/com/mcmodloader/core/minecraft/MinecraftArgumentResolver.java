@@ -36,8 +36,8 @@ public final class MinecraftArgumentResolver {
         Map<String, String> substitutions = new LinkedHashMap<>();
         substitutions.put("${auth_player_name}", "offline_player");
         substitutions.put("${version_name}", metadata.id());
-        substitutions.put("${game_directory}", minecraftDirectory.toString());
-        substitutions.put("${assets_root}", assetsRoot.toString());
+        substitutions.put("${game_directory}", safePath(minecraftDirectory));
+        substitutions.put("${assets_root}", safePath(assetsRoot));
         substitutions.put("${assets_index_name}", metadata.assetIndex() == null ? "" : metadata.assetIndex().id());
         substitutions.put("${auth_uuid}", new UUID(0L, 0L).toString());
         substitutions.put("${auth_access_token}", "REDACTED");
@@ -45,7 +45,7 @@ public final class MinecraftArgumentResolver {
         substitutions.put("${auth_xuid}", "");
         substitutions.put("${user_type}", "legacy");
         substitutions.put("${version_type}", metadata.type() == null || metadata.type().isBlank() ? "release" : metadata.type());
-        substitutions.put("${natives_directory}", nativesDirectory.toString());
+        substitutions.put("${natives_directory}", safePath(nativesDirectory));
         substitutions.put("${launcher_name}", "MCModLoader");
         substitutions.put("${launcher_version}", LoaderMain.LOADER_VERSION);
         substitutions.put("${classpath}", classpathValue);

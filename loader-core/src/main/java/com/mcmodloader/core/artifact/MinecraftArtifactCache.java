@@ -40,7 +40,7 @@ public final class MinecraftArtifactCache {
     }
 
     public Path artifactReportPath() {
-        return workingDirectory.resolve("runtime/minecraft-artifacts.json").toAbsolutePath().normalize();
+        return workingDirectory.resolve("minecraft-artifacts.json").toAbsolutePath().normalize();
     }
 
     public String displayPath(Path path) {

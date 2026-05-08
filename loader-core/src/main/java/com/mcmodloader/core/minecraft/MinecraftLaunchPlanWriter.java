@@ -53,7 +53,10 @@ public final class MinecraftLaunchPlanWriter {
         root.add("metadata", metadata);
 
         try {
-            Files.createDirectories(outputPath.getParent());
+            Path parent = outputPath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             try (Writer writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
                 gson.toJson(root, writer);
             }

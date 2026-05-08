@@ -30,7 +30,7 @@ public record MinecraftProviderConfig(
 ) {
     public MinecraftProviderConfig {
         side = side == null ? MinecraftSide.CLIENT : side;
-        cacheDirectory = cacheDirectory == null ? Path.of("runtime/minecraft-cache") : cacheDirectory.normalize();
+        cacheDirectory = cacheDirectory == null ? Path.of("minecraft-cache") : cacheDirectory.normalize();
         outputPlanPath = outputPlanPath == null ? Path.of("minecraft-launch-plan.json") : outputPlanPath.normalize();
         serverJvmArgs = java.util.List.copyOf(serverJvmArgs == null ? java.util.List.of() : serverJvmArgs);
         serverArgs = java.util.List.copyOf(serverArgs == null ? java.util.List.of() : serverArgs);
@@ -47,7 +47,7 @@ public record MinecraftProviderConfig(
             verifyFiles,
             fetchMetadata,
             downloadServer,
-            resolvePath(workingDirectory, cacheDirectory == null ? Path.of("runtime/minecraft-cache") : cacheDirectory),
+            resolvePath(workingDirectory, cacheDirectory == null ? Path.of("minecraft-cache") : cacheDirectory),
             offline,
             cacheInspect,
             cacheRepair,

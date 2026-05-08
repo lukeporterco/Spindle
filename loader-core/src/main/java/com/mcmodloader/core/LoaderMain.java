@@ -1056,7 +1056,7 @@ public final class LoaderMain {
             Path serverDirectory = resolvedMinecraftProviderConfig.serverDirectory();
             if (serverDirectory == null) {
                 serverDirectory =
-                    workingDirectory.resolve("runtime").resolve("minecraft-server").resolve(resolvedMinecraftProviderConfig.requestedVersion());
+                    workingDirectory.resolve("minecraft-server").resolve(resolvedMinecraftProviderConfig.requestedVersion());
             }
             serverDirectory = serverDirectory.toAbsolutePath().normalize();
             if (serverDirectory.equals(workingDirectory.toAbsolutePath().normalize())) {
@@ -1099,7 +1099,7 @@ public final class LoaderMain {
         }
 
         Path javaExecutable = new JavaExecutableResolver().resolve();
-        Path resultOutputPath = context.workingDirectory().resolve("runtime/minecraft-server-launch-result.json").toAbsolutePath().normalize();
+        Path resultOutputPath = context.workingDirectory().resolve("minecraft-server-launch-result.json").toAbsolutePath().normalize();
         diagnosticSink.record(
             new DiagnosticEvent(
                 "minecraft.server_launch.preflight",

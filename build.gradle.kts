@@ -370,7 +370,7 @@ tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.mcmodloader.core.LoaderMain")
-    workingDir = layout.projectDirectory.asFile
+    workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
         "unused.for.minecraft.FakeServerLaunch",
@@ -379,7 +379,7 @@ tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
         "--minecraft-version",
         "26.1.2",
         "--minecraft-dir",
-        "runtime/fixture-minecraft-server-launch",
+        "fixture-minecraft-server-launch",
         "--minecraft-side",
         "server",
         "--minecraft-dry-run",
@@ -392,7 +392,7 @@ tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
         "5",
         "--minecraft-accept-eula-for-test",
         "--minecraft-output-plan",
-        "runtime/minecraft-launch-plan.json"
+        "minecraft-launch-plan.json"
     )
 }
 
@@ -402,7 +402,7 @@ tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
     dependsOn(":loader-core:classes", ":loader-api:classes")
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.mcmodloader.core.LoaderMain")
-    workingDir = layout.projectDirectory.asFile
+    workingDir = layout.projectDirectory.dir("runtime").asFile
     onlyIf {
         val minecraftDir = providers.gradleProperty("minecraftDir").orNull
         if (minecraftDir.isNullOrBlank()) {
@@ -434,7 +434,7 @@ tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
             "--minecraft-server-arg",
             "nogui",
             "--minecraft-output-plan",
-            "runtime/minecraft-launch-plan.json"
+            "minecraft-launch-plan.json"
         )
     }
 }
@@ -446,7 +446,7 @@ tasks.register<JavaExec>("minecraftServerCacheInspect") {
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.mcmodloader.core.LoaderMain")
-    workingDir = layout.projectDirectory.asFile
+    workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
         "unused.for.minecraft.CacheInspect",
@@ -468,7 +468,7 @@ tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.mcmodloader.core.LoaderMain")
-    workingDir = layout.projectDirectory.asFile
+    workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
         "unused.for.minecraft.OfflineCacheCheck",
@@ -492,7 +492,7 @@ tasks.register<JavaExec>("minecraftServerCacheRepair") {
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.mcmodloader.core.LoaderMain")
-    workingDir = layout.projectDirectory.asFile
+    workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
         "unused.for.minecraft.CacheRepair",
@@ -517,7 +517,7 @@ tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.mcmodloader.core.LoaderMain")
-    workingDir = layout.projectDirectory.asFile
+    workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
         "unused.for.minecraft.ServerDownloadSmoke",
@@ -537,6 +537,6 @@ tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
         "--minecraft-server-arg",
         "nogui",
         "--minecraft-output-plan",
-        "runtime/minecraft-launch-plan.json"
+        "minecraft-launch-plan.json"
     )
 }

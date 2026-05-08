@@ -19,7 +19,11 @@ public final class MinecraftArtifactDownloader {
     private final Duration connectTimeout;
 
     public MinecraftArtifactDownloader() {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(), new MinecraftArtifactVerifier(), Duration.ofSeconds(10));
+        this(
+            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NORMAL).build(),
+            new MinecraftArtifactVerifier(),
+            Duration.ofSeconds(10)
+        );
     }
 
     public MinecraftArtifactDownloader(HttpClient httpClient, MinecraftArtifactVerifier verifier, Duration connectTimeout) {
@@ -35,7 +39,7 @@ public final class MinecraftArtifactDownloader {
             Files.createDirectories(tmpDirectory);
             Files.createDirectories(targetPath.toAbsolutePath().normalize().getParent());
 
-            HttpRequest request = HttpRequest.newBuilder(uri).GET().timeout(Duration.ofSeconds(30)).build();
+            HttpRequest request = HttpRequest.newBuilder(uri).GET().timeout(connectTimeout).build();
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new LoaderException("Failed to download artifact from " + uri + ": HTTP " + response.statusCode());

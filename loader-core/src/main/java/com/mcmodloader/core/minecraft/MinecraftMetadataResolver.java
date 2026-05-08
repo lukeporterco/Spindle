@@ -42,7 +42,7 @@ public final class MinecraftMetadataResolver {
 
         Path cachedVersionJson =
             config.cacheDirectory() == null
-                ? workingDirectory.resolve("runtime/minecraft-cache/metadata/versions").resolve(config.requestedVersion() + ".json").toAbsolutePath().normalize()
+                ? workingDirectory.resolve("minecraft-cache/metadata/versions").resolve(config.requestedVersion() + ".json").toAbsolutePath().normalize()
                 : config.cacheDirectory().resolve("metadata/versions").resolve(config.requestedVersion() + ".json").toAbsolutePath().normalize();
         if (Files.isRegularFile(cachedVersionJson)) {
             return;
@@ -105,7 +105,7 @@ public final class MinecraftMetadataResolver {
             if (!config.fetchMetadata() && !config.downloadServer() && !config.cacheRepair()) {
                 throw missingMetadataException(workingDirectory, config.requestedVersion(), config.minecraftDirectory());
             }
-            Path fetchedVersionJson = cachePath(workingDirectory, config.requestedVersion());
+            Path fetchedVersionJson = cachePath(config, config.requestedVersion());
             String json = fetch(version.url(), "Minecraft version JSON");
             writeString(fetchedVersionJson, json);
             return new ResolvedVersionJson(config.requestedVersion(), fetchedVersionJson, json, "manifest");
@@ -121,20 +121,27 @@ public final class MinecraftMetadataResolver {
         }
 
         String manifestJson = fetch(DEFAULT_MANIFEST_URL, "Minecraft version manifest");
-        Path cachedManifest = workingDirectory.resolve("minecraft-metadata/version-manifest.json").toAbsolutePath().normalize();
+        Path cachedManifest = manifestPath(config, workingDirectory);
         writeString(cachedManifest, manifestJson);
         MinecraftVersionManifest manifest = manifestParser.parse(manifestJson, DEFAULT_MANIFEST_URL);
         MinecraftVersionManifest.VersionEntry version = manifest
             .findVersion(config.requestedVersion())
             .orElseThrow(() -> new LoaderException("Minecraft version " + config.requestedVersion() + " was not found in fetched manifest"));
-        Path cachedVersionJson = cachePath(workingDirectory, config.requestedVersion());
+        Path cachedVersionJson = cachePath(config, config.requestedVersion());
         String json = fetch(version.url(), "Minecraft version JSON");
         writeString(cachedVersionJson, json);
         return new ResolvedVersionJson(config.requestedVersion(), cachedVersionJson, json, "fetched");
     }
 
-    private Path cachePath(Path workingDirectory, String version) {
-        return workingDirectory.resolve("minecraft-metadata/versions").resolve(version + ".json").toAbsolutePath().normalize();
+    private Path cachePath(MinecraftProviderConfig config, String version) {
+        return config.cacheDirectory().resolve("metadata/versions").resolve(version + ".json").toAbsolutePath().normalize();
+    }
+
+    private Path manifestPath(MinecraftProviderConfig config, Path workingDirectory) {
+        if (config.cacheDirectory() != null) {
+            return config.cacheDirectory().resolve("metadata/version-manifest.json").toAbsolutePath().normalize();
+        }
+        return workingDirectory.resolve("minecraft-cache/metadata/version-manifest.json").toAbsolutePath().normalize();
     }
 
     private String readString(Path path) throws LoaderException {
@@ -171,7 +178,10 @@ public final class MinecraftMetadataResolver {
     }
 
     private LoaderException missingMetadataException(Path workingDirectory, String version, Path minecraftDirectory) {
-        Path expectedLocalPath = new MinecraftInstallLocator().versionJsonPath(minecraftDirectory, version);
+        Path expectedLocalPath =
+            minecraftDirectory == null
+                ? workingDirectory.resolve("minecraft-cache/metadata/versions").resolve(version + ".json").toAbsolutePath().normalize()
+                : new MinecraftInstallLocator().versionJsonPath(minecraftDirectory, version);
         return new LoaderException(
             "Minecraft metadata for version " +
             version +
