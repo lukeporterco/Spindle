@@ -2,6 +2,7 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.tasks.Jar
@@ -11,6 +12,8 @@ import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.withType
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
 
 plugins {
     base
@@ -173,7 +176,7 @@ fun JavaExec.ensureRuntimeWorkingDir() {
 }
 
 val prepareMinecraftServerLaunchFixture by tasks.registering {
-    dependsOn(":sample-server-fixture:jar")
+    dependsOn(":sample-server-fixture:jar", prepareMilestone0Mods)
 
     doLast {
         val fixtureDirectory = layout.projectDirectory.dir("runtime/fixture-minecraft-server-launch").asFile
@@ -202,6 +205,51 @@ val prepareMinecraftServerLaunchFixture by tasks.registering {
 
         val sourceJar = project(":sample-server-fixture").tasks.named<Jar>("jar").get().archiveFile.get().asFile
         sourceJar.copyTo(versionDirectory.resolve("26.1.2-server.jar"), overwrite = true)
+    }
+}
+
+val prepareMinecraftBundledServerFixture by tasks.registering {
+    dependsOn(":sample-server-fixture:jar", prepareMilestone0Mods)
+
+    doLast {
+        val fixtureDirectory = layout.projectDirectory.dir("runtime/fixture-minecraft-bundled-server").asFile
+        val versionDirectory = fixtureDirectory.resolve("versions/26.1.2")
+        versionDirectory.mkdirs()
+        versionDirectory.resolve("26.1.2.json").writeText(
+            """
+            {
+              "id": "26.1.2",
+              "type": "release",
+              "downloads": {
+                "server": {
+                  "url": "https://example.invalid/fake-bundled-server.jar",
+                  "sha1": "fake-bundled-server-sha1",
+                  "size": 123
+                }
+              },
+              "libraries": [],
+              "arguments": {
+                "game": [],
+                "jvm": []
+              }
+            }
+            """.trimIndent()
+        )
+
+        val nestedServerJar = project(":sample-server-fixture").tasks.named<Jar>("jar").get().archiveFile.get().asFile
+        val outerJar = versionDirectory.resolve("26.1.2-server.jar")
+        JarOutputStream(outerJar.outputStream()).use { jar ->
+            fun entry(name: String, bytes: ByteArray) {
+                jar.putNextEntry(JarEntry(name))
+                jar.write(bytes)
+                jar.closeEntry()
+            }
+            entry("META-INF/main-class", "com.mcmodloader.sampleserverfixture.FakeMinecraftServerMain\n".toByteArray())
+            entry("META-INF/versions.list", "0000000000000000000000000000000000000000\tfixture\tfixture-server.jar\n".toByteArray())
+            entry("META-INF/libraries.list", "0000000000000000000000000000000000000000\tfixture-lib\tfixture-lib.jar\n".toByteArray())
+            entry("META-INF/versions/fixture-server.jar", nestedServerJar.readBytes())
+            entry("META-INF/libraries/fixture-lib.jar", nestedServerJar.readBytes())
+        }
     }
 }
 
@@ -641,5 +689,177 @@ tasks.register<JavaExec>("minecraftRealServerOfflineReplay") {
                 "--minecraft-offline-replay",
                 "--minecraft-cache-strict"
             )
+    )
+}
+
+fun JavaExec.configureMinecraftServerFixtureTask(taskMain: String, fixtureTask: TaskProvider<*>, fixtureDir: String, extraArgs: List<String>) {
+    group = "application"
+    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMilestone0Mods, fixtureTask)
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+    args(
+        listOf(
+            "--game-main",
+            taskMain,
+            "--game-provider",
+            "minecraft",
+            "--minecraft-version",
+            "26.1.2",
+            "--minecraft-dir",
+            fixtureDir,
+            "--minecraft-side",
+            "server",
+            "--minecraft-dry-run",
+            "--minecraft-verify-files"
+        ) + extraArgs
+    )
+    ensureRuntimeWorkingDir()
+}
+
+tasks.register<JavaExec>("minecraftServerRuntimePlan") {
+    description = "Writes the Mega-Milestone 7 deterministic Minecraft server runtime plan for a simple fixture server."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.RuntimePlan",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-runtime-plan")
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerBundledFixtureSmoke") {
+    description = "Writes the Mega-Milestone 7 runtime plan for a fake bundled server fixture without network."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.BundledRuntimePlan",
+        prepareMinecraftBundledServerFixture,
+        "fixture-minecraft-bundled-server",
+        listOf("--minecraft-runtime-plan", "--minecraft-boundary-report")
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerRuntimeBoundary") {
+    description = "Writes the Mega-Milestone 7 Minecraft runtime boundary report."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.RuntimeBoundary",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-runtime-plan", "--minecraft-boundary-report")
+    )
+}
+
+tasks.register<JavaExec>("minecraftModIntegrationPlan") {
+    description = "Writes the Mega-Milestone 7 analysis-only Minecraft mod integration plan."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.ModIntegrationPlan",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-runtime-plan", "--minecraft-boundary-report", "--minecraft-integration-plan")
+    )
+}
+
+tasks.register<JavaExec>("minecraftModBoundaryExplain") {
+    description = "Prints Mega-Milestone 7 mod and boundary explain output."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.ModBoundaryExplain",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-runtime-plan", "--minecraft-boundary-report", "--minecraft-integration-plan", "--minecraft-explain-boundary", "--minecraft-explain-mods")
+    )
+}
+
+tasks.register<JavaExec>("minecraftRuntimeExplain") {
+    description = "Prints Mega-Milestone 7 runtime explain output."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.RuntimeExplain",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-runtime-plan", "--minecraft-explain-runtime")
+    )
+}
+
+tasks.register<JavaExec>("minecraftPreflight") {
+    description = "Runs the Mega-Milestone 7 Minecraft-aware preflight without launching Minecraft."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.Preflight",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-preflight")
+    )
+}
+
+tasks.register<JavaExec>("minecraftPreflightStrictSmoke") {
+    description = "Runs the Mega-Milestone 7 strict Minecraft-aware preflight smoke."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.PreflightStrict",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-preflight", "--minecraft-strict-boundary", "--minecraft-strict-runtime-conflicts", "--minecraft-strict-side", "--minecraft-strict-class-versions")
+    )
+}
+
+tasks.register<JavaExec>("minecraftPreflightOfflineReplay") {
+    description = "Runs the Mega-Milestone 7 offline preflight using only cached fixture inputs."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.PreflightOfflineReplay",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-offline-preflight")
+    )
+}
+
+tasks.register<JavaExec>("minecraftReproducibilityCheck") {
+    description = "Writes the Mega-Milestone 7 reproducibility check report for deterministic planning outputs."
+    configureMinecraftServerFixtureTask(
+        "unused.for.minecraft.Reproducibility",
+        prepareMinecraftServerLaunchFixture,
+        "fixture-minecraft-server-launch",
+        listOf("--minecraft-reproducibility-check")
+    )
+}
+
+tasks.register<JavaExec>("minecraftRealServerRuntimeAcquire") {
+    description = "Explicitly resolves and reports a real official vanilla server runtime plan without launching it."
+    configureRealBaselineTask(
+        "unused.for.minecraft.RealRuntimeAcquire",
+        includeFetch = true,
+        includeDownloadServer = true,
+        includeLaunch = false,
+        extraArgs = listOf("--minecraft-runtime-plan", "--minecraft-boundary-report")
+    )
+}
+
+tasks.register<JavaExec>("minecraftRealServerRuntimeSmoke") {
+    description = "Explicitly resolves a real official vanilla server runtime plan and attempts managed launch."
+    configureRealBaselineTask(
+        "unused.for.minecraft.RealRuntimeSmoke",
+        includeFetch = true,
+        includeDownloadServer = true,
+        includeLaunch = true,
+        extraArgs = listOf("--minecraft-runtime-plan", "--minecraft-launch-timeout-seconds", "30", "--minecraft-server-arg", "nogui")
+    )
+}
+
+tasks.register<JavaExec>("minecraftRealServerRuntimeOfflineReplay") {
+    description = "Explicit offline replay for the Mega-Milestone 7 real server runtime plan."
+    configureRealBaselineTask(
+        "unused.for.minecraft.RealRuntimeOfflineReplay",
+        includeFetch = false,
+        includeDownloadServer = false,
+        includeLaunch = false,
+        extraArgs = listOf("--minecraft-offline", "--minecraft-offline-replay", "--minecraft-cache-strict", "--minecraft-runtime-plan", "--minecraft-boundary-report")
+    )
+}
+
+tasks.register("minecraftMegaMilestone7Check") {
+    group = "verification"
+    description = "Runs focused Mega-Milestone 7 fixture checks without network."
+    dependsOn(
+        "minecraftServerRuntimePlan",
+        "minecraftServerBundledFixtureSmoke",
+        "minecraftServerRuntimeBoundary",
+        "minecraftModIntegrationPlan",
+        "minecraftPreflight",
+        "minecraftReproducibilityCheck",
+        ":loader-core:test"
     )
 }

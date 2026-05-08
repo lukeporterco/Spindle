@@ -3,13 +3,15 @@
 MC ModLoader currently provides a deterministic loader core with two provider paths:
 
 - `sample`: the existing fake-game provider used for Milestone 0-2 launches
-- `minecraft`: a Milestone 6 provider that still runs the deterministic dry-run planning pipeline and, only when explicitly requested, can inspect, repair, cache, verify, baseline, replay, and launch a managed vanilla Minecraft server process
+- `minecraft`: a Mega-Milestone 7 provider that runs deterministic dry-run planning, owns a server runtime capsule, writes pre-mod boundary reports, and, only when explicitly requested, can inspect, repair, cache, verify, baseline, replay, and launch a managed vanilla Minecraft server process
 
 Minimum Java version: Java 25
 
 First intended Minecraft target: 26.1.2
 
-Milestone 6 keeps `26.1.2` as the project target Minecraft version for loader metadata and dependency validation. Real vanilla server smoke tasks use a separate official baseline version selected from Mojang metadata, for example `latest-release` or an exact version such as `1.21.8`.
+Mega-Milestone 7 keeps `26.1.2` as the project target Minecraft version for loader metadata and dependency validation. Real vanilla server smoke tasks use a separate official baseline version selected from Mojang metadata, for example `latest-release` or an exact version such as `1.21.8`.
+
+Mega-Milestone 7 turns MC ModLoader into a deterministic Minecraft server runtime owner with a frozen, inspectable, replayable, and explainable pre-mod integration boundary. It still deliberately stops before real Minecraft mod loading: no Minecraft mod classes are loaded, no Minecraft entrypoints are invoked, no mod jars are placed on the real Minecraft runtime classpath, and no Mixin, remapping, bytecode transformation, patching, Fabric/Forge/NeoForge/Quilt/Paper/Bukkit/Sponge compatibility, or injection exists.
 
 ## Tasks
 
@@ -103,6 +105,48 @@ Managed real local server dry smoke:
 ./gradlew minecraftServerLaunchDrySmoke -PminecraftDir=C:\path\to\.minecraft
 ```
 
+Mega-Milestone 7 runtime plan:
+
+```bash
+./gradlew minecraftServerRuntimePlan
+```
+
+Mega-Milestone 7 fake bundled server runtime smoke:
+
+```bash
+./gradlew minecraftServerBundledFixtureSmoke
+```
+
+Mega-Milestone 7 runtime boundary report:
+
+```bash
+./gradlew minecraftServerRuntimeBoundary
+```
+
+Mega-Milestone 7 mod integration plan:
+
+```bash
+./gradlew minecraftModIntegrationPlan
+```
+
+Mega-Milestone 7 preflight:
+
+```bash
+./gradlew minecraftPreflight
+```
+
+Mega-Milestone 7 reproducibility check:
+
+```bash
+./gradlew minecraftReproducibilityCheck
+```
+
+Mega-Milestone 7 fixture check suite:
+
+```bash
+./gradlew minecraftMegaMilestone7Check
+```
+
 Optional Mache reference scan:
 
 ```bash
@@ -161,6 +205,20 @@ Milestone 5 adds an explicit verified vanilla server artifact cache under `runti
 
 Milestone 6 also adds an explicit offline replay path. Offline replay uses only cached manifest metadata, cached version JSON, and a cached verified server jar. It performs zero network requests, writes the normal artifact and launch-plan reports, and writes a deterministic baseline report.
 
+Mega-Milestone 7 adds a server runtime planning layer between artifact resolution and process launch. Server planning writes `runtime/minecraft-server-runtime-plan.json`, selects simple-jar or bundled-server mode, records the structured launch command preview, materializes bundled runtime libraries under `runtime/minecraft-cache/versions/<version>/server-runtime/`, verifies cache-owned runtime files, and proves analysis-only behavior.
+
+Mega-Milestone 7 also writes:
+
+- `runtime/minecraft-runtime-boundary.json`
+- `runtime/minecraft-mod-integration-plan.json`
+- `runtime/minecraft-preflight-result.json`
+- `runtime/minecraft-runtime-provenance.json`
+- `runtime/minecraft-reproducibility-check.json`
+
+The runtime boundary report indexes Minecraft runtime packages, resources, services, module-info presence, multi-release jars, native libraries, duplicate resources, split packages, and classpath ownership by layer. It is analysis-only and defines boundaries future mods must not cross.
+
+The mod integration plan discovers MC ModLoader mod jars intended for Minecraft server usage, parses `loader.mod.json`, validates loader, Java, Minecraft, side, dependency, and breaks metadata, scans jar bytes, and freezes a would-load order. It never defines, reflects, initializes, or loads scanned classes and never invokes `ModInitializer`.
+
 Downloads remain explicit and limited to Minecraft version metadata plus the vanilla server jar. This milestone does not download client jars, client assets, client libraries, client natives, mappings, or source.
 
 Managed Minecraft behavior remains server-only. Minecraft client launch is still not implemented. The loader does not inject mods into Minecraft, put mod jars on the Minecraft server classpath, create a mod classloader for Minecraft server launch, invoke mod entrypoints on the Minecraft server launch path, patch entrypoints, transform classes, remap classes, or perform authentication.
@@ -201,6 +259,20 @@ Use these with `--game-provider minecraft`:
 - `--minecraft-stop-after-ready`
 - `--minecraft-ready-timeout-seconds <seconds>`
 - `--minecraft-accept-eula-for-test`
+- `--minecraft-runtime-plan`
+- `--minecraft-plan-mods`
+- `--minecraft-integration-plan`
+- `--minecraft-boundary-report`
+- `--minecraft-preflight`
+- `--minecraft-offline-preflight`
+- `--minecraft-strict-boundary`
+- `--minecraft-strict-runtime-conflicts`
+- `--minecraft-strict-side`
+- `--minecraft-strict-class-versions`
+- `--minecraft-explain-boundary`
+- `--minecraft-explain-runtime`
+- `--minecraft-explain-mods`
+- `--minecraft-reproducibility-check`
 
 Behavior notes:
 
@@ -216,8 +288,8 @@ Behavior notes:
 - `--minecraft-launch` still writes `minecraft-launch-plan.json` before process launch.
 - `--minecraft-server-dir` defaults to `runtime/minecraft-server/<version>`.
 - Real baseline server launch defaults to `runtime/minecraft-server-baseline/<resolvedVersion>`.
-- `--minecraft-server-jvm-arg` values are inserted before `-jar`.
-- `--minecraft-server-arg` values are inserted after the server jar. If none are provided, the managed launch defaults to `nogui`.
+- `--minecraft-server-jvm-arg` values are inserted before the planned launch mode.
+- `--minecraft-server-arg` values are inserted after the planned server main target. If none are provided, the managed launch defaults to `nogui`.
 - `--minecraft-launch-timeout-seconds` defaults to `30`.
 - `--minecraft-ready-timeout-seconds` defaults to `20`.
 - `--minecraft-stop-after-ready` watches for a conservative ready line and then sends `stop`.
@@ -226,7 +298,7 @@ Behavior notes:
 - `--minecraft-manifest-json` is used only for metadata resolution.
 - `--minecraft-fetch-metadata` may fetch only the version manifest and version JSON.
 - `--minecraft-download-server` explicitly allows caching the vanilla server jar.
-- `--minecraft-cache-dir` defaults to `runtime/minecraft-cache`.
+- `--minecraft-cache-dir` defaults to `minecraft-cache` relative to the runtime working directory, which maps to `runtime/minecraft-cache` for Gradle tasks and avoids `runtime/runtime/minecraft-cache`.
 - `--minecraft-offline` disables all network fetches and downloads.
 - `--minecraft-offline` forbids all network fetches and downloads.
 - `--minecraft-cache-inspect` inspects cache state, writes `runtime/minecraft-artifacts.json`, writes diagnostics/profile output, and does not launch Minecraft.
@@ -235,6 +307,14 @@ Behavior notes:
 - `--minecraft-force-redownload` refreshes allowed cache artifacts even when a cached copy already exists.
 - `--minecraft-dir` defaults to the standard user Minecraft directory only when it can be determined safely for the current OS.
 - `--minecraft-download-server` by itself never downloads anything except metadata needed to identify the server jar and the vanilla server jar itself.
+- `--minecraft-runtime-plan` writes `runtime/minecraft-server-runtime-plan.json` and `runtime/minecraft-runtime-provenance.json`.
+- `--minecraft-boundary-report` writes `runtime/minecraft-runtime-boundary.json`.
+- `--minecraft-integration-plan` writes `runtime/minecraft-mod-integration-plan.json`.
+- `--minecraft-preflight` runs runtime planning, boundary reporting, and mod integration planning, then exits before launch or class loading.
+- `--minecraft-offline-preflight` combines preflight with offline cache-only behavior.
+- `--minecraft-reproducibility-check` writes `runtime/minecraft-reproducibility-check.json`.
+- `--minecraft-strict-runtime-conflicts`, `--minecraft-strict-side`, and `--minecraft-strict-class-versions` promote selected Mega-Milestone 7 warnings to fatal planning issues.
+- `--minecraft-explain-runtime`, `--minecraft-explain-boundary`, and `--minecraft-explain-mods` print deterministic CI-friendly reasons for runtime mode, boundary ownership, and mod acceptance/rejection.
 
 When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-server-launch-result.json` with the managed process command preview, launch outcome, timing, and bounded stdout/stderr tails.
 
@@ -261,6 +341,23 @@ When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-ser
 `minecraftRealServerOfflineReplay` is the explicit cache-only replay path. It uses `--minecraft-offline` plus `--minecraft-offline-replay`, performs zero network requests, verifies cached metadata and the cached verified server jar, writes the same reports, and may fail clearly if the cache is incomplete.
 
 `minecraftRealServerEulaSmoke` is local-only and should be run only if you explicitly accept Mojang's EULA. It adds `--minecraft-accept-eula-for-test`, waits for readiness, sends `stop`, and requires readiness before treating the run as successful.
+
+`minecraftRealServerRuntimeAcquire`, `minecraftRealServerRuntimeSmoke`, and `minecraftRealServerRuntimeOfflineReplay` are the real-server Mega-Milestone 7 runtime-plan variants. They preserve the Milestone 6 real-baseline behavior while adding runtime capsule and boundary reports.
+
+## Mega-Milestone 7 severity model
+
+Mega-Milestone 7 diagnostics use four severities:
+
+- `info`: deterministic context or proof statements
+- `warning`: allowed now, but usually fatal before a future injection milestone
+- `error`: invalid input or metadata that rejects a mod candidate
+- `fatal`: execution cannot continue, or strict mode promoted the issue
+
+Boundary reports also label issues as fatal now, warning now but fatal before injection, informational only, or strict-mode fatal.
+
+## Remaining gap before real Minecraft mod loading
+
+Before real Minecraft mod loading can happen, MC ModLoader still needs a safe Minecraft classloader attachment design, injection lifecycle, verified entrypoint execution boundary, compatibility and conflict policy, and explicit user-facing safety gates. Mega-Milestone 7 prepares those decisions by owning the Minecraft runtime plan and freezing the pre-mod boundary, but it does not cross into injection.
 
 ## Mache reference scan
 

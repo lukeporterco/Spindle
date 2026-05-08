@@ -40,8 +40,24 @@ import com.mcmodloader.core.minecraft.MinecraftLaunchPlanBuilder;
 import com.mcmodloader.core.minecraft.MinecraftLaunchPlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftLibrarySelector;
 import com.mcmodloader.core.minecraft.MinecraftMetadataResolver;
+import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlan;
+import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlanner;
+import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftProviderConfig;
+import com.mcmodloader.core.minecraft.MinecraftPreflightResult;
+import com.mcmodloader.core.minecraft.MinecraftPreflightResultWriter;
+import com.mcmodloader.core.minecraft.MinecraftReproducibilityCheck;
+import com.mcmodloader.core.minecraft.MinecraftReproducibilityCheckWriter;
+import com.mcmodloader.core.minecraft.MinecraftRuntimeBoundary;
+import com.mcmodloader.core.minecraft.MinecraftRuntimeBoundaryBuilder;
+import com.mcmodloader.core.minecraft.MinecraftRuntimeBoundaryWriter;
+import com.mcmodloader.core.minecraft.MinecraftRuntimeProvenanceWriter;
 import com.mcmodloader.core.minecraft.MinecraftSide;
+import com.mcmodloader.core.minecraft.MinecraftServerLaunchCommand;
+import com.mcmodloader.core.minecraft.MinecraftServerRuntimeClasspath;
+import com.mcmodloader.core.minecraft.MinecraftServerRuntimePlan;
+import com.mcmodloader.core.minecraft.MinecraftServerRuntimePlanner;
+import com.mcmodloader.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftVersionSelection;
 import com.mcmodloader.core.minecraft.MinecraftVersionMetadata;
 import com.mcmodloader.core.minecraft.MinecraftVersionMetadataParser;
@@ -169,7 +185,7 @@ public final class LoaderMain {
         boolean minecraftVerifyFiles = false;
         boolean minecraftFetchMetadata = false;
         boolean minecraftDownloadServer = false;
-        Path minecraftCacheDirectory = Path.of("runtime/minecraft-cache");
+        Path minecraftCacheDirectory = Path.of("minecraft-cache");
         boolean minecraftOffline = false;
         boolean minecraftCacheInspect = false;
         boolean minecraftCacheRepair = false;
@@ -191,6 +207,20 @@ public final class LoaderMain {
         boolean minecraftRequireReady = false;
         boolean minecraftRealSmoke = false;
         String minecraftManifestUrl = MinecraftMetadataResolver.DEFAULT_MANIFEST_URL;
+        boolean minecraftRuntimePlan = false;
+        boolean minecraftPlanMods = false;
+        boolean minecraftIntegrationPlan = false;
+        boolean minecraftBoundaryReport = false;
+        boolean minecraftPreflight = false;
+        boolean minecraftOfflinePreflight = false;
+        boolean minecraftStrictBoundary = false;
+        boolean minecraftStrictRuntimeConflicts = false;
+        boolean minecraftStrictSide = false;
+        boolean minecraftStrictClassVersions = false;
+        boolean minecraftExplainBoundary = false;
+        boolean minecraftExplainRuntime = false;
+        boolean minecraftExplainMods = false;
+        boolean minecraftReproducibilityCheck = false;
         Path macheDirectory = null;
         String macheVersion = null;
         boolean macheReferenceScan = false;
@@ -446,6 +476,90 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--minecraft-runtime-plan".equals(argument)) {
+                minecraftRuntimePlan = true;
+                continue;
+            }
+
+            if ("--minecraft-plan-mods".equals(argument)) {
+                minecraftPlanMods = true;
+                continue;
+            }
+
+            if ("--minecraft-integration-plan".equals(argument)) {
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-boundary-report".equals(argument)) {
+                minecraftBoundaryReport = true;
+                continue;
+            }
+
+            if ("--minecraft-preflight".equals(argument)) {
+                minecraftPreflight = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-offline-preflight".equals(argument)) {
+                minecraftOfflinePreflight = true;
+                minecraftPreflight = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                minecraftOffline = true;
+                continue;
+            }
+
+            if ("--minecraft-strict-boundary".equals(argument)) {
+                minecraftStrictBoundary = true;
+                continue;
+            }
+
+            if ("--minecraft-strict-runtime-conflicts".equals(argument)) {
+                minecraftStrictRuntimeConflicts = true;
+                continue;
+            }
+
+            if ("--minecraft-strict-side".equals(argument)) {
+                minecraftStrictSide = true;
+                continue;
+            }
+
+            if ("--minecraft-strict-class-versions".equals(argument)) {
+                minecraftStrictClassVersions = true;
+                continue;
+            }
+
+            if ("--minecraft-explain-boundary".equals(argument)) {
+                minecraftExplainBoundary = true;
+                minecraftBoundaryReport = true;
+                continue;
+            }
+
+            if ("--minecraft-explain-runtime".equals(argument)) {
+                minecraftExplainRuntime = true;
+                minecraftRuntimePlan = true;
+                continue;
+            }
+
+            if ("--minecraft-explain-mods".equals(argument)) {
+                minecraftExplainMods = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-reproducibility-check".equals(argument)) {
+                minecraftReproducibilityCheck = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
             launchArguments.add(argument);
         }
 
@@ -485,7 +599,21 @@ public final class LoaderMain {
                 minecraftOfflineReplay,
                 minecraftRequireReady,
                 minecraftRealSmoke,
-                minecraftManifestUrl
+                minecraftManifestUrl,
+                minecraftRuntimePlan,
+                minecraftPlanMods,
+                minecraftIntegrationPlan,
+                minecraftBoundaryReport,
+                minecraftPreflight,
+                minecraftOfflinePreflight,
+                minecraftStrictBoundary,
+                minecraftStrictRuntimeConflicts,
+                minecraftStrictSide,
+                minecraftStrictClassVersions,
+                minecraftExplainBoundary,
+                minecraftExplainRuntime,
+                minecraftExplainMods,
+                minecraftReproducibilityCheck
             );
 
         return new LaunchArguments(
@@ -671,7 +799,8 @@ public final class LoaderMain {
         );
 
         if (gameProvider instanceof MinecraftGameProvider minecraftGameProvider) {
-            MinecraftDryRunResult dryRunResult = runMinecraftDryRun(context, launchArguments, minecraftGameProvider, diagnosticSink);
+            MinecraftDryRunResult dryRunResult =
+                runMinecraftDryRun(context, launchArguments, minecraftGameProvider, parsedMods, resolvedMods, diagnosticSink);
             if (minecraftGameProvider.config().cacheInspect()) {
                 writeStartupProfile(context, diagnosticSink, startupProfileWriter);
                 System.out.println("[loader] minecraft cache inspection complete");
@@ -802,6 +931,8 @@ public final class LoaderMain {
         LaunchContext context,
         LaunchArguments launchArguments,
         MinecraftGameProvider minecraftGameProvider,
+        List<ModCandidate> parsedMods,
+        ResolvedModSet resolvedMods,
         DiagnosticSink diagnosticSink
     ) throws LoaderException {
         MinecraftProviderConfig config = minecraftGameProvider.config();
@@ -1003,6 +1134,210 @@ public final class LoaderMain {
             );
         }
 
+        MinecraftServerRuntimePlanner.PlannedRuntime plannedRuntime = null;
+        MinecraftRuntimeBoundary runtimeBoundary = null;
+        MinecraftModIntegrationPlan integrationPlan = null;
+        List<String> megaMilestoneReports = new ArrayList<>();
+        boolean needsRuntimePlanning =
+            config.side() == MinecraftSide.SERVER &&
+            artifactResolution.serverJarPath() != null &&
+            (config.runtimePlan() || config.boundaryReport() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck() || config.launch());
+        if (needsRuntimePlanning) {
+            MinecraftArtifactCache finalArtifactCache = artifactCache;
+            plannedRuntime =
+                measure(
+                    diagnosticSink,
+                    "minecraft.runtime.plan",
+                    LaunchPhase.COMPLETE,
+                    () ->
+                        new MinecraftServerRuntimePlanner()
+                            .plan(context.workingDirectory(), config, finalArtifactCache, artifactResolution, path -> displayPath(context, path)),
+                    planned -> details(
+                        "minecraftVersion",
+                        metadata.id(),
+                        "launchMode",
+                        planned.plan().launchMode(),
+                        "runtimePlanOutputPath",
+                        displayPath(context, context.workingDirectory().resolve("minecraft-server-runtime-plan.json"))
+                    )
+                );
+            MinecraftServerRuntimePlanner.PlannedRuntime finalPlannedRuntime = plannedRuntime;
+            measure(
+                diagnosticSink,
+                "minecraft.runtime_plan.write",
+                LaunchPhase.COMPLETE,
+                () -> {
+                    Path outputPath = context.workingDirectory().resolve("minecraft-server-runtime-plan.json");
+                    new MinecraftServerRuntimePlanWriter().write(outputPath, finalPlannedRuntime.plan());
+                    return outputPath;
+                },
+                outputPath -> details("runtimePlanOutputPath", displayPath(context, outputPath))
+            );
+            measure(
+                diagnosticSink,
+                "minecraft.runtime_provenance.write",
+                LaunchPhase.COMPLETE,
+                () -> {
+                    Path outputPath = context.workingDirectory().resolve("minecraft-runtime-provenance.json");
+                    new MinecraftRuntimeProvenanceWriter().write(outputPath, finalPlannedRuntime.plan().provenance());
+                    return outputPath;
+                },
+                outputPath -> details("runtimeProvenanceOutputPath", displayPath(context, outputPath))
+            );
+            megaMilestoneReports.add("minecraft-server-runtime-plan.json");
+            megaMilestoneReports.add("minecraft-runtime-provenance.json");
+            if (config.explainRuntime()) {
+                printMinecraftRuntimeExplain(finalPlannedRuntime.plan());
+            }
+
+            if (config.boundaryReport() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck()) {
+                List<Path> runtimeJars = new ArrayList<>();
+                runtimeJars.add(artifactResolution.serverJarPath());
+                for (MinecraftServerRuntimeClasspath.Entry entry : finalPlannedRuntime.plan().classpathEntries()) {
+                    Path path = Path.of(entry.path());
+                    runtimeJars.add(path.isAbsolute() ? path : context.workingDirectory().resolve(path));
+                }
+                runtimeBoundary =
+                    measure(
+                        diagnosticSink,
+                        "minecraft.runtime_boundary.create",
+                        LaunchPhase.COMPLETE,
+                        () -> new MinecraftRuntimeBoundaryBuilder().build(finalPlannedRuntime.plan(), runtimeJars, path -> displayPath(context, path)),
+                        boundary -> details(
+                            "packageCount",
+                            Integer.toString(boundary.packageOwnership().size()),
+                            "resourceCount",
+                            Integer.toString(boundary.resourceOwnership().size())
+                        )
+                    );
+                MinecraftRuntimeBoundary finalRuntimeBoundary = runtimeBoundary;
+                measure(
+                    diagnosticSink,
+                    "minecraft.runtime_boundary.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                        Path outputPath = context.workingDirectory().resolve("minecraft-runtime-boundary.json");
+                        new MinecraftRuntimeBoundaryWriter().write(outputPath, finalRuntimeBoundary);
+                        return outputPath;
+                    },
+                    outputPath -> details("runtimeBoundaryOutputPath", displayPath(context, outputPath))
+                );
+                megaMilestoneReports.add("minecraft-runtime-boundary.json");
+                if (config.explainBoundary()) {
+                    printMinecraftBoundaryExplain(finalRuntimeBoundary);
+                }
+            }
+
+            if ((config.integrationPlan() || config.planMods() || config.preflight() || config.reproducibilityCheck()) && runtimeBoundary != null) {
+                MinecraftRuntimeBoundary finalRuntimeBoundary = runtimeBoundary;
+                integrationPlan =
+                    measure(
+                        diagnosticSink,
+                        "minecraft.mod_integration.plan",
+                        LaunchPhase.COMPLETE,
+                        () ->
+                            new MinecraftModIntegrationPlanner()
+                                .plan(
+                                    context,
+                                    parsedMods,
+                                    resolvedMods,
+                                    finalRuntimeBoundary,
+                                    metadata.id(),
+                                    config.strictSide(),
+                                    config.strictClassVersions(),
+                                    config.strictRuntimeConflicts(),
+                                    path -> displayPath(context, path)
+                                ),
+                        plan -> details(
+                            "acceptedModCount",
+                            Integer.toString(plan.acceptedMods().size()),
+                            "rejectedModCount",
+                            Integer.toString(plan.rejectedMods().size())
+                        )
+                    );
+                MinecraftModIntegrationPlan finalIntegrationPlan = integrationPlan;
+                measure(
+                    diagnosticSink,
+                    "minecraft.mod_integration.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                        Path outputPath = context.workingDirectory().resolve("minecraft-mod-integration-plan.json");
+                        new MinecraftModIntegrationPlanWriter().write(outputPath, finalIntegrationPlan);
+                        return outputPath;
+                    },
+                    outputPath -> details("modIntegrationOutputPath", displayPath(context, outputPath))
+                );
+                megaMilestoneReports.add("minecraft-mod-integration-plan.json");
+                if (config.explainMods()) {
+                    printMinecraftModsExplain(finalIntegrationPlan);
+                }
+            }
+
+            if (config.preflight() && runtimeBoundary != null) {
+                List<com.mcmodloader.core.minecraft.MinecraftBoundaryViolation> issues = new ArrayList<>(runtimeBoundary.violations());
+                if (integrationPlan != null) {
+                    issues.addAll(integrationPlan.issues());
+                }
+                MinecraftPreflightResult preflightResult =
+                    new MinecraftPreflightResult(
+                        1,
+                        "Mega-Milestone 7",
+                        metadata.id(),
+                        true,
+                        runtimeBoundary != null,
+                        integrationPlan != null,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        List.copyOf(megaMilestoneReports),
+                        issues,
+                        issues.stream().noneMatch(issue -> issue.fatalNow() || issue.severity() == com.mcmodloader.core.minecraft.MinecraftBoundarySeverity.FATAL)
+                    );
+                measure(
+                    diagnosticSink,
+                    "minecraft.preflight.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                        Path outputPath = context.workingDirectory().resolve("minecraft-preflight-result.json");
+                        new MinecraftPreflightResultWriter().write(outputPath, preflightResult);
+                        return outputPath;
+                    },
+                    outputPath -> details("preflightOutputPath", displayPath(context, outputPath))
+                );
+                megaMilestoneReports.add("minecraft-preflight-result.json");
+            }
+
+            if (config.reproducibilityCheck()) {
+                MinecraftReproducibilityCheck check =
+                    new MinecraftReproducibilityCheck(
+                        1,
+                        "Mega-Milestone 7",
+                        List.copyOf(megaMilestoneReports),
+                        true,
+                        false,
+                        false,
+                        config.offline() && artifactResolution.networkRequestCount() > 0,
+                        config.offline() && artifactResolution.networkRequestCount() > 0 ? List.of("offline replay used network") : List.of()
+                    );
+                measure(
+                    diagnosticSink,
+                    "minecraft.reproducibility.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                        Path outputPath = context.workingDirectory().resolve("minecraft-reproducibility-check.json");
+                        new MinecraftReproducibilityCheckWriter().write(outputPath, check);
+                        return outputPath;
+                    },
+                    outputPath -> details("reproducibilityOutputPath", displayPath(context, outputPath))
+                );
+            }
+        }
+
         diagnosticSink.record(
             new DiagnosticEvent(
                 "minecraft.dry_run.complete",
@@ -1044,7 +1379,10 @@ public final class LoaderMain {
             macheReferenceReport,
             artifactResolution.serverJarPath(),
             artifactResolution.serverJarSource(),
-            artifactResolution
+            artifactResolution,
+            plannedRuntime,
+            runtimeBoundary,
+            integrationPlan
         );
     }
 
@@ -1081,7 +1419,7 @@ public final class LoaderMain {
         }
 
         if ("minecraft".equals(launchArguments.gameProviderId()) && !resolvedMinecraftProviderConfig.dryRun()) {
-            throw new LoaderException("Minecraft provider requires --minecraft-dry-run in Milestone 3");
+            throw new LoaderException("Minecraft provider requires --minecraft-dry-run until managed Minecraft runtime ownership is explicitly requested.");
         }
 
         String resolvedVersion = resolvedMinecraftProviderConfig.requestedVersion();
@@ -1210,6 +1548,10 @@ public final class LoaderMain {
         }
 
         Path javaExecutable = new JavaExecutableResolver().resolve();
+        MinecraftServerLaunchCommand launchCommand =
+            dryRunResult.plannedRuntime() == null
+                ? MinecraftServerLaunchCommand.simpleJar(javaExecutable, serverJarPath, config.serverJvmArgs(), config.serverArgs(), path -> displayPath(context, path))
+                : dryRunResult.plannedRuntime().command();
         Path resultOutputPath = context.workingDirectory().resolve("minecraft-server-launch-result.json").toAbsolutePath().normalize();
         diagnosticSink.record(
             new DiagnosticEvent(
@@ -1247,6 +1589,7 @@ public final class LoaderMain {
                         config.readyTimeoutSeconds(),
                         config.acceptEulaForTest()
                     ),
+                    launchCommand,
                     path -> displayPath(context, path)
                 );
 
@@ -1548,6 +1891,33 @@ public final class LoaderMain {
         System.out.println("[loader] explain: split packages " + frozenModGraph.packageOwnershipIndex().splitPackages().size());
         System.out.println("[loader] explain: dependency graph " + displayPath(context, context.workingDirectory().resolve("dependency-graph.json")));
         System.out.println("[loader] explain: modpack state " + displayPath(context, context.workingDirectory().resolve("modpack-state.json")));
+    }
+
+    private static void printMinecraftRuntimeExplain(MinecraftServerRuntimePlan plan) {
+        System.out.println("[loader] explain-runtime: Mega-Milestone 7 runtime plan " + plan.resolvedMinecraftVersion());
+        System.out.println("[loader] explain-runtime: selector " + plan.selectorUsed() + " via " + plan.selectorResolutionReason());
+        System.out.println("[loader] explain-runtime: server artifact " + plan.serverJarSource() + " " + plan.serverJarPath());
+        System.out.println("[loader] explain-runtime: launch mode " + plan.launchMode() + " because " + plan.launchModeReason());
+        System.out.println("[loader] explain-runtime: classpath entries " + plan.classpathEntries().size());
+        System.out.println("[loader] explain-runtime: wrote minecraft-server-runtime-plan.json");
+    }
+
+    private static void printMinecraftBoundaryExplain(MinecraftRuntimeBoundary boundary) {
+        System.out.println("[loader] explain-boundary: Mega-Milestone 7 boundary is analysis-only");
+        System.out.println("[loader] explain-boundary: packages " + boundary.packageOwnership().size());
+        System.out.println("[loader] explain-boundary: resources " + boundary.resourceOwnership().size());
+        System.out.println("[loader] explain-boundary: services " + boundary.serviceProviderOwnership().size());
+        System.out.println("[loader] explain-boundary: violations " + boundary.violations().size());
+        System.out.println("[loader] explain-boundary: wrote minecraft-runtime-boundary.json");
+    }
+
+    private static void printMinecraftModsExplain(MinecraftModIntegrationPlan plan) {
+        System.out.println("[loader] explain-mods: Mega-Milestone 7 integration plan is analysis-only");
+        System.out.println("[loader] explain-mods: discovered " + plan.discoveredModCandidates().size() + " candidates");
+        System.out.println("[loader] explain-mods: accepted " + plan.acceptedMods().size() + " mods");
+        System.out.println("[loader] explain-mods: rejected " + plan.rejectedMods().size() + " mods");
+        System.out.println("[loader] explain-mods: future classpath entries " + plan.modClasspathPlan().plannedFutureModClasspathEntries().size());
+        System.out.println("[loader] explain-mods: wrote minecraft-mod-integration-plan.json");
     }
 
     private static void writeStartupProfile(

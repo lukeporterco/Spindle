@@ -51,7 +51,7 @@ public final class MinecraftGameProvider implements GameProvider {
 
     @Override
     public void launch(LaunchContext context, ClassLoader classLoader) throws LoaderException {
-        throw new LoaderException("Minecraft launch is intentionally disabled in Milestone 3. Use --minecraft-dry-run only.");
+        throw new LoaderException("Minecraft launch is intentionally controlled by the managed server runtime path. Use --minecraft-dry-run with explicit Minecraft server planning or launch flags.");
     }
 
     public MinecraftProviderConfig config() {

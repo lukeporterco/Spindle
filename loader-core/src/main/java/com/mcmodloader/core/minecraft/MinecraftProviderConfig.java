@@ -33,7 +33,21 @@ public record MinecraftProviderConfig(
     boolean offlineReplay,
     boolean requireReady,
     boolean realSmoke,
-    String manifestUrl
+    String manifestUrl,
+    boolean runtimePlan,
+    boolean planMods,
+    boolean integrationPlan,
+    boolean boundaryReport,
+    boolean preflight,
+    boolean offlinePreflight,
+    boolean strictBoundary,
+    boolean strictRuntimeConflicts,
+    boolean strictSide,
+    boolean strictClassVersions,
+    boolean explainBoundary,
+    boolean explainRuntime,
+    boolean explainMods,
+    boolean reproducibilityCheck
 ) {
     public MinecraftProviderConfig {
         side = side == null ? MinecraftSide.CLIENT : side;
@@ -101,7 +115,21 @@ public record MinecraftProviderConfig(
             false,
             false,
             false,
-            MinecraftMetadataResolver.DEFAULT_MANIFEST_URL
+            MinecraftMetadataResolver.DEFAULT_MANIFEST_URL,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
         );
     }
 
@@ -137,7 +165,21 @@ public record MinecraftProviderConfig(
             offlineReplay,
             requireReady,
             realSmoke,
-            manifestUrl
+            manifestUrl,
+            runtimePlan,
+            planMods,
+            integrationPlan,
+            boundaryReport,
+            preflight,
+            offlinePreflight,
+            strictBoundary,
+            strictRuntimeConflicts,
+            strictSide,
+            strictClassVersions,
+            explainBoundary,
+            explainRuntime,
+            explainMods,
+            reproducibilityCheck
         );
     }
 
@@ -188,7 +230,21 @@ public record MinecraftProviderConfig(
             offlineReplay,
             requireReady,
             realSmoke,
-            manifestUrl
+            manifestUrl,
+            runtimePlan,
+            planMods,
+            integrationPlan,
+            boundaryReport,
+            preflight,
+            offlinePreflight,
+            strictBoundary,
+            strictRuntimeConflicts,
+            strictSide,
+            strictClassVersions,
+            explainBoundary,
+            explainRuntime,
+            explainMods,
+            reproducibilityCheck
         );
     }
 
@@ -224,7 +280,21 @@ public record MinecraftProviderConfig(
             offlineReplay,
             requireReady,
             realSmoke,
-            manifestUrl
+            manifestUrl,
+            runtimePlan,
+            planMods,
+            integrationPlan,
+            boundaryReport,
+            preflight,
+            offlinePreflight,
+            strictBoundary,
+            strictRuntimeConflicts,
+            strictSide,
+            strictClassVersions,
+            explainBoundary,
+            explainRuntime,
+            explainMods,
+            reproducibilityCheck
         );
     }
 
@@ -260,7 +330,21 @@ public record MinecraftProviderConfig(
             offlineReplay,
             requireReady,
             realSmoke,
-            manifestUrl
+            manifestUrl,
+            runtimePlan,
+            planMods,
+            integrationPlan,
+            boundaryReport,
+            preflight,
+            offlinePreflight,
+            strictBoundary,
+            strictRuntimeConflicts,
+            strictSide,
+            strictClassVersions,
+            explainBoundary,
+            explainRuntime,
+            explainMods,
+            reproducibilityCheck
         );
     }
 
@@ -296,7 +380,21 @@ public record MinecraftProviderConfig(
             offlineReplay,
             requireReady,
             realSmoke,
-            manifestUrl
+            manifestUrl,
+            runtimePlan,
+            planMods,
+            integrationPlan,
+            boundaryReport,
+            preflight,
+            offlinePreflight,
+            strictBoundary,
+            strictRuntimeConflicts,
+            strictSide,
+            strictClassVersions,
+            explainBoundary,
+            explainRuntime,
+            explainMods,
+            reproducibilityCheck
         );
     }
 

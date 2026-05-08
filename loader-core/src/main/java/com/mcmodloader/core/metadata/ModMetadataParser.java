@@ -73,10 +73,6 @@ public final class ModMetadataParser {
         if (!VALID_SIDES.contains(side)) {
             throw new LoaderException("Invalid mod side in " + sourceName + ": " + side);
         }
-        if (!"universal".equals(side)) {
-            throw new LoaderException("Only universal mods are supported in Milestone 0: " + id);
-        }
-
         Map<String, List<String>> entrypoints = parseEntrypoints(jsonObject, sourceName);
         Map<String, String> depends = parseDepends(jsonObject, sourceName);
         Map<String, String> breaks = parseStringMap(jsonObject, "breaks", sourceName);

@@ -1,14 +1,13 @@
 package com.mcmodloader.core.process;
 
 import com.mcmodloader.core.diagnostics.LoaderException;
+import com.mcmodloader.core.minecraft.MinecraftServerLaunchCommand;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,15 +16,30 @@ import java.util.function.Function;
 public final class MinecraftServerProcessLauncher {
     public MinecraftProcessResult launch(String minecraftVersion, MinecraftProcessConfig config, Function<Path, String> displayPath)
         throws LoaderException {
+        return launch(
+            minecraftVersion,
+            config,
+            MinecraftServerLaunchCommand.simpleJar(
+                config.javaExecutable(),
+                config.serverJar(),
+                config.jvmArgs(),
+                config.serverArgs(),
+                displayPath
+            ),
+            displayPath
+        );
+    }
+
+    public MinecraftProcessResult launch(
+        String minecraftVersion,
+        MinecraftProcessConfig config,
+        MinecraftServerLaunchCommand launchCommand,
+        Function<Path, String> displayPath
+    )
+        throws LoaderException {
         long startNanos = System.nanoTime();
         ensureServerDirectory(config);
-
-        List<String> command = new ArrayList<>();
-        command.add(config.javaExecutable().toString());
-        command.addAll(config.jvmArgs());
-        command.add("-jar");
-        command.add(config.serverJar().toString());
-        command.addAll(config.serverArgs().isEmpty() ? List.of("nogui") : config.serverArgs());
+        List<String> command = launchCommand.command();
 
         ProcessOutputCapture outputCapture = new ProcessOutputCapture();
         AtomicBoolean readyDetected = new AtomicBoolean(false);
@@ -86,8 +100,8 @@ public final class MinecraftServerProcessLauncher {
             displayPath.apply(config.serverJar()),
             displayPath.apply(config.javaExecutable()),
             config.jvmArgs(),
-            config.serverArgs().isEmpty() ? List.of("nogui") : config.serverArgs(),
-            commandPreview(config, displayPath),
+            launchCommand.serverArgs(),
+            launchCommand.commandPreview(),
             true,
             readyDetected.get(),
             stopRequested.get(),
@@ -131,16 +145,6 @@ public final class MinecraftServerProcessLauncher {
             },
             "minecraft-server-output"
         );
-    }
-
-    private List<String> commandPreview(MinecraftProcessConfig config, Function<Path, String> displayPath) {
-        List<String> preview = new ArrayList<>();
-        preview.add("java");
-        preview.addAll(config.jvmArgs());
-        preview.add("-jar");
-        preview.add(displayPath.apply(config.serverJar()));
-        preview.addAll(config.serverArgs().isEmpty() ? List.of("nogui") : config.serverArgs());
-        return preview;
     }
 
     private boolean isReadyLine(String line) {

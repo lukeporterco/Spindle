@@ -18,7 +18,7 @@ public final class MinecraftMetadataResolver {
 
     public void validateAvailability(Path workingDirectory, MinecraftProviderConfig config) throws LoaderException {
         if (!config.dryRun()) {
-            throw new LoaderException("Minecraft provider requires --minecraft-dry-run in Milestone 3");
+            throw new LoaderException("Minecraft provider requires --minecraft-dry-run for managed metadata and runtime planning.");
         }
         if (config.requestedVersion() == null || config.requestedVersion().isBlank()) {
             throw new LoaderException("Minecraft provider requires --minecraft-version unless --minecraft-version-json contains an id");
