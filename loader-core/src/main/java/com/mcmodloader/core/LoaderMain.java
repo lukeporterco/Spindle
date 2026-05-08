@@ -6,6 +6,10 @@ import com.mcmodloader.core.classpath.RuntimeClasspathPlanner;
 import com.mcmodloader.core.artifact.MinecraftArtifactCache;
 import com.mcmodloader.core.artifact.MinecraftArtifactInspector;
 import com.mcmodloader.core.artifact.MinecraftArtifactResolver;
+import com.mcmodloader.core.baseline.MinecraftServerBaseline;
+import com.mcmodloader.core.baseline.MinecraftServerBaselineMode;
+import com.mcmodloader.core.baseline.MinecraftServerBaselineResult;
+import com.mcmodloader.core.baseline.MinecraftServerBaselineWriter;
 import com.mcmodloader.core.diagnostics.DiagnosticEvent;
 import com.mcmodloader.core.diagnostics.DiagnosticSink;
 import com.mcmodloader.core.diagnostics.JsonDiagnosticSink;
@@ -38,6 +42,7 @@ import com.mcmodloader.core.minecraft.MinecraftLibrarySelector;
 import com.mcmodloader.core.minecraft.MinecraftMetadataResolver;
 import com.mcmodloader.core.minecraft.MinecraftProviderConfig;
 import com.mcmodloader.core.minecraft.MinecraftSide;
+import com.mcmodloader.core.minecraft.MinecraftVersionSelection;
 import com.mcmodloader.core.minecraft.MinecraftVersionMetadata;
 import com.mcmodloader.core.minecraft.MinecraftVersionMetadataParser;
 import com.mcmodloader.core.ownership.ClassOwnershipIndex;
@@ -179,6 +184,13 @@ public final class LoaderMain {
         int minecraftLaunchTimeoutSeconds = 30;
         boolean minecraftStopAfterReady = false;
         int minecraftReadyTimeoutSeconds = 20;
+        boolean minecraftBaselineServer = false;
+        String minecraftBaselineVersion = null;
+        Path minecraftBaselineReport = Path.of("minecraft-server-baseline.json");
+        boolean minecraftOfflineReplay = false;
+        boolean minecraftRequireReady = false;
+        boolean minecraftRealSmoke = false;
+        String minecraftManifestUrl = MinecraftMetadataResolver.DEFAULT_MANIFEST_URL;
         Path macheDirectory = null;
         String macheVersion = null;
         boolean macheReferenceScan = false;
@@ -327,6 +339,42 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--minecraft-baseline-server".equals(argument)) {
+                minecraftBaselineServer = true;
+                continue;
+            }
+
+            if ("--minecraft-baseline-version".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-baseline-version");
+                }
+                minecraftBaselineVersion = args[++index];
+                continue;
+            }
+
+            if ("--minecraft-baseline-report".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-baseline-report");
+                }
+                minecraftBaselineReport = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-offline-replay".equals(argument)) {
+                minecraftOfflineReplay = true;
+                continue;
+            }
+
+            if ("--minecraft-require-ready".equals(argument)) {
+                minecraftRequireReady = true;
+                continue;
+            }
+
+            if ("--minecraft-real-smoke".equals(argument)) {
+                minecraftRealSmoke = true;
+                continue;
+            }
+
             if ("--minecraft-server-dir".equals(argument)) {
                 if (index + 1 >= args.length) {
                     throw new LoaderException("Missing value for --minecraft-server-dir");
@@ -430,7 +478,14 @@ public final class LoaderMain {
                 minecraftServerArgs,
                 minecraftLaunchTimeoutSeconds,
                 minecraftStopAfterReady,
-                minecraftReadyTimeoutSeconds
+                minecraftReadyTimeoutSeconds,
+                minecraftBaselineServer,
+                minecraftBaselineVersion,
+                minecraftBaselineReport,
+                minecraftOfflineReplay,
+                minecraftRequireReady,
+                minecraftRealSmoke,
+                minecraftManifestUrl
             );
 
         return new LaunchArguments(
@@ -622,8 +677,22 @@ public final class LoaderMain {
                 System.out.println("[loader] minecraft cache inspection complete");
                 return;
             }
+            if (minecraftGameProvider.config().baselineServerEnabled()) {
+                completeMinecraftBaseline(context, minecraftGameProvider.config(), dryRunResult, diagnosticSink);
+                writeStartupProfile(context, diagnosticSink, startupProfileWriter);
+                System.out.println(
+                    minecraftGameProvider.config().offlineReplay()
+                        ? "[loader] minecraft baseline offline replay complete"
+                        : "[loader] minecraft server baseline complete"
+                );
+                return;
+            }
             if (minecraftGameProvider.config().launch()) {
-                launchMinecraftServer(context, minecraftGameProvider.config(), dryRunResult, diagnosticSink);
+                MinecraftProcessResult processResult =
+                    launchMinecraftServer(context, minecraftGameProvider.config(), dryRunResult, diagnosticSink);
+                if (minecraftGameProvider.config().requireReady() && !processResult.readyDetected()) {
+                    throw new LoaderException("Minecraft server launch did not detect a ready line while --minecraft-require-ready was set.");
+                }
                 writeStartupProfile(context, diagnosticSink, startupProfileWriter);
                 System.out.println("[loader] minecraft server launch complete");
                 return;
@@ -765,7 +834,7 @@ public final class LoaderMain {
                     displayPath(context, artifactCache.artifactReportPath())
                 )
             );
-            return new MinecraftDryRunResult(null, null, null, "missing");
+            return new MinecraftDryRunResult(null, null, null, "missing", null);
         }
 
         MinecraftArtifactResolver.Resolution artifactResolution =
@@ -970,16 +1039,17 @@ public final class LoaderMain {
             )
         );
 
-        return new MinecraftDryRunResult(launchPlan, macheReferenceReport, artifactResolution.serverJarPath(), artifactResolution.serverJarSource());
+        return new MinecraftDryRunResult(
+            launchPlan,
+            macheReferenceReport,
+            artifactResolution.serverJarPath(),
+            artifactResolution.serverJarSource(),
+            artifactResolution
+        );
     }
 
     private static LaunchContext createLaunchContext(Path workingDirectory, LaunchArguments launchArguments) {
-        String targetMinecraftVersion =
-            "minecraft".equals(launchArguments.gameProviderId())
-                    && launchArguments.minecraftProviderConfig() != null
-                    && launchArguments.minecraftProviderConfig().requestedVersion() != null
-                ? launchArguments.minecraftProviderConfig().requestedVersion()
-                : TARGET_MINECRAFT_VERSION;
+        String targetMinecraftVersion = TARGET_MINECRAFT_VERSION;
         return new LaunchContext(
             workingDirectory,
             workingDirectory.resolve("mods"),
@@ -998,6 +1068,9 @@ public final class LoaderMain {
 
     private static LaunchArguments resolveLaunchArguments(Path workingDirectory, LaunchArguments launchArguments) throws LoaderException {
         MinecraftProviderConfig resolvedMinecraftProviderConfig = launchArguments.minecraftProviderConfig().resolveAgainst(workingDirectory);
+        if (!"minecraft".equals(launchArguments.gameProviderId()) && resolvedMinecraftProviderConfig.realSmoke()) {
+            throw new LoaderException("--minecraft-real-smoke requires --game-provider minecraft");
+        }
         if ("minecraft".equals(launchArguments.gameProviderId())
             && resolvedMinecraftProviderConfig.minecraftDirectory() == null
             && resolvedMinecraftProviderConfig.side() == MinecraftSide.CLIENT
@@ -1032,8 +1105,24 @@ public final class LoaderMain {
         }
 
         if ("minecraft".equals(launchArguments.gameProviderId())
+            && resolvedMinecraftProviderConfig.baselineServerEnabled()
+            && (resolvedMinecraftProviderConfig.baselineVersion() == null || resolvedMinecraftProviderConfig.baselineVersion().isBlank())) {
+            resolvedMinecraftProviderConfig = resolvedMinecraftProviderConfig.withBaselineVersion("latest-release");
+        }
+
+        if ("minecraft".equals(launchArguments.gameProviderId())
+            && !resolvedMinecraftProviderConfig.baselineServerEnabled()
             && (resolvedMinecraftProviderConfig.requestedVersion() == null || resolvedMinecraftProviderConfig.requestedVersion().isBlank())) {
             throw new LoaderException("Minecraft provider requires --minecraft-version unless --minecraft-version-json contains an id");
+        }
+
+        if ("minecraft".equals(launchArguments.gameProviderId()) && resolvedMinecraftProviderConfig.realSmoke()) {
+            if (resolvedMinecraftProviderConfig.side() != MinecraftSide.SERVER) {
+                throw new LoaderException("--minecraft-real-smoke requires --minecraft-side server");
+            }
+            if (!resolvedMinecraftProviderConfig.dryRun()) {
+                throw new LoaderException("--minecraft-real-smoke requires --minecraft-dry-run");
+            }
         }
 
         if (resolvedMinecraftProviderConfig.launch()) {
@@ -1055,8 +1144,15 @@ public final class LoaderMain {
 
             Path serverDirectory = resolvedMinecraftProviderConfig.serverDirectory();
             if (serverDirectory == null) {
-                serverDirectory =
-                    workingDirectory.resolve("minecraft-server").resolve(resolvedMinecraftProviderConfig.requestedVersion());
+                String serverVersionDirectory =
+                    resolvedMinecraftProviderConfig.baselineServerEnabled()
+                        ? resolvedMinecraftProviderConfig.requestedVersionOrBaseline()
+                        : resolvedMinecraftProviderConfig.requestedVersion();
+                Path defaultRoot =
+                    resolvedMinecraftProviderConfig.baselineServerEnabled()
+                        ? workingDirectory.resolve("minecraft-server-baseline")
+                        : workingDirectory.resolve("minecraft-server");
+                serverDirectory = defaultRoot.resolve(serverVersionDirectory);
             }
             serverDirectory = serverDirectory.toAbsolutePath().normalize();
             if (serverDirectory.equals(workingDirectory.toAbsolutePath().normalize())) {
@@ -1066,6 +1162,21 @@ public final class LoaderMain {
         }
 
         if ("minecraft".equals(launchArguments.gameProviderId())) {
+            if (resolvedMinecraftProviderConfig.offlineReplay() && !resolvedMinecraftProviderConfig.baselineServerEnabled()) {
+                throw new LoaderException("--minecraft-offline-replay requires --minecraft-baseline-server");
+            }
+            if (resolvedMinecraftProviderConfig.offlineReplay() && !resolvedMinecraftProviderConfig.offline()) {
+                throw new LoaderException("--minecraft-offline-replay requires --minecraft-offline");
+            }
+            if (resolvedMinecraftProviderConfig.requireReady() && !resolvedMinecraftProviderConfig.launch()) {
+                throw new LoaderException("--minecraft-require-ready requires --minecraft-launch");
+            }
+            if (resolvedMinecraftProviderConfig.baselineServerEnabled() && resolvedMinecraftProviderConfig.side() != MinecraftSide.SERVER) {
+                throw new LoaderException("--minecraft-baseline-server requires --minecraft-side server");
+            }
+            if (resolvedMinecraftProviderConfig.baselineServerEnabled() && resolvedMinecraftProviderConfig.cacheInspect()) {
+                throw new LoaderException("--minecraft-baseline-server cannot be combined with --minecraft-cache-inspect");
+            }
             if (resolvedMinecraftProviderConfig.offline() &&
                 (resolvedMinecraftProviderConfig.fetchMetadata() || resolvedMinecraftProviderConfig.downloadServer() || resolvedMinecraftProviderConfig.cacheRepair())) {
                 throw new LoaderException(
@@ -1087,7 +1198,7 @@ public final class LoaderMain {
         );
     }
 
-    private static void launchMinecraftServer(
+    private static MinecraftProcessResult launchMinecraftServer(
         LaunchContext context,
         MinecraftProviderConfig config,
         MinecraftDryRunResult dryRunResult,
@@ -1124,7 +1235,7 @@ public final class LoaderMain {
         MinecraftProcessResult result =
             new MinecraftServerProcessLauncher()
                 .launch(
-                    config.requestedVersion(),
+                    dryRunResult.artifactResolution().metadata().id(),
                     new MinecraftProcessConfig(
                         config.serverDirectory(),
                         serverJarPath,
@@ -1197,6 +1308,7 @@ public final class LoaderMain {
                 minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, result, resultOutputPath)
             )
         );
+        return result;
     }
 
     private static List<ModCandidate> parseMetadata(List<ModCandidate> discoveredMods, ModMetadataParser metadataParser)
@@ -1206,6 +1318,159 @@ public final class LoaderMain {
             parsedMods.add(candidate.withMetadata(metadataParser.parse(candidate)));
         }
         return List.copyOf(parsedMods);
+    }
+
+    private static MinecraftServerBaselineResult completeMinecraftBaseline(
+        LaunchContext context,
+        MinecraftProviderConfig config,
+        MinecraftDryRunResult dryRunResult,
+        DiagnosticSink diagnosticSink
+    ) throws LoaderException {
+        MinecraftArtifactResolver.Resolution artifactResolution = dryRunResult.artifactResolution();
+        MinecraftVersionSelection versionSelection = artifactResolution.versionSelection();
+        if (versionSelection == null) {
+            throw new LoaderException("Minecraft baseline flow requires a resolved version selection.");
+        }
+
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.baseline.start",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft baseline flow started",
+                baselineDetails(context, config, artifactResolution, null)
+            )
+        );
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.version_select",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft version selection resolved",
+                baselineDetails(context, config, artifactResolution, null)
+            )
+        );
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                config.offlineReplay() ? "minecraft.baseline.offline_replay" : "minecraft.baseline.artifacts.resolve",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                config.offlineReplay() ? "Minecraft baseline offline replay using cached artifacts" : "Minecraft baseline artifacts resolved",
+                baselineDetails(context, config, artifactResolution, null)
+            )
+        );
+
+        MinecraftProviderConfig launchConfig = config;
+        if (config.serverDirectory() == null || serverDirectoryUsesRequestedSelector(context, config)) {
+            launchConfig =
+                config.withServerDirectory(
+                    context.workingDirectory()
+                        .resolve("minecraft-server-baseline")
+                        .resolve(artifactResolution.metadata().id())
+                        .toAbsolutePath()
+                        .normalize()
+                );
+        }
+
+        MinecraftProcessResult processResult = null;
+        if (launchConfig.launch()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "minecraft.baseline.launch.start",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Minecraft baseline launch starting",
+                    baselineDetails(context, launchConfig, artifactResolution, null)
+                )
+            );
+            processResult = launchMinecraftServer(context, launchConfig, dryRunResult, diagnosticSink);
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "minecraft.baseline.launch.complete",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Minecraft baseline launch complete",
+                    baselineDetails(context, launchConfig, artifactResolution, processResult)
+                )
+            );
+        }
+
+        String manifestSha256 = artifactResolution.manifestRecord() == null ? null : artifactResolution.manifestRecord().sha256();
+        String manifestPath =
+            artifactResolution.manifestRecord() == null || !artifactResolution.manifestRecord().present()
+                ? null
+                : displayPath(context, artifactResolution.manifestRecord().path());
+        String versionJsonSha256 = artifactResolution.versionRecord() == null ? null : artifactResolution.versionRecord().sha256();
+        String versionJsonPath =
+            artifactResolution.versionRecord() == null || !artifactResolution.versionRecord().present()
+                ? null
+                : displayPath(context, artifactResolution.versionRecord().path());
+        String launchResultPath =
+            processResult == null ? null : displayPath(context, context.workingDirectory().resolve("minecraft-server-launch-result.json"));
+        boolean offlineReplaySucceeded =
+            launchConfig.offlineReplay() && (processResult == null || !launchConfig.requireReady() || processResult.readyDetected());
+
+        MinecraftServerBaseline baseline =
+            new MinecraftServerBaseline(
+                1,
+                TARGET_MINECRAFT_VERSION,
+                artifactResolution.metadata().id(),
+                versionSelection,
+                new MinecraftServerBaseline.Metadata(manifestPath, versionJsonPath, manifestSha256, versionJsonSha256),
+                new MinecraftServerBaseline.ServerArtifact(
+                    artifactResolution.serverRecord() == null ? null : displayPath(context, artifactResolution.serverRecord().path()),
+                    artifactResolution.serverRecord() == null ? null : artifactResolution.serverRecord().sourceUrl(),
+                    artifactResolution.serverRecord() == null ? null : artifactResolution.serverRecord().sha1(),
+                    artifactResolution.serverRecord() == null ? null : artifactResolution.serverRecord().sha256(),
+                    artifactResolution.serverRecord() == null ? null : artifactResolution.serverRecord().size(),
+                    artifactResolution.serverRecord() != null && artifactResolution.serverRecord().verified()
+                ),
+                new MinecraftServerBaseline.Launch(
+                    launchConfig.launch(),
+                    launchResultPath,
+                    processResult != null && processResult.started(),
+                    processResult == null ? null : processResult.readyDetected(),
+                    processResult == null ? null : processResult.exitCode(),
+                    processResult != null && processResult.timedOut()
+                ),
+                new MinecraftServerBaseline.OfflineReplay(
+                    launchConfig.offlineReplay(),
+                    launchResultPath,
+                    offlineReplaySucceeded,
+                    artifactResolution.networkRequestCount()
+                ),
+                new MinecraftServerBaseline.ModIntegration(false, false, false)
+            );
+
+        new MinecraftServerBaselineWriter().write(launchConfig.baselineReportPath(), baseline);
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.baseline.write",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft baseline report written",
+                baselineDetails(context, launchConfig, artifactResolution, processResult)
+            )
+        );
+
+        if (launchConfig.requireReady() && (processResult == null || !processResult.readyDetected())) {
+            throw new LoaderException("Minecraft baseline launch did not detect a ready line while --minecraft-require-ready was set.");
+        }
+
+        return new MinecraftServerBaselineResult(
+            launchConfig.offlineReplay() ? MinecraftServerBaselineMode.OFFLINE_REPLAY : MinecraftServerBaselineMode.ACQUIRE,
+            baseline,
+            artifactResolution,
+            dryRunResult,
+            processResult,
+            launchConfig.baselineReportPath()
+        );
     }
 
     private static String verifyOrWriteLockfile(
@@ -1307,6 +1572,59 @@ public final class LoaderMain {
                 details("startupProfileOutputPath", displayPath(context, startupProfilePath))
             )
         );
+    }
+
+    private static Map<String, String> baselineDetails(
+        LaunchContext context,
+        MinecraftProviderConfig config,
+        MinecraftArtifactResolver.Resolution artifactResolution,
+        MinecraftProcessResult processResult
+    ) {
+        return details(
+            "projectTargetMinecraft",
+            TARGET_MINECRAFT_VERSION,
+            "requestedBaselineVersion",
+            config.requestedVersionOrBaseline(),
+            "resolvedBaselineVersion",
+            artifactResolution == null || artifactResolution.versionSelection() == null ? null : artifactResolution.versionSelection().resolved(),
+            "versionSelectionSource",
+            artifactResolution == null || artifactResolution.versionSelection() == null ? null : artifactResolution.versionSelection().source(),
+            "cacheDirectory",
+            config.cacheDirectory() == null ? null : displayPath(context, config.cacheDirectory()),
+            "serverJar",
+            artifactResolution == null || artifactResolution.serverJarPath() == null ? null : displayPath(context, artifactResolution.serverJarPath()),
+            "serverJarSource",
+            artifactResolution == null ? null : artifactResolution.serverJarSource(),
+            "networkRequests",
+            artifactResolution == null ? null : Integer.toString(artifactResolution.networkRequestCount()),
+            "offline",
+            Boolean.toString(config.offline()),
+            "launchAttempted",
+            Boolean.toString(config.launch()),
+            "readyDetected",
+            processResult == null ? null : Boolean.toString(processResult.readyDetected()),
+            "requireReady",
+            Boolean.toString(config.requireReady()),
+            "baselineReportPath",
+            displayPath(context, config.baselineReportPath())
+        );
+    }
+
+    private static boolean serverDirectoryUsesRequestedSelector(LaunchContext context, MinecraftProviderConfig config) {
+        if (config.serverDirectory() == null) {
+            return false;
+        }
+        String requested = config.requestedVersionOrBaseline();
+        if (requested == null || requested.isBlank()) {
+            return false;
+        }
+        Path expected =
+            context.workingDirectory()
+                .resolve("minecraft-server-baseline")
+                .resolve(requested)
+                .toAbsolutePath()
+                .normalize();
+        return expected.equals(config.serverDirectory());
     }
 
     private static String displayPath(LaunchContext context, Path path) {

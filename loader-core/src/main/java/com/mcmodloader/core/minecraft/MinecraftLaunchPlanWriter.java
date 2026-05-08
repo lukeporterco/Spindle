@@ -19,6 +19,8 @@ public final class MinecraftLaunchPlanWriter {
         JsonObject root = new JsonObject();
         root.addProperty("schema", plan.schema());
         root.addProperty("provider", plan.provider());
+        addStringOrNull(root, "projectTargetMinecraft", plan.projectTargetMinecraft());
+        addStringOrNull(root, "baselineMinecraft", plan.baselineMinecraft());
         root.addProperty("minecraftVersion", plan.minecraftVersion());
         root.addProperty("side", plan.side());
         addStringOrNull(root, "mainClass", plan.mainClass());
@@ -46,6 +48,7 @@ public final class MinecraftLaunchPlanWriter {
         root.add("gameArguments", toStringArray(plan.gameArguments()));
         root.add("commandPreview", toStringArray(plan.commandPreview()));
         root.add("missingFiles", toStringArray(plan.missingFiles()));
+        root.addProperty("modJarsOnMinecraftClasspath", plan.modJarsOnMinecraftClasspath());
 
         JsonObject metadata = new JsonObject();
         addStringOrNull(metadata, "type", plan.metadata().type());

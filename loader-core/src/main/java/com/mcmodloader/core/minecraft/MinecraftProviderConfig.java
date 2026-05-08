@@ -26,14 +26,83 @@ public record MinecraftProviderConfig(
     java.util.List<String> serverArgs,
     int launchTimeoutSeconds,
     boolean stopAfterReady,
-    int readyTimeoutSeconds
+    int readyTimeoutSeconds,
+    boolean baselineServer,
+    String baselineVersion,
+    Path baselineReportPath,
+    boolean offlineReplay,
+    boolean requireReady,
+    boolean realSmoke,
+    String manifestUrl
 ) {
     public MinecraftProviderConfig {
         side = side == null ? MinecraftSide.CLIENT : side;
         cacheDirectory = cacheDirectory == null ? Path.of("minecraft-cache") : cacheDirectory.normalize();
         outputPlanPath = outputPlanPath == null ? Path.of("minecraft-launch-plan.json") : outputPlanPath.normalize();
+        baselineReportPath = baselineReportPath == null ? Path.of("minecraft-server-baseline.json") : baselineReportPath.normalize();
         serverJvmArgs = java.util.List.copyOf(serverJvmArgs == null ? java.util.List.of() : serverJvmArgs);
         serverArgs = java.util.List.copyOf(serverArgs == null ? java.util.List.of() : serverArgs);
+    }
+
+    public MinecraftProviderConfig(
+        String requestedVersion,
+        Path minecraftDirectory,
+        Path explicitVersionJson,
+        Path manifestJson,
+        MinecraftSide side,
+        boolean dryRun,
+        boolean verifyFiles,
+        boolean fetchMetadata,
+        boolean downloadServer,
+        Path cacheDirectory,
+        boolean offline,
+        boolean cacheInspect,
+        boolean cacheRepair,
+        boolean cacheStrict,
+        boolean forceRedownload,
+        Path outputPlanPath,
+        boolean launch,
+        Path serverDirectory,
+        boolean acceptEulaForTest,
+        java.util.List<String> serverJvmArgs,
+        java.util.List<String> serverArgs,
+        int launchTimeoutSeconds,
+        boolean stopAfterReady,
+        int readyTimeoutSeconds
+    ) {
+        this(
+            requestedVersion,
+            minecraftDirectory,
+            explicitVersionJson,
+            manifestJson,
+            side,
+            dryRun,
+            verifyFiles,
+            fetchMetadata,
+            downloadServer,
+            cacheDirectory,
+            offline,
+            cacheInspect,
+            cacheRepair,
+            cacheStrict,
+            forceRedownload,
+            outputPlanPath,
+            launch,
+            serverDirectory,
+            acceptEulaForTest,
+            serverJvmArgs,
+            serverArgs,
+            launchTimeoutSeconds,
+            stopAfterReady,
+            readyTimeoutSeconds,
+            false,
+            null,
+            Path.of("minecraft-server-baseline.json"),
+            false,
+            false,
+            false,
+            MinecraftMetadataResolver.DEFAULT_MANIFEST_URL
+        );
     }
 
     public MinecraftProviderConfig resolveAgainst(Path workingDirectory) {
@@ -61,12 +130,30 @@ public record MinecraftProviderConfig(
             serverArgs,
             launchTimeoutSeconds,
             stopAfterReady,
-            readyTimeoutSeconds
+            readyTimeoutSeconds,
+            baselineServer,
+            baselineVersion,
+            resolvePath(workingDirectory, baselineReportPath),
+            offlineReplay,
+            requireReady,
+            realSmoke,
+            manifestUrl
         );
     }
 
     public boolean prefersCacheOrDownload() {
         return downloadServer || cacheRepair || forceRedownload;
+    }
+
+    public boolean baselineServerEnabled() {
+        return baselineServer;
+    }
+
+    public String requestedVersionOrBaseline() {
+        if (baselineServer && baselineVersion != null && !baselineVersion.isBlank()) {
+            return baselineVersion;
+        }
+        return requestedVersion;
     }
 
     public MinecraftProviderConfig withMinecraftDirectory(Path updatedMinecraftDirectory) {
@@ -94,7 +181,14 @@ public record MinecraftProviderConfig(
             serverArgs,
             launchTimeoutSeconds,
             stopAfterReady,
-            readyTimeoutSeconds
+            readyTimeoutSeconds,
+            baselineServer,
+            baselineVersion,
+            baselineReportPath,
+            offlineReplay,
+            requireReady,
+            realSmoke,
+            manifestUrl
         );
     }
 
@@ -123,7 +217,14 @@ public record MinecraftProviderConfig(
             serverArgs,
             launchTimeoutSeconds,
             stopAfterReady,
-            readyTimeoutSeconds
+            readyTimeoutSeconds,
+            baselineServer,
+            baselineVersion,
+            baselineReportPath,
+            offlineReplay,
+            requireReady,
+            realSmoke,
+            manifestUrl
         );
     }
 
@@ -152,7 +253,50 @@ public record MinecraftProviderConfig(
             serverArgs,
             launchTimeoutSeconds,
             stopAfterReady,
-            readyTimeoutSeconds
+            readyTimeoutSeconds,
+            baselineServer,
+            baselineVersion,
+            baselineReportPath,
+            offlineReplay,
+            requireReady,
+            realSmoke,
+            manifestUrl
+        );
+    }
+
+    public MinecraftProviderConfig withBaselineVersion(String updatedBaselineVersion) {
+        return new MinecraftProviderConfig(
+            requestedVersion,
+            minecraftDirectory,
+            explicitVersionJson,
+            manifestJson,
+            side,
+            dryRun,
+            verifyFiles,
+            fetchMetadata,
+            downloadServer,
+            cacheDirectory,
+            offline,
+            cacheInspect,
+            cacheRepair,
+            cacheStrict,
+            forceRedownload,
+            outputPlanPath,
+            launch,
+            serverDirectory,
+            acceptEulaForTest,
+            serverJvmArgs,
+            serverArgs,
+            launchTimeoutSeconds,
+            stopAfterReady,
+            readyTimeoutSeconds,
+            baselineServer,
+            updatedBaselineVersion,
+            baselineReportPath,
+            offlineReplay,
+            requireReady,
+            realSmoke,
+            manifestUrl
         );
     }
 

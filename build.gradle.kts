@@ -540,3 +540,114 @@ tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
         "minecraft-launch-plan.json"
     )
 }
+
+fun JavaExec.configureRealBaselineTask(
+    taskMain: String,
+    includeFetch: Boolean,
+    includeDownloadServer: Boolean,
+    includeLaunch: Boolean,
+    extraArgs: List<String> = emptyList()
+) {
+    group = "application"
+    dependsOn(":loader-core:classes", ":loader-api:classes")
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+
+    doFirst {
+        val mcRealVersion = providers.gradleProperty("mcRealVersion").orElse("latest-release").get()
+        val argsList =
+            mutableListOf(
+                "--game-main",
+                taskMain,
+                "--game-provider",
+                "minecraft",
+                "--minecraft-side",
+                "server",
+                "--minecraft-dry-run",
+                "--minecraft-baseline-server",
+                "--minecraft-baseline-version",
+                mcRealVersion,
+                "--minecraft-verify-files",
+                "--minecraft-real-smoke"
+            )
+        if (includeFetch) {
+            argsList += "--minecraft-fetch-metadata"
+        }
+        if (includeDownloadServer) {
+            argsList += "--minecraft-download-server"
+        }
+        if (includeLaunch) {
+            argsList += "--minecraft-launch"
+        }
+        argsList += extraArgs
+        setArgs(argsList)
+        workingDir.mkdirs()
+    }
+}
+
+tasks.register<JavaExec>("minecraftRealServerAcquire") {
+    description = "Explicitly resolves, downloads, verifies, and reports a real official vanilla server baseline without launching it."
+    configureRealBaselineTask(
+        "unused.for.minecraft.RealAcquire",
+        includeFetch = true,
+        includeDownloadServer = true,
+        includeLaunch = false
+    )
+}
+
+tasks.register<JavaExec>("minecraftRealServerSmoke") {
+    description = "Explicitly resolves a real official vanilla server baseline and attempts a managed server launch."
+    configureRealBaselineTask(
+        "unused.for.minecraft.RealSmoke",
+        includeFetch = true,
+        includeDownloadServer = true,
+        includeLaunch = true,
+        extraArgs =
+            listOf(
+                "--minecraft-launch-timeout-seconds",
+                "30",
+                "--minecraft-server-arg",
+                "nogui"
+            )
+    )
+}
+
+tasks.register<JavaExec>("minecraftRealServerEulaSmoke") {
+    description =
+        "Local-only real vanilla server smoke that writes eula=true, waits for readiness, and stops the server. Run only if you accept Mojang's EULA."
+    configureRealBaselineTask(
+        "unused.for.minecraft.RealEulaSmoke",
+        includeFetch = true,
+        includeDownloadServer = true,
+        includeLaunch = true,
+        extraArgs =
+            listOf(
+                "--minecraft-accept-eula-for-test",
+                "--minecraft-stop-after-ready",
+                "--minecraft-require-ready",
+                "--minecraft-ready-timeout-seconds",
+                "60",
+                "--minecraft-launch-timeout-seconds",
+                "90",
+                "--minecraft-server-arg",
+                "nogui"
+            )
+    )
+}
+
+tasks.register<JavaExec>("minecraftRealServerOfflineReplay") {
+    description = "Explicit offline replay of the verified real vanilla server baseline cache with zero network requests."
+    configureRealBaselineTask(
+        "unused.for.minecraft.OfflineReplay",
+        includeFetch = false,
+        includeDownloadServer = false,
+        includeLaunch = false,
+        extraArgs =
+            listOf(
+                "--minecraft-offline",
+                "--minecraft-offline-replay",
+                "--minecraft-cache-strict"
+            )
+    )
+}

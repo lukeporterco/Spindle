@@ -1,0 +1,24 @@
+{
+  "latest": {
+    "release": "1.21.8",
+    "snapshot": "26w20a"
+  },
+  "versions": [
+    {
+      "id": "1.21.8",
+      "type": "release",
+      "url": "https://example.invalid/minecraft/1.21.8.json",
+      "sha1": "real-release-version-json-sha1",
+      "releaseTime": "2025-04-29T00:00:00+00:00",
+      "time": "2025-04-29T00:00:00+00:00"
+    },
+    {
+      "id": "26w20a",
+      "type": "snapshot",
+      "url": "https://example.invalid/minecraft/26w20a.json",
+      "sha1": "real-snapshot-version-json-sha1",
+      "releaseTime": "2025-05-03T00:00:00+00:00",
+      "time": "2025-05-03T00:00:00+00:00"
+    }
+  ]
+}

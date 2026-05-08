@@ -3,11 +3,13 @@
 MC ModLoader currently provides a deterministic loader core with two provider paths:
 
 - `sample`: the existing fake-game provider used for Milestone 0-2 launches
-- `minecraft`: a Milestone 5 provider that still runs the deterministic dry-run planning pipeline and, only when explicitly requested, can inspect, repair, cache, verify, and launch a managed vanilla Minecraft server process
+- `minecraft`: a Milestone 6 provider that still runs the deterministic dry-run planning pipeline and, only when explicitly requested, can inspect, repair, cache, verify, baseline, replay, and launch a managed vanilla Minecraft server process
 
 Minimum Java version: Java 25
 
 First intended Minecraft target: 26.1.2
+
+Milestone 6 keeps `26.1.2` as the project target Minecraft version for loader metadata and dependency validation. Real vanilla server smoke tasks use a separate official baseline version selected from Mojang metadata, for example `latest-release` or an exact version such as `1.21.8`.
 
 ## Tasks
 
@@ -71,6 +73,30 @@ Managed server download smoke:
 ./gradlew minecraftServerDownloadSmoke
 ```
 
+Real vanilla server baseline acquire:
+
+```bash
+./gradlew minecraftRealServerAcquire -PmcRealVersion=latest-release
+```
+
+Real vanilla server smoke:
+
+```bash
+./gradlew minecraftRealServerSmoke -PmcRealVersion=latest-release
+```
+
+Real vanilla server offline replay:
+
+```bash
+./gradlew minecraftRealServerOfflineReplay -PmcRealVersion=latest-release
+```
+
+Optional real vanilla server EULA smoke:
+
+```bash
+./gradlew minecraftRealServerEulaSmoke -PmcRealVersion=latest-release
+```
+
 Managed real local server dry smoke:
 
 ```bash
@@ -131,7 +157,9 @@ If Mache reference scanning is enabled, it also writes:
 
 - `runtime/mache-reference-report.json`
 
-Milestone 5 adds an explicit verified vanilla server artifact cache under `runtime/minecraft-cache/`. The loader can cache version metadata, cache only the vanilla server jar, verify cached server artifacts, write `runtime/minecraft-artifacts.json`, and write `runtime/minecraft-cache/server-artifacts.lock.json` after a successful verified server-jar resolution.
+Milestone 5 adds an explicit verified vanilla server artifact cache under `runtime/minecraft-cache/`. Milestone 6 extends that into a real official vanilla server baseline flow. The loader can resolve an official Mojang server version, cache version metadata, cache only the vanilla server jar, verify cached server artifacts, write `runtime/minecraft-artifacts.json`, write `runtime/minecraft-cache/server-artifacts.lock.json`, and write `runtime/minecraft-server-baseline.json` after a successful baseline resolution.
+
+Milestone 6 also adds an explicit offline replay path. Offline replay uses only cached manifest metadata, cached version JSON, and a cached verified server jar. It performs zero network requests, writes the normal artifact and launch-plan reports, and writes a deterministic baseline report.
 
 Downloads remain explicit and limited to Minecraft version metadata plus the vanilla server jar. This milestone does not download client jars, client assets, client libraries, client natives, mappings, or source.
 
@@ -160,6 +188,12 @@ Use these with `--game-provider minecraft`:
 - `--minecraft-force-redownload`
 - `--minecraft-output-plan <path>`
 - `--minecraft-launch`
+- `--minecraft-baseline-server`
+- `--minecraft-baseline-version <version|latest-release|latest-snapshot>`
+- `--minecraft-baseline-report <path>`
+- `--minecraft-offline-replay`
+- `--minecraft-require-ready`
+- `--minecraft-real-smoke`
 - `--minecraft-server-dir <path>`
 - `--minecraft-server-jvm-arg <arg>` repeatable
 - `--minecraft-server-arg <arg>` repeatable
@@ -173,8 +207,15 @@ Behavior notes:
 - `--game-provider sample` remains the default.
 - `--game-provider minecraft` requires `--minecraft-dry-run`.
 - `--minecraft-launch` is server-only, requires `--minecraft-side server`, and also requires `--minecraft-verify-files`.
+- `--minecraft-baseline-server` enables the real official vanilla server baseline flow without changing the project target `26.1.2`.
+- `--minecraft-baseline-version` selects the real official server version to resolve. Use `latest-release`, `latest-snapshot`, or an exact Mojang version id. The Gradle real-smoke tasks use `-PmcRealVersion=latest-release` by default.
+- `--minecraft-baseline-report` defaults to `runtime/minecraft-server-baseline.json`.
+- `--minecraft-offline-replay` requires `--minecraft-baseline-server` and `--minecraft-offline`.
+- `--minecraft-require-ready` makes readiness detection mandatory for success when launch is attempted.
+- `--minecraft-real-smoke` is an explicit marker for real baseline acquisition and smoke tasks. It requires `--game-provider minecraft`, `--minecraft-side server`, and `--minecraft-dry-run`.
 - `--minecraft-launch` still writes `minecraft-launch-plan.json` before process launch.
 - `--minecraft-server-dir` defaults to `runtime/minecraft-server/<version>`.
+- Real baseline server launch defaults to `runtime/minecraft-server-baseline/<resolvedVersion>`.
 - `--minecraft-server-jvm-arg` values are inserted before `-jar`.
 - `--minecraft-server-arg` values are inserted after the server jar. If none are provided, the managed launch defaults to `nogui`.
 - `--minecraft-launch-timeout-seconds` defaults to `30`.
@@ -187,6 +228,7 @@ Behavior notes:
 - `--minecraft-download-server` explicitly allows caching the vanilla server jar.
 - `--minecraft-cache-dir` defaults to `runtime/minecraft-cache`.
 - `--minecraft-offline` disables all network fetches and downloads.
+- `--minecraft-offline` forbids all network fetches and downloads.
 - `--minecraft-cache-inspect` inspects cache state, writes `runtime/minecraft-artifacts.json`, writes diagnostics/profile output, and does not launch Minecraft.
 - `--minecraft-cache-repair` may repair missing or invalid cached metadata and the cached server jar, but only when downloads are otherwise allowed.
 - `--minecraft-cache-strict` promotes cache warnings such as lock mismatches to failures.
@@ -212,6 +254,14 @@ When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-ser
 
 `minecraftServerDownloadSmoke` is the explicit network-enabled smoke path. It fetches metadata if needed, fetches and verifies the vanilla server jar if needed, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-cache/server-artifacts.lock.json`, writes `runtime/minecraft-launch-plan.json`, and then attempts a managed vanilla server launch. It does not pass `--minecraft-accept-eula-for-test` by default.
 
+`minecraftRealServerAcquire` is the explicit real-baseline acquisition path. It resolves the real official server version from Mojang metadata, fetches only manifest metadata, version metadata, and the vanilla server jar, verifies those artifacts, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-launch-plan.json`, writes `runtime/minecraft-server-baseline.json`, and does not launch the server.
+
+`minecraftRealServerSmoke` is the explicit real-baseline launch smoke path. It uses official Mojang metadata and a verified vanilla server jar, launches only the server side, writes `runtime/minecraft-server-launch-result.json` when the process starts, and does not inject mods.
+
+`minecraftRealServerOfflineReplay` is the explicit cache-only replay path. It uses `--minecraft-offline` plus `--minecraft-offline-replay`, performs zero network requests, verifies cached metadata and the cached verified server jar, writes the same reports, and may fail clearly if the cache is incomplete.
+
+`minecraftRealServerEulaSmoke` is local-only and should be run only if you explicitly accept Mojang's EULA. It adds `--minecraft-accept-eula-for-test`, waits for readiness, sends `stop`, and requires readiness before treating the run as successful.
+
 ## Mache reference scan
 
 Optional Mache flags:
@@ -234,6 +284,7 @@ The Mache scan is reference-only. It does not clone Mache, compile Mache, read s
 - Forge or NeoForge compatibility
 - Paper compatibility
 - Mache compatibility
+- Vulkan renderer integration
 - optimization modules
 - broad gameplay APIs
 - older Java support

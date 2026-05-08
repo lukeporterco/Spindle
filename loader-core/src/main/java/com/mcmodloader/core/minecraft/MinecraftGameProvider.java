@@ -33,6 +33,10 @@ public final class MinecraftGameProvider implements GameProvider {
 
     @Override
     public void validate(LaunchContext context) throws LoaderException {
+        if (config.baselineServerEnabled()) {
+            resolvedVersion = config.requestedVersionOrBaseline();
+            return;
+        }
         metadataResolver.validateAvailability(context.workingDirectory(), config);
         if ((resolvedVersion == null || resolvedVersion.isBlank()) && config.explicitVersionJson() != null && Files.isRegularFile(config.explicitVersionJson())) {
             String json;

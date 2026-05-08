@@ -5,6 +5,8 @@ import java.util.List;
 public record MinecraftLaunchPlan(
     int schema,
     String provider,
+    String projectTargetMinecraft,
+    String baselineMinecraft,
     String minecraftVersion,
     String side,
     String mainClass,
@@ -21,6 +23,7 @@ public record MinecraftLaunchPlan(
     List<String> gameArguments,
     List<String> commandPreview,
     List<String> missingFiles,
+    boolean modJarsOnMinecraftClasspath,
     Metadata metadata
 ) {
     public MinecraftLaunchPlan {
@@ -37,6 +40,8 @@ public record MinecraftLaunchPlan(
         return new MinecraftLaunchPlan(
             schema,
             provider,
+            projectTargetMinecraft,
+            baselineMinecraft,
             minecraftVersion,
             side,
             mainClass,
@@ -53,6 +58,7 @@ public record MinecraftLaunchPlan(
             gameArguments,
             commandPreview,
             missingFiles,
+            modJarsOnMinecraftClasspath,
             metadata
         );
     }

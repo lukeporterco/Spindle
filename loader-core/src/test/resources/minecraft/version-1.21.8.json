@@ -1,0 +1,16 @@
+{
+  "id": "1.21.8",
+  "type": "release",
+  "downloads": {
+    "server": {
+      "url": "https://example.invalid/server.jar",
+      "sha1": "replace-me",
+      "size": 0
+    }
+  },
+  "libraries": [],
+  "arguments": {
+    "game": [],
+    "jvm": []
+  }
+}

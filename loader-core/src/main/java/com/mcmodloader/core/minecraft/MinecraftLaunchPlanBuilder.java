@@ -1,5 +1,6 @@
 package com.mcmodloader.core.minecraft;
 
+import com.mcmodloader.core.LoaderMain;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,8 @@ public final class MinecraftLaunchPlanBuilder {
         return new MinecraftLaunchPlan(
             1,
             "minecraft",
+            LoaderMain.TARGET_MINECRAFT_VERSION,
+            config.baselineServerEnabled() && config.side() == MinecraftSide.SERVER ? metadata.id() : null,
             metadata.id(),
             config.side().id(),
             config.side() == MinecraftSide.CLIENT ? metadata.mainClass() : null,
@@ -62,6 +65,7 @@ public final class MinecraftLaunchPlanBuilder {
             resolvedArguments.gameArguments(),
             displayCommandPreview(workingDirectory, resolvedArguments.commandPreview()),
             List.of(),
+            false,
             new MinecraftLaunchPlan.Metadata(metadata.type(), metadata.assets())
         );
     }

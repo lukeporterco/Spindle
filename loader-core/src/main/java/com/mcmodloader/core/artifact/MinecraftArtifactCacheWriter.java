@@ -20,12 +20,19 @@ public final class MinecraftArtifactCacheWriter {
     public void writeReport(Path outputPath, MinecraftArtifactCache cache, MinecraftArtifactCacheReport report) throws LoaderException {
         JsonObject root = new JsonObject();
         root.addProperty("schema", report.schema());
+        root.addProperty("projectTargetMinecraft", report.projectTargetMinecraft());
         root.addProperty("minecraftVersion", report.minecraftVersion());
+        if (report.baselineMinecraft() == null || report.baselineMinecraft().isBlank()) {
+            root.add("baselineMinecraft", JsonNull.INSTANCE);
+        } else {
+            root.addProperty("baselineMinecraft", report.baselineMinecraft());
+        }
         root.addProperty("cacheDirectory", cache.displayPath(cache.cacheDirectory()));
         root.addProperty("offline", report.offline());
         root.addProperty("inspectOnly", report.inspectOnly());
         root.addProperty("repair", report.repair());
         root.addProperty("forceRedownload", report.forceRedownload());
+        root.addProperty("networkRequestCount", report.networkRequestCount());
 
         JsonArray artifacts = new JsonArray();
         List<MinecraftArtifactRecord> sortedArtifacts =
@@ -72,14 +79,29 @@ public final class MinecraftArtifactCacheWriter {
         writeJson(outputPath, root, "artifact cache report");
     }
 
-    public void writeServerLock(Path outputPath, MinecraftArtifactCache cache, String minecraftVersion, MinecraftArtifactRecord serverJar) throws LoaderException {
+    public void writeServerLock(
+        Path outputPath,
+        MinecraftArtifactCache cache,
+        String projectTargetMinecraft,
+        String baselineMinecraft,
+        MinecraftArtifactRecord serverJar,
+        String verifiedAt
+    ) throws LoaderException {
         JsonObject root = new JsonObject();
         root.addProperty("schema", 1);
-        root.addProperty("minecraftVersion", minecraftVersion);
+        root.addProperty("projectTargetMinecraft", projectTargetMinecraft);
+        root.addProperty("baselineMinecraft", baselineMinecraft);
+        root.addProperty("createdBy", "MCModLoader");
         JsonArray artifacts = new JsonArray();
         JsonObject entry = new JsonObject();
         entry.addProperty("id", serverJar.id());
+        entry.addProperty("kind", serverJar.kind().id());
         entry.addProperty("path", cache.displayPath(serverJar.path()));
+        if (serverJar.sourceUrl() == null || serverJar.sourceUrl().isBlank()) {
+            entry.add("sourceUrl", JsonNull.INSTANCE);
+        } else {
+            entry.addProperty("sourceUrl", serverJar.sourceUrl());
+        }
         if (serverJar.sha1() == null || serverJar.sha1().isBlank()) {
             entry.add("sha1", JsonNull.INSTANCE);
         } else {
@@ -94,6 +116,11 @@ public final class MinecraftArtifactCacheWriter {
             entry.add("size", JsonNull.INSTANCE);
         } else {
             entry.addProperty("size", serverJar.size());
+        }
+        if (verifiedAt == null || verifiedAt.isBlank()) {
+            entry.add("verifiedAt", JsonNull.INSTANCE);
+        } else {
+            entry.addProperty("verifiedAt", verifiedAt);
         }
         artifacts.add(entry);
         root.add("artifacts", artifacts);

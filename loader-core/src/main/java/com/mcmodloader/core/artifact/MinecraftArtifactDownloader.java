@@ -17,19 +17,35 @@ public final class MinecraftArtifactDownloader {
     private final HttpClient httpClient;
     private final MinecraftArtifactVerifier verifier;
     private final Duration connectTimeout;
+    private final MinecraftNetworkRequestCounter networkRequestCounter;
 
     public MinecraftArtifactDownloader() {
         this(
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NORMAL).build(),
             new MinecraftArtifactVerifier(),
-            Duration.ofSeconds(10)
+            Duration.ofSeconds(10),
+            new MinecraftNetworkRequestCounter()
         );
     }
 
-    public MinecraftArtifactDownloader(HttpClient httpClient, MinecraftArtifactVerifier verifier, Duration connectTimeout) {
+    public MinecraftArtifactDownloader(
+        HttpClient httpClient,
+        MinecraftArtifactVerifier verifier,
+        Duration connectTimeout
+    ) {
+        this(httpClient, verifier, connectTimeout, new MinecraftNetworkRequestCounter());
+    }
+
+    public MinecraftArtifactDownloader(
+        HttpClient httpClient,
+        MinecraftArtifactVerifier verifier,
+        Duration connectTimeout,
+        MinecraftNetworkRequestCounter networkRequestCounter
+    ) {
         this.httpClient = httpClient;
         this.verifier = verifier;
         this.connectTimeout = connectTimeout;
+        this.networkRequestCounter = networkRequestCounter;
     }
 
     public DownloadResult download(URI uri, Path targetPath, Path tmpDirectory, String expectedSha1, Long expectedSize) throws LoaderException {
@@ -40,6 +56,7 @@ public final class MinecraftArtifactDownloader {
             Files.createDirectories(targetPath.toAbsolutePath().normalize().getParent());
 
             HttpRequest request = HttpRequest.newBuilder(uri).GET().timeout(connectTimeout).build();
+            networkRequestCounter.incrementAndGet();
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new LoaderException("Failed to download artifact from " + uri + ": HTTP " + response.statusCode());
@@ -63,6 +80,10 @@ public final class MinecraftArtifactDownloader {
             deleteQuietly(tempPath);
             throw exception;
         }
+    }
+
+    public int networkRequestCount() {
+        return networkRequestCounter.requestCount();
     }
 
     private void deleteQuietly(Path path) {

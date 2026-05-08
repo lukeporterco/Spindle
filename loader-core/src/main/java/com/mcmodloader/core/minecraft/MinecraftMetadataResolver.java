@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class MinecraftMetadataResolver {
-    private static final String DEFAULT_MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json";
+    public static final String DEFAULT_MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
     private final MinecraftVersionManifestParser manifestParser = new MinecraftVersionManifestParser();
     private final HttpClient httpClient = HttpClient.newHttpClient();
