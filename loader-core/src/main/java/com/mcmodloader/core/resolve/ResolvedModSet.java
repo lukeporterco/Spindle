@@ -1,6 +1,7 @@
 package com.mcmodloader.core.resolve;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -20,17 +21,17 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
         Map<String, List<String>> entrypoints,
         Map<String, String> depends,
         Map<String, String> breaks
-    ) {
+        ) {
         public ResolvedMod {
             entrypoints =
-                Map.copyOf(
+                Collections.unmodifiableMap(
                     entrypoints
                         .entrySet()
                         .stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue()), (left, right) -> left, TreeMap::new))
                 );
-            depends = Map.copyOf(new TreeMap<>(depends));
-            breaks = Map.copyOf(new TreeMap<>(breaks));
+            depends = Collections.unmodifiableMap(new TreeMap<>(depends));
+            breaks = Collections.unmodifiableMap(new TreeMap<>(breaks));
         }
 
         public String normalizedRelativePath() {

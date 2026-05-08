@@ -4,6 +4,7 @@ import com.mcmodloader.core.diagnostics.LoaderException;
 import com.mcmodloader.core.resolve.ResolvedModSet;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +18,7 @@ public final class ResourceConflictIndex {
 
     private ResourceConflictIndex(List<ResourceConflict> conflicts, Map<String, Integer> resourceCountByMod) {
         this.conflicts = List.copyOf(conflicts);
-        this.resourceCountByMod = Map.copyOf(new TreeMap<>(resourceCountByMod));
+        this.resourceCountByMod = Collections.unmodifiableMap(new TreeMap<>(resourceCountByMod));
     }
 
     public static ResourceConflictIndex build(ResolvedModSet resolvedMods) throws LoaderException {

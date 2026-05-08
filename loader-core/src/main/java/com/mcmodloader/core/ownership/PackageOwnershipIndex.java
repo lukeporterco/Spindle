@@ -4,6 +4,7 @@ import com.mcmodloader.core.diagnostics.LoaderException;
 import com.mcmodloader.core.resolve.ResolvedModSet;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +23,9 @@ public final class PackageOwnershipIndex {
         List<SplitPackage> splitPackages,
         Map<String, Integer> packageCountByMod
     ) {
-        this.packageOwners = Map.copyOf(new TreeMap<>(packageOwners));
+        this.packageOwners = Collections.unmodifiableMap(new TreeMap<>(packageOwners));
         this.splitPackages = List.copyOf(splitPackages);
-        this.packageCountByMod = Map.copyOf(new TreeMap<>(packageCountByMod));
+        this.packageCountByMod = Collections.unmodifiableMap(new TreeMap<>(packageCountByMod));
     }
 
     public static PackageOwnershipIndex build(ResolvedModSet resolvedMods) throws LoaderException {

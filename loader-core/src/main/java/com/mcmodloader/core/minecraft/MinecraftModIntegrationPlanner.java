@@ -161,14 +161,20 @@ public final class MinecraftModIntegrationPlanner {
                 );
             }
 
-            if (!sideOk || !loaderOk || !javaOk || !minecraftOk || (strictClassVersions && !classVersionOk)) {
+            boolean fatalBoundaryViolation = boundaryViolations.stream().anyMatch(violation -> violation.severity() == MinecraftBoundarySeverity.FATAL);
+            if (!sideOk || !loaderOk || !javaOk || !minecraftOk || (strictClassVersions && !classVersionOk) || fatalBoundaryViolation) {
                 String reason =
                     !sideOk
                         ? "side mismatch"
                         : !loaderOk
                             ? "loader dependency mismatch"
-                            : !javaOk ? "java dependency mismatch" : !minecraftOk ? "minecraft dependency mismatch" : "class version mismatch";
-                MinecraftBoundarySeverity rejectionSeverity = strictSide && !sideOk ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.ERROR;
+                            : !javaOk
+                                ? "java dependency mismatch"
+                                : !minecraftOk
+                                    ? "minecraft dependency mismatch"
+                                    : (strictClassVersions && !classVersionOk) ? "class version mismatch" : "fatal boundary violation";
+                MinecraftBoundarySeverity rejectionSeverity =
+                    (strictSide && !sideOk) || fatalBoundaryViolation ? MinecraftBoundarySeverity.FATAL : MinecraftBoundarySeverity.ERROR;
                 rejected.add(new MinecraftModRejection(modId, reason, rejectionSeverity, true));
             } else {
                 accepted.add(new MinecraftModAcceptance(modId, metadata.version(), metadata.side(), "metadata and analysis checks passed"));

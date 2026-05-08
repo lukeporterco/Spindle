@@ -3,6 +3,7 @@ package com.mcmodloader.core.ownership;
 import com.mcmodloader.core.diagnostics.LoaderException;
 import com.mcmodloader.core.resolve.ResolvedModSet;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -14,8 +15,8 @@ public final class ClassOwnershipIndex {
     private final Map<String, Integer> classCountByMod;
 
     private ClassOwnershipIndex(Map<String, String> classOwners, Map<String, Integer> classCountByMod) {
-        this.classOwners = Map.copyOf(new TreeMap<>(classOwners));
-        this.classCountByMod = Map.copyOf(new TreeMap<>(classCountByMod));
+        this.classOwners = Collections.unmodifiableMap(new TreeMap<>(classOwners));
+        this.classCountByMod = Collections.unmodifiableMap(new TreeMap<>(classCountByMod));
     }
 
     public static ClassOwnershipIndex build(ResolvedModSet resolvedMods) throws LoaderException {

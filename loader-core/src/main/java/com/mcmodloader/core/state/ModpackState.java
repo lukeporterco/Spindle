@@ -6,6 +6,7 @@ import com.mcmodloader.core.ownership.PackageOwnershipIndex;
 import com.mcmodloader.core.resource.ResourceConflict;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -88,9 +89,9 @@ public record ModpackState(
         int resourceCount
     ) {
         public ModState {
-            entrypoints = Map.copyOf(new TreeMap<>(entrypoints));
-            depends = Map.copyOf(new TreeMap<>(depends));
-            breaks = Map.copyOf(new TreeMap<>(breaks));
+            entrypoints = Collections.unmodifiableMap(new TreeMap<>(entrypoints));
+            depends = Collections.unmodifiableMap(new TreeMap<>(depends));
+            breaks = Collections.unmodifiableMap(new TreeMap<>(breaks));
         }
     }
 

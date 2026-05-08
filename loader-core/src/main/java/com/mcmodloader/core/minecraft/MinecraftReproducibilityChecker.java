@@ -11,13 +11,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public final class MinecraftReproducibilityChecker {
     private static final Pattern ISO_TIMESTAMP =
         Pattern.compile("\"[A-Za-z0-9]*timestamp[A-Za-z0-9]*\"\\s*:\\s*\"\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z\"");
     private static final Pattern ABSOLUTE_PATH =
-        Pattern.compile("(?i)([A-Z]:/|[A-Z]:\\\\\\\\|/Users/|/home/|/var/|/tmp/|\\\\\\\\)");
+        Pattern.compile("(?:(?<=^)|(?<=[\\s\"']))(?:[A-Za-z]:[\\\\/]|\\\\\\\\|/(?:Users|home|var|tmp)/)");
 
     public MinecraftReproducibilityCheck check(
         String milestoneName,
@@ -61,10 +62,10 @@ public final class MinecraftReproducibilityChecker {
             }
 
             comparedReports.add(
-                new MinecraftReproducibilityCheck.ComparedReport(
+                    new MinecraftReproducibilityCheck.ComparedReport(
                     pair.reportName(),
-                    pair.firstPath().toString().replace('\\', '/'),
-                    pair.secondPath().toString().replace('\\', '/'),
+                    stableComparedPath(pair.firstPath()),
+                    stableComparedPath(pair.secondPath()),
                     sha256(firstBytes),
                     sha256(secondBytes),
                     bytesEqual,
@@ -115,6 +116,11 @@ public final class MinecraftReproducibilityChecker {
 
     private boolean containsPathInstability(String content) {
         return ABSOLUTE_PATH.matcher(content).find();
+    }
+
+    private String stableComparedPath(Path path) {
+        String name = path.getFileName() == null ? path.toString() : path.getFileName().toString();
+        return name.toLowerCase(Locale.ROOT);
     }
 
     private String sha256(byte[] bytes) throws LoaderException {

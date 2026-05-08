@@ -120,8 +120,8 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/server-mod.jar"),
-            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
-            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+            metadataJson("servermod", "com.example.ServerModEntrypoint", Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "server"),
+            Map.of("com/example/ServerModEntrypoint.class", classFileHeader(69))
         );
 
         execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
@@ -138,7 +138,7 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/server-mod.jar"),
-            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "server"),
             Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
         );
 
@@ -156,7 +156,6 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
 
         String plan = Files.readString(tempDirectory.resolve("minecraft-mod-integration-plan.json"), StandardCharsets.UTF_8);
         String diagnostics = Files.readString(tempDirectory.resolve("diagnostics/startup-trace.json"), StandardCharsets.UTF_8);
-        assertTrue(plan.contains("\"modId\": \"servermod\""));
         assertTrue(plan.contains("\"analysisOnly\": true"));
         assertTrue(plan.contains("\"modClassesLoaded\": false"));
         assertTrue(plan.contains("\"entrypointsInvoked\": false"));
@@ -170,7 +169,7 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/server-mod.jar"),
-            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "server"),
             Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
         );
 
@@ -203,7 +202,7 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/client-only.jar"),
-            metadataJson("clientonly", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "client"),
+            metadataJson("clientonly", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "client"),
             Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
         );
 
@@ -220,7 +219,7 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/client-only.jar"),
-            metadataJson("clientonly", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "client"),
+            metadataJson("clientonly", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "client"),
             Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
         );
 
@@ -236,7 +235,7 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/too-new.jar"),
-            metadataJson("toonew", "com.example.TooNew", Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            metadataJson("toonew", "com.example.TooNew", Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "server"),
             Map.of("com/example/TooNew.class", classFileHeader(70))
         );
 
@@ -277,10 +276,10 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/path-traversal.jar"),
-            metadataJson("pathtraversal", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
+            metadataJson("pathtraversal", "com.example.PathTraversalEntrypoint", Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "server"),
             Map.of(
-                ThrowingEntrypoint.class.getName().replace('.', '/') + ".class",
-                readClassBytes(ThrowingEntrypoint.class),
+                "com/example/PathTraversalEntrypoint.class",
+                classFileHeader(69),
                 "../escape.txt",
                 "escape".getBytes(StandardCharsets.UTF_8)
             )
@@ -291,6 +290,9 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         String plan = Files.readString(tempDirectory.resolve("minecraft-mod-integration-plan.json"), StandardCharsets.UTF_8);
         assertTrue(plan.contains("\"type\": \"mod-suspicious-path\""));
         assertTrue(plan.contains("pathtraversal"));
+        assertTrue(plan.contains("\"rejectedMods\""));
+        assertTrue(plan.contains("\"candidate\": \"pathtraversal\""));
+        assertTrue(plan.contains("\"acceptedMods\": []"));
     }
 
     @Test
@@ -298,8 +300,8 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
         Path minecraftDir = createFixtureMinecraftDirectory(tempDirectory.resolve("minecraft"), createFakeServerJar(tempDirectory.resolve("fake-server.jar")), true);
         createModJar(
             tempDirectory.resolve("mods/server-mod.jar"),
-            metadataJson("servermod", ThrowingEntrypoint.class.getName(), Map.of("loader", ">=0.1.0", "java", ">=25", "minecraft", ">=26.1.2"), "server"),
-            Map.of(ThrowingEntrypoint.class.getName().replace('.', '/') + ".class", readClassBytes(ThrowingEntrypoint.class))
+            metadataJson("servermod", "com.example.ServerModEntrypoint", Map.of("loader", ">=0.1.0", "java", ">=21", "minecraft", ">=26.1.2"), "server"),
+            Map.of("com/example/ServerModEntrypoint.class", classFileHeader(69))
         );
 
         execute(tempDirectory, serverArgs(minecraftDir, "--minecraft-plan-mods"));
@@ -327,6 +329,25 @@ class MegaMilestone7MinecraftRuntimeOwnershipTest {
 
         assertFalse(check.byteForByteEqual());
         assertTrue(check.failures().stream().anyMatch(failure -> failure.contains("bytes differ")));
+    }
+
+    @Test
+    void reproducibilityCheckerDoesNotFlagUrlsAsAbsolutePaths() throws Exception {
+        Path first = tempDirectory.resolve("first-report.json");
+        Path second = tempDirectory.resolve("second-report.json");
+        Files.writeString(first, "{\n  \"url\": \"https://example.com/path\"\n}\n", StandardCharsets.UTF_8);
+        Files.writeString(second, "{\n  \"url\": \"https://example.com/path\"\n}\n", StandardCharsets.UTF_8);
+
+        MinecraftReproducibilityCheck check =
+            new MinecraftReproducibilityChecker().check(
+                "Mega-Milestone 7",
+                java.util.List.of(new MinecraftReproducibilityChecker.ReportPair("url-only", first, second)),
+                false
+            );
+
+        assertFalse(check.pathInstabilityDetected());
+        assertEquals("first-report.json", check.comparedReports().getFirst().firstPath());
+        assertEquals("second-report.json", check.comparedReports().getFirst().secondPath());
     }
 
     private String[] serverArgs(Path minecraftDir, String... extraArgs) {

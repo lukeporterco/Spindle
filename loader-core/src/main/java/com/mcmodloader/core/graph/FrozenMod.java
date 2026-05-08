@@ -2,6 +2,7 @@ package com.mcmodloader.core.graph;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import java.util.TreeMap;
 
 public record FrozenMod(
@@ -18,7 +19,7 @@ public record FrozenMod(
 ) {
     public FrozenMod {
         entrypoints =
-            Map.copyOf(
+            Collections.unmodifiableMap(
                 entrypoints
                     .entrySet()
                     .stream()
@@ -31,7 +32,7 @@ public record FrozenMod(
                         )
                     )
             );
-        depends = Map.copyOf(new TreeMap<>(depends));
-        breaks = Map.copyOf(new TreeMap<>(breaks));
+        depends = Collections.unmodifiableMap(new TreeMap<>(depends));
+        breaks = Collections.unmodifiableMap(new TreeMap<>(breaks));
     }
 }
