@@ -22,7 +22,8 @@ public final class MinecraftLaunchPlanWriter {
         root.addProperty("minecraftVersion", plan.minecraftVersion());
         root.addProperty("side", plan.side());
         addStringOrNull(root, "mainClass", plan.mainClass());
-        root.addProperty("minecraftDirectory", plan.minecraftDirectory());
+        addStringOrNull(root, "minecraftDirectory", plan.minecraftDirectory());
+        addStringOrNull(root, "serverJarSource", plan.serverJarSource());
         root.addProperty("versionJson", plan.versionJson());
         addStringOrNull(root, "gameJar", plan.gameJar());
         addStringOrNull(root, "serverJar", plan.serverJar());

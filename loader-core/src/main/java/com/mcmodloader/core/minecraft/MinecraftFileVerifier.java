@@ -11,6 +11,7 @@ public final class MinecraftFileVerifier {
         MinecraftProviderConfig config,
         MinecraftMetadataResolver.ResolvedVersionJson resolvedVersionJson,
         MinecraftVersionMetadata metadata,
+        Path resolvedServerJar,
         MinecraftLibrarySelector.Selection selection,
         MinecraftInstallLocator installLocator
     ) throws LoaderException {
@@ -18,29 +19,38 @@ public final class MinecraftFileVerifier {
         recordMissing(resolvedVersionJson.versionJsonPath(), missingFiles);
 
         if (config.side() == MinecraftSide.CLIENT) {
+            if (config.minecraftDirectory() == null) {
+                throw new LoaderException("Minecraft client dry run requires a Minecraft directory");
+            }
             recordMissing(installLocator.clientJarPath(config.minecraftDirectory(), metadata.id()), missingFiles);
         } else if (metadata.serverDownload() != null) {
-            Path primary = installLocator.primaryServerJarPath(config.minecraftDirectory(), metadata.id());
-            Path alternate = installLocator.alternateServerJarPath(config.minecraftDirectory(), metadata.id());
-            if (!Files.isRegularFile(primary) && !Files.isRegularFile(alternate)) {
-                missingFiles.add(primary);
+            if (resolvedServerJar == null || !Files.isRegularFile(resolvedServerJar)) {
+                missingFiles.add(
+                    resolvedServerJar == null
+                        ? installLocator.primaryServerJarPath(
+                            config.minecraftDirectory() == null ? Path.of("missing-minecraft-dir") : config.minecraftDirectory(),
+                            metadata.id()
+                        )
+                        : resolvedServerJar.toAbsolutePath().normalize()
+                );
             }
         }
 
-        for (MinecraftLibrarySelector.SelectedLibrary library : selection.libraries()) {
-            recordMissing(library.path(), missingFiles);
-        }
-        for (MinecraftLibrarySelector.SelectedLibrary library : selection.nativeLibraries()) {
-            recordMissing(library.path(), missingFiles);
-        }
+        if (config.side() == MinecraftSide.CLIENT) {
+            for (MinecraftLibrarySelector.SelectedLibrary library : selection.libraries()) {
+                recordMissing(library.path(), missingFiles);
+            }
+            for (MinecraftLibrarySelector.SelectedLibrary library : selection.nativeLibraries()) {
+                recordMissing(library.path(), missingFiles);
+            }
 
-        if (
-            config.side() == MinecraftSide.CLIENT &&
-            metadata.assetIndex() != null &&
-            metadata.assetIndex().id() != null &&
-            !metadata.assetIndex().id().isBlank()
-        ) {
-            recordMissing(installLocator.assetIndexPath(config.minecraftDirectory(), metadata.assetIndex().id()), missingFiles);
+            if (
+                metadata.assetIndex() != null &&
+                metadata.assetIndex().id() != null &&
+                !metadata.assetIndex().id().isBlank()
+            ) {
+                recordMissing(installLocator.assetIndexPath(config.minecraftDirectory(), metadata.assetIndex().id()), missingFiles);
+            }
         }
 
         if (config.verifyFiles() && !missingFiles.isEmpty()) {

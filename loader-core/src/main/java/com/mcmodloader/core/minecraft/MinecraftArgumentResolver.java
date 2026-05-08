@@ -70,11 +70,11 @@ public final class MinecraftArgumentResolver {
         String classpathValue = classpathEntries.stream().map(path -> path.toString()).reduce((left, right) -> left + File.pathSeparator + right).orElse("");
         Map<String, String> substitutions = new LinkedHashMap<>();
         substitutions.put("${version_name}", metadata.id());
-        substitutions.put("${game_directory}", minecraftDirectory.toString());
-        substitutions.put("${assets_root}", assetsRoot.toString());
+        substitutions.put("${game_directory}", safePath(minecraftDirectory));
+        substitutions.put("${assets_root}", safePath(assetsRoot));
         substitutions.put("${assets_index_name}", metadata.assetIndex() == null ? "" : metadata.assetIndex().id());
         substitutions.put("${version_type}", metadata.type() == null || metadata.type().isBlank() ? "release" : metadata.type());
-        substitutions.put("${natives_directory}", nativesDirectory.toString());
+        substitutions.put("${natives_directory}", safePath(nativesDirectory));
         substitutions.put("${launcher_name}", "MCModLoader");
         substitutions.put("${launcher_version}", LoaderMain.LOADER_VERSION);
         substitutions.put("${classpath}", classpathValue);
@@ -93,6 +93,10 @@ public final class MinecraftArgumentResolver {
         }
         commandPreview.addAll(gameArguments);
         return new ResolvedArguments(jvmArguments, gameArguments, commandPreview);
+    }
+
+    private String safePath(Path path) {
+        return path == null ? "" : path.toString();
     }
 
     private List<String> resolveGameArguments(MinecraftVersionMetadata metadata, Map<String, String> substitutions) {

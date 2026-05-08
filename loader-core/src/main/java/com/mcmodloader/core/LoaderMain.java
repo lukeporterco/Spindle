@@ -3,6 +3,9 @@ package com.mcmodloader.core;
 import com.mcmodloader.core.classpath.ModClassLoader;
 import com.mcmodloader.core.classpath.RuntimeClasspathPlan;
 import com.mcmodloader.core.classpath.RuntimeClasspathPlanner;
+import com.mcmodloader.core.artifact.MinecraftArtifactCache;
+import com.mcmodloader.core.artifact.MinecraftArtifactInspector;
+import com.mcmodloader.core.artifact.MinecraftArtifactResolver;
 import com.mcmodloader.core.diagnostics.DiagnosticEvent;
 import com.mcmodloader.core.diagnostics.DiagnosticSink;
 import com.mcmodloader.core.diagnostics.JsonDiagnosticSink;
@@ -160,6 +163,13 @@ public final class LoaderMain {
         boolean minecraftDryRun = false;
         boolean minecraftVerifyFiles = false;
         boolean minecraftFetchMetadata = false;
+        boolean minecraftDownloadServer = false;
+        Path minecraftCacheDirectory = Path.of("runtime/minecraft-cache");
+        boolean minecraftOffline = false;
+        boolean minecraftCacheInspect = false;
+        boolean minecraftCacheRepair = false;
+        boolean minecraftCacheStrict = false;
+        boolean minecraftForceRedownload = false;
         Path minecraftOutputPlan = Path.of("minecraft-launch-plan.json");
         boolean minecraftLaunch = false;
         Path minecraftServerDirectory = null;
@@ -266,6 +276,44 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--minecraft-download-server".equals(argument)) {
+                minecraftDownloadServer = true;
+                continue;
+            }
+
+            if ("--minecraft-cache-dir".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-cache-dir");
+                }
+                minecraftCacheDirectory = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-offline".equals(argument)) {
+                minecraftOffline = true;
+                continue;
+            }
+
+            if ("--minecraft-cache-inspect".equals(argument)) {
+                minecraftCacheInspect = true;
+                continue;
+            }
+
+            if ("--minecraft-cache-repair".equals(argument)) {
+                minecraftCacheRepair = true;
+                continue;
+            }
+
+            if ("--minecraft-cache-strict".equals(argument)) {
+                minecraftCacheStrict = true;
+                continue;
+            }
+
+            if ("--minecraft-force-redownload".equals(argument)) {
+                minecraftForceRedownload = true;
+                continue;
+            }
+
             if ("--minecraft-output-plan".equals(argument)) {
                 if (index + 1 >= args.length) {
                     throw new LoaderException("Missing value for --minecraft-output-plan");
@@ -367,6 +415,13 @@ public final class LoaderMain {
                 minecraftDryRun,
                 minecraftVerifyFiles,
                 minecraftFetchMetadata,
+                minecraftDownloadServer,
+                minecraftCacheDirectory,
+                minecraftOffline,
+                minecraftCacheInspect,
+                minecraftCacheRepair,
+                minecraftCacheStrict,
+                minecraftForceRedownload,
                 minecraftOutputPlan,
                 minecraftLaunch,
                 minecraftServerDirectory,
@@ -562,6 +617,11 @@ public final class LoaderMain {
 
         if (gameProvider instanceof MinecraftGameProvider minecraftGameProvider) {
             MinecraftDryRunResult dryRunResult = runMinecraftDryRun(context, launchArguments, minecraftGameProvider, diagnosticSink);
+            if (minecraftGameProvider.config().cacheInspect()) {
+                writeStartupProfile(context, diagnosticSink, startupProfileWriter);
+                System.out.println("[loader] minecraft cache inspection complete");
+                return;
+            }
             if (minecraftGameProvider.config().launch()) {
                 launchMinecraftServer(context, minecraftGameProvider.config(), dryRunResult, diagnosticSink);
                 writeStartupProfile(context, diagnosticSink, startupProfileWriter);
@@ -676,8 +736,8 @@ public final class LoaderMain {
         DiagnosticSink diagnosticSink
     ) throws LoaderException {
         MinecraftProviderConfig config = minecraftGameProvider.config();
-        MinecraftMetadataResolver metadataResolver = new MinecraftMetadataResolver();
-        MinecraftVersionMetadataParser metadataParser = new MinecraftVersionMetadataParser();
+        MinecraftArtifactCache artifactCache = new MinecraftArtifactCache(context.workingDirectory(), config.cacheDirectory());
+        MinecraftArtifactResolver artifactResolver = new MinecraftArtifactResolver(artifactCache);
         MinecraftInstallLocator installLocator = new MinecraftInstallLocator();
         MinecraftLibrarySelector librarySelector = new MinecraftLibrarySelector();
         MinecraftArgumentResolver argumentResolver = new MinecraftArgumentResolver();
@@ -687,46 +747,56 @@ public final class LoaderMain {
         MacheReferenceScanner macheReferenceScanner = new MacheReferenceScanner();
         MacheReferenceWriter macheReferenceWriter = new MacheReferenceWriter();
 
-        MinecraftMetadataResolver.ResolvedVersionJson resolvedVersionJson =
+        if (config.cacheInspect()) {
             measure(
                 diagnosticSink,
                 "minecraft.metadata.resolve",
                 LaunchPhase.COMPLETE,
-                () -> metadataResolver.resolve(context.workingDirectory(), config),
+                () -> {
+                    new MinecraftArtifactInspector(artifactCache).inspect(config, diagnosticSink);
+                    return config.requestedVersion();
+                },
+                ignored -> details(
+                    "minecraftVersion",
+                    config.requestedVersion(),
+                    "minecraftSide",
+                    config.side().id(),
+                    "artifactReportOutputPath",
+                    displayPath(context, artifactCache.artifactReportPath())
+                )
+            );
+            return new MinecraftDryRunResult(null, null, null, "missing");
+        }
+
+        MinecraftArtifactResolver.Resolution artifactResolution =
+            measure(
+                diagnosticSink,
+                "minecraft.metadata.resolve",
+                LaunchPhase.COMPLETE,
+                () -> artifactResolver.resolve(context.workingDirectory(), config, diagnosticSink),
                 resolved -> details(
                     "minecraftVersion",
-                    resolved.requestedVersion(),
+                    resolved.metadata().id(),
                     "minecraftSide",
                     config.side().id(),
                     "versionJsonPath",
-                    displayPath(context, resolved.versionJsonPath()),
+                    displayPath(context, resolved.resolvedVersionJson().versionJsonPath()),
                     "metadataSource",
-                    resolved.metadataSource()
+                    resolved.resolvedVersionJson().metadataSource()
                 )
             );
-
-        MinecraftVersionMetadata metadata =
-            measure(
-                diagnosticSink,
-                "minecraft.metadata.parse",
-                LaunchPhase.COMPLETE,
-                () -> metadataParser.parse(resolvedVersionJson.json(), resolvedVersionJson.versionJsonPath().toString(), config.side()),
-                parsedMetadata -> details(
-                    "minecraftVersion",
-                    parsedMetadata.id(),
-                    "minecraftSide",
-                    config.side().id(),
-                    "mainClass",
-                    parsedMetadata.mainClass()
-                )
-            );
+        MinecraftMetadataResolver.ResolvedVersionJson resolvedVersionJson = artifactResolution.resolvedVersionJson();
+        MinecraftVersionMetadata metadata = artifactResolution.metadata();
 
         MinecraftLibrarySelector.Selection selection =
             measure(
                 diagnosticSink,
                 "minecraft.library.select",
                 LaunchPhase.COMPLETE,
-                () -> librarySelector.select(metadata, installLocator.librariesRoot(config.minecraftDirectory())),
+                () ->
+                    config.side() == MinecraftSide.SERVER
+                        ? new MinecraftLibrarySelector.Selection(List.of(), List.of())
+                        : librarySelector.select(metadata, installLocator.librariesRoot(config.minecraftDirectory())),
                 selected -> details(
                     "minecraftVersion",
                     metadata.id(),
@@ -743,14 +813,8 @@ public final class LoaderMain {
         selection.libraries().forEach(library -> launchClasspath.add(library.path()));
         if (config.side() == MinecraftSide.CLIENT) {
             launchClasspath.add(installLocator.clientJarPath(config.minecraftDirectory(), metadata.id()));
-        } else if (metadata.serverDownload() != null) {
-            Path primaryServerJar = installLocator.primaryServerJarPath(config.minecraftDirectory(), metadata.id());
-            Path alternateServerJar = installLocator.alternateServerJarPath(config.minecraftDirectory(), metadata.id());
-            launchClasspath.add(
-                java.nio.file.Files.isRegularFile(primaryServerJar)
-                    ? primaryServerJar
-                    : java.nio.file.Files.isRegularFile(alternateServerJar) ? alternateServerJar : primaryServerJar
-            );
+        } else if (artifactResolution.serverJarPath() != null) {
+            launchClasspath.add(artifactResolution.serverJarPath());
         }
 
         MinecraftArgumentResolver.ResolvedArguments resolvedArguments =
@@ -762,7 +826,7 @@ public final class LoaderMain {
                     config,
                     metadata,
                     config.minecraftDirectory(),
-                    installLocator.assetsRoot(config.minecraftDirectory()),
+                    config.minecraftDirectory() == null ? null : installLocator.assetsRoot(config.minecraftDirectory()),
                     installLocator.nativesDirectory(context.workingDirectory(), metadata.id(), config.side()),
                     launchClasspath
                 ),
@@ -779,7 +843,17 @@ public final class LoaderMain {
             );
 
         MinecraftLaunchPlan launchPlan =
-            launchPlanBuilder.build(context.workingDirectory(), config, resolvedVersionJson, metadata, selection, resolvedArguments, installLocator);
+            launchPlanBuilder.build(
+                context.workingDirectory(),
+                config,
+                resolvedVersionJson,
+                metadata,
+                artifactResolution.serverJarPath(),
+                artifactResolution.serverJarSource(),
+                selection,
+                resolvedArguments,
+                installLocator
+            );
 
         List<Path> missingFiles =
             config.verifyFiles()
@@ -787,7 +861,7 @@ public final class LoaderMain {
                     diagnosticSink,
                     "minecraft.file_verify",
                     LaunchPhase.COMPLETE,
-                    () -> fileVerifier.verify(config, resolvedVersionJson, metadata, selection, installLocator),
+                    () -> fileVerifier.verify(config, resolvedVersionJson, metadata, artifactResolution.serverJarPath(), selection, installLocator),
                     missing -> details(
                         "minecraftVersion",
                         metadata.id(),
@@ -797,7 +871,7 @@ public final class LoaderMain {
                         Integer.toString(missing.size())
                     )
                 )
-                : fileVerifier.verify(config, resolvedVersionJson, metadata, selection, installLocator);
+                : fileVerifier.verify(config, resolvedVersionJson, metadata, artifactResolution.serverJarPath(), selection, installLocator);
 
         launchPlan =
             launchPlan.withMissingFiles(
@@ -884,6 +958,8 @@ public final class LoaderMain {
                     displayPath(context, resolvedVersionJson.versionJsonPath()),
                     "metadataSource",
                     resolvedVersionJson.metadataSource(),
+                    "serverJarSource",
+                    artifactResolution.serverJarSource(),
                     "macheReferenceScan",
                     Boolean.toString(launchArguments.macheReferenceScan() && launchArguments.macheDirectory() != null),
                     "macheReportOutputPath",
@@ -894,16 +970,7 @@ public final class LoaderMain {
             )
         );
 
-        Path serverJarPath = null;
-        if (config.side() == MinecraftSide.SERVER && metadata.serverDownload() != null) {
-            Path primaryServerJar = installLocator.primaryServerJarPath(config.minecraftDirectory(), metadata.id());
-            Path alternateServerJar = installLocator.alternateServerJarPath(config.minecraftDirectory(), metadata.id());
-            serverJarPath =
-                java.nio.file.Files.isRegularFile(primaryServerJar)
-                    ? primaryServerJar
-                    : java.nio.file.Files.isRegularFile(alternateServerJar) ? alternateServerJar : primaryServerJar;
-        }
-        return new MinecraftDryRunResult(launchPlan, macheReferenceReport, serverJarPath);
+        return new MinecraftDryRunResult(launchPlan, macheReferenceReport, artifactResolution.serverJarPath(), artifactResolution.serverJarSource());
     }
 
     private static LaunchContext createLaunchContext(Path workingDirectory, LaunchArguments launchArguments) {
@@ -931,27 +998,13 @@ public final class LoaderMain {
 
     private static LaunchArguments resolveLaunchArguments(Path workingDirectory, LaunchArguments launchArguments) throws LoaderException {
         MinecraftProviderConfig resolvedMinecraftProviderConfig = launchArguments.minecraftProviderConfig().resolveAgainst(workingDirectory);
-        if ("minecraft".equals(launchArguments.gameProviderId()) && resolvedMinecraftProviderConfig.minecraftDirectory() == null) {
+        if ("minecraft".equals(launchArguments.gameProviderId())
+            && resolvedMinecraftProviderConfig.minecraftDirectory() == null
+            && resolvedMinecraftProviderConfig.side() == MinecraftSide.CLIENT
+            && !resolvedMinecraftProviderConfig.cacheInspect()) {
             resolvedMinecraftProviderConfig =
-                new MinecraftProviderConfig(
-                    resolvedMinecraftProviderConfig.requestedVersion(),
-                    new MinecraftInstallLocator().defaultMinecraftDirectory().orElse(null),
-                    resolvedMinecraftProviderConfig.explicitVersionJson(),
-                    resolvedMinecraftProviderConfig.manifestJson(),
-                    resolvedMinecraftProviderConfig.side(),
-                    resolvedMinecraftProviderConfig.dryRun(),
-                    resolvedMinecraftProviderConfig.verifyFiles(),
-                    resolvedMinecraftProviderConfig.fetchMetadata(),
-                    resolvedMinecraftProviderConfig.outputPlanPath(),
-                    resolvedMinecraftProviderConfig.launch(),
-                    resolvedMinecraftProviderConfig.serverDirectory(),
-                    resolvedMinecraftProviderConfig.acceptEulaForTest(),
-                    resolvedMinecraftProviderConfig.serverJvmArgs(),
-                    resolvedMinecraftProviderConfig.serverArgs(),
-                    resolvedMinecraftProviderConfig.launchTimeoutSeconds(),
-                    resolvedMinecraftProviderConfig.stopAfterReady(),
-                    resolvedMinecraftProviderConfig.readyTimeoutSeconds()
-                ).resolveAgainst(workingDirectory);
+                resolvedMinecraftProviderConfig.withMinecraftDirectory(new MinecraftInstallLocator().defaultMinecraftDirectory().orElse(null))
+                    .resolveAgainst(workingDirectory);
         }
 
         if ("minecraft".equals(launchArguments.gameProviderId()) && !resolvedMinecraftProviderConfig.dryRun()) {
@@ -975,26 +1028,7 @@ public final class LoaderMain {
                 new MinecraftVersionMetadataParser()
                     .parse(json, resolvedMinecraftProviderConfig.explicitVersionJson().toString(), resolvedMinecraftProviderConfig.side())
                     .id();
-            resolvedMinecraftProviderConfig =
-                new MinecraftProviderConfig(
-                    resolvedVersion,
-                    resolvedMinecraftProviderConfig.minecraftDirectory(),
-                    resolvedMinecraftProviderConfig.explicitVersionJson(),
-                    resolvedMinecraftProviderConfig.manifestJson(),
-                    resolvedMinecraftProviderConfig.side(),
-                    resolvedMinecraftProviderConfig.dryRun(),
-                    resolvedMinecraftProviderConfig.verifyFiles(),
-                    resolvedMinecraftProviderConfig.fetchMetadata(),
-                    resolvedMinecraftProviderConfig.outputPlanPath(),
-                    resolvedMinecraftProviderConfig.launch(),
-                    resolvedMinecraftProviderConfig.serverDirectory(),
-                    resolvedMinecraftProviderConfig.acceptEulaForTest(),
-                    resolvedMinecraftProviderConfig.serverJvmArgs(),
-                    resolvedMinecraftProviderConfig.serverArgs(),
-                    resolvedMinecraftProviderConfig.launchTimeoutSeconds(),
-                    resolvedMinecraftProviderConfig.stopAfterReady(),
-                    resolvedMinecraftProviderConfig.readyTimeoutSeconds()
-                );
+            resolvedMinecraftProviderConfig = resolvedMinecraftProviderConfig.withRequestedVersion(resolvedVersion);
         }
 
         if ("minecraft".equals(launchArguments.gameProviderId())
@@ -1005,6 +1039,9 @@ public final class LoaderMain {
         if (resolvedMinecraftProviderConfig.launch()) {
             if (!"minecraft".equals(launchArguments.gameProviderId())) {
                 throw new LoaderException("--minecraft-launch requires --game-provider minecraft");
+            }
+            if (resolvedMinecraftProviderConfig.cacheInspect()) {
+                throw new LoaderException("--minecraft-cache-inspect cannot be combined with --minecraft-launch");
             }
             if (resolvedMinecraftProviderConfig.side() != MinecraftSide.SERVER) {
                 throw new LoaderException("--minecraft-launch requires --minecraft-side server");
@@ -1025,26 +1062,24 @@ public final class LoaderMain {
             if (serverDirectory.equals(workingDirectory.toAbsolutePath().normalize())) {
                 throw new LoaderException("Minecraft server directory must not be the loader working directory root");
             }
-            resolvedMinecraftProviderConfig =
-                new MinecraftProviderConfig(
-                    resolvedMinecraftProviderConfig.requestedVersion(),
-                    resolvedMinecraftProviderConfig.minecraftDirectory(),
-                    resolvedMinecraftProviderConfig.explicitVersionJson(),
-                    resolvedMinecraftProviderConfig.manifestJson(),
-                    resolvedMinecraftProviderConfig.side(),
-                    resolvedMinecraftProviderConfig.dryRun(),
-                    resolvedMinecraftProviderConfig.verifyFiles(),
-                    resolvedMinecraftProviderConfig.fetchMetadata(),
-                    resolvedMinecraftProviderConfig.outputPlanPath(),
-                    resolvedMinecraftProviderConfig.launch(),
-                    serverDirectory,
-                    resolvedMinecraftProviderConfig.acceptEulaForTest(),
-                    resolvedMinecraftProviderConfig.serverJvmArgs(),
-                    resolvedMinecraftProviderConfig.serverArgs(),
-                    resolvedMinecraftProviderConfig.launchTimeoutSeconds(),
-                    resolvedMinecraftProviderConfig.stopAfterReady(),
-                    resolvedMinecraftProviderConfig.readyTimeoutSeconds()
+            resolvedMinecraftProviderConfig = resolvedMinecraftProviderConfig.withServerDirectory(serverDirectory);
+        }
+
+        if ("minecraft".equals(launchArguments.gameProviderId())) {
+            if (resolvedMinecraftProviderConfig.offline() &&
+                (resolvedMinecraftProviderConfig.fetchMetadata() || resolvedMinecraftProviderConfig.downloadServer() || resolvedMinecraftProviderConfig.cacheRepair())) {
+                throw new LoaderException(
+                    "--minecraft-offline cannot be combined with --minecraft-fetch-metadata, --minecraft-download-server, or --minecraft-cache-repair"
                 );
+            }
+            if (resolvedMinecraftProviderConfig.forceRedownload() &&
+                !resolvedMinecraftProviderConfig.fetchMetadata() &&
+                !resolvedMinecraftProviderConfig.downloadServer() &&
+                !resolvedMinecraftProviderConfig.cacheRepair()) {
+                throw new LoaderException(
+                    "--minecraft-force-redownload requires --minecraft-fetch-metadata, --minecraft-download-server, or --minecraft-cache-repair"
+                );
+            }
         }
 
         return launchArguments.withMinecraftProviderConfig(resolvedMinecraftProviderConfig).withMacheDirectory(

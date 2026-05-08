@@ -23,8 +23,8 @@ public final class MinecraftMetadataResolver {
         if (config.requestedVersion() == null || config.requestedVersion().isBlank()) {
             throw new LoaderException("Minecraft provider requires --minecraft-version unless --minecraft-version-json contains an id");
         }
-        if (config.minecraftDirectory() == null) {
-            throw new LoaderException("Minecraft provider requires --minecraft-dir or a detectable default Minecraft directory");
+        if (config.cacheInspect()) {
+            return;
         }
 
         if (config.explicitVersionJson() != null) {
@@ -34,8 +34,17 @@ public final class MinecraftMetadataResolver {
             return;
         }
 
-        Path localVersionJson = new MinecraftInstallLocator().versionJsonPath(config.minecraftDirectory(), config.requestedVersion());
-        if (Files.isRegularFile(localVersionJson)) {
+        Path localVersionJson =
+            config.minecraftDirectory() == null ? null : new MinecraftInstallLocator().versionJsonPath(config.minecraftDirectory(), config.requestedVersion());
+        if (localVersionJson != null && Files.isRegularFile(localVersionJson)) {
+            return;
+        }
+
+        Path cachedVersionJson =
+            config.cacheDirectory() == null
+                ? workingDirectory.resolve("runtime/minecraft-cache/metadata/versions").resolve(config.requestedVersion() + ".json").toAbsolutePath().normalize()
+                : config.cacheDirectory().resolve("metadata/versions").resolve(config.requestedVersion() + ".json").toAbsolutePath().normalize();
+        if (Files.isRegularFile(cachedVersionJson)) {
             return;
         }
 
@@ -47,13 +56,20 @@ public final class MinecraftMetadataResolver {
             manifest
                 .findVersion(config.requestedVersion())
                 .orElseThrow(() -> new LoaderException("Minecraft version " + config.requestedVersion() + " was not found in " + config.manifestJson()));
-            if (!config.fetchMetadata()) {
+            if (!config.fetchMetadata() && !config.downloadServer() && !config.cacheRepair()) {
                 throw missingMetadataException(workingDirectory, config.requestedVersion(), config.minecraftDirectory());
             }
             return;
         }
 
-        if (!config.fetchMetadata()) {
+        if (config.offline()) {
+            throw new LoaderException(
+                "Minecraft metadata for version " +
+                config.requestedVersion() +
+                " is unavailable in offline mode. Provide --minecraft-version-json, a local minecraftDir version JSON, or populate the cache first."
+            );
+        }
+        if (!config.fetchMetadata() && !config.downloadServer() && !config.cacheRepair()) {
             throw missingMetadataException(workingDirectory, config.requestedVersion(), config.minecraftDirectory());
         }
     }
@@ -69,9 +85,16 @@ public final class MinecraftMetadataResolver {
         }
 
         MinecraftInstallLocator locator = new MinecraftInstallLocator();
-        Path localVersionJson = locator.versionJsonPath(config.minecraftDirectory(), config.requestedVersion());
-        if (Files.isRegularFile(localVersionJson)) {
+        Path localVersionJson =
+            config.minecraftDirectory() == null ? null : locator.versionJsonPath(config.minecraftDirectory(), config.requestedVersion());
+        if (localVersionJson != null && Files.isRegularFile(localVersionJson)) {
             return new ResolvedVersionJson(config.requestedVersion(), localVersionJson, readString(localVersionJson), "local");
+        }
+
+        Path cachedVersionJsonPath =
+            config.cacheDirectory().resolve("metadata/versions").resolve(config.requestedVersion() + ".json").toAbsolutePath().normalize();
+        if (Files.isRegularFile(cachedVersionJsonPath)) {
+            return new ResolvedVersionJson(config.requestedVersion(), cachedVersionJsonPath, readString(cachedVersionJsonPath), "cache");
         }
 
         if (config.manifestJson() != null) {
@@ -79,16 +102,21 @@ public final class MinecraftMetadataResolver {
             MinecraftVersionManifest.VersionEntry version = manifest
                 .findVersion(config.requestedVersion())
                 .orElseThrow(() -> new LoaderException("Minecraft version " + config.requestedVersion() + " was not found in " + config.manifestJson()));
-            if (!config.fetchMetadata()) {
+            if (!config.fetchMetadata() && !config.downloadServer() && !config.cacheRepair()) {
                 throw missingMetadataException(workingDirectory, config.requestedVersion(), config.minecraftDirectory());
             }
-            Path cachedVersionJson = cachePath(workingDirectory, config.requestedVersion());
+            Path fetchedVersionJson = cachePath(workingDirectory, config.requestedVersion());
             String json = fetch(version.url(), "Minecraft version JSON");
-            writeString(cachedVersionJson, json);
-            return new ResolvedVersionJson(config.requestedVersion(), cachedVersionJson, json, "manifest");
+            writeString(fetchedVersionJson, json);
+            return new ResolvedVersionJson(config.requestedVersion(), fetchedVersionJson, json, "manifest");
         }
 
-        if (!config.fetchMetadata()) {
+        if (config.offline()) {
+            throw new LoaderException(
+                "Minecraft metadata for version " + config.requestedVersion() + " is unavailable in offline mode."
+            );
+        }
+        if (!config.fetchMetadata() && !config.downloadServer() && !config.cacheRepair()) {
             throw missingMetadataException(workingDirectory, config.requestedVersion(), config.minecraftDirectory());
         }
 

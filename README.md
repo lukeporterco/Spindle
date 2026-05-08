@@ -3,7 +3,7 @@
 MC ModLoader currently provides a deterministic loader core with two provider paths:
 
 - `sample`: the existing fake-game provider used for Milestone 0-2 launches
-- `minecraft`: a Milestone 4 provider that still runs the Milestone 3 dry-run planning pipeline and, only when explicitly requested, can launch a managed vanilla Minecraft server process
+- `minecraft`: a Milestone 5 provider that still runs the deterministic dry-run planning pipeline and, only when explicitly requested, can inspect, repair, cache, verify, and launch a managed vanilla Minecraft server process
 
 Minimum Java version: Java 25
 
@@ -45,6 +45,30 @@ Managed fake server launch smoke:
 
 ```bash
 ./gradlew minecraftServerLaunchFakeSmoke
+```
+
+Managed server cache inspect:
+
+```bash
+./gradlew minecraftServerCacheInspect
+```
+
+Managed server cache repair:
+
+```bash
+./gradlew minecraftServerCacheRepair
+```
+
+Managed server offline cache check:
+
+```bash
+./gradlew minecraftServerOfflineCacheCheck
+```
+
+Managed server download smoke:
+
+```bash
+./gradlew minecraftServerDownloadSmoke
 ```
 
 Managed real local server dry smoke:
@@ -97,6 +121,7 @@ Validation mode resolves and verifies the modpack without loading mod classes, c
 Minecraft dry run keeps the same deterministic mod-resolution pipeline, then parses Minecraft version metadata and writes:
 
 - `runtime/minecraft-launch-plan.json`
+- `runtime/minecraft-artifacts.json`
 - `runtime/modpack-state.json`
 - `runtime/dependency-graph.json`
 - `runtime/diagnostics/startup-trace.json`
@@ -106,7 +131,11 @@ If Mache reference scanning is enabled, it also writes:
 
 - `runtime/mache-reference-report.json`
 
-Milestone 4 supports explicit managed vanilla Minecraft server process launch only. Minecraft client launch is still not implemented. The loader does not inject mods into Minecraft, put mod jars on the Minecraft server classpath, create a mod classloader for Minecraft server launch, invoke mod entrypoints on the Minecraft server launch path, patch entrypoints, transform classes, remap classes, or perform authentication.
+Milestone 5 adds an explicit verified vanilla server artifact cache under `runtime/minecraft-cache/`. The loader can cache version metadata, cache only the vanilla server jar, verify cached server artifacts, write `runtime/minecraft-artifacts.json`, and write `runtime/minecraft-cache/server-artifacts.lock.json` after a successful verified server-jar resolution.
+
+Downloads remain explicit and limited to Minecraft version metadata plus the vanilla server jar. This milestone does not download client jars, client assets, client libraries, client natives, mappings, or source.
+
+Managed Minecraft behavior remains server-only. Minecraft client launch is still not implemented. The loader does not inject mods into Minecraft, put mod jars on the Minecraft server classpath, create a mod classloader for Minecraft server launch, invoke mod entrypoints on the Minecraft server launch path, patch entrypoints, transform classes, remap classes, or perform authentication.
 
 Use `--strict-resources` to fail on duplicate non-class resources, and `--strict-packages` to fail on split packages. Without those flags, duplicate resources and split packages are recorded as diagnostics only.
 
@@ -122,6 +151,13 @@ Use these with `--game-provider minecraft`:
 - `--minecraft-dry-run`
 - `--minecraft-verify-files`
 - `--minecraft-fetch-metadata`
+- `--minecraft-download-server`
+- `--minecraft-cache-dir <path>`
+- `--minecraft-offline`
+- `--minecraft-cache-inspect`
+- `--minecraft-cache-repair`
+- `--minecraft-cache-strict`
+- `--minecraft-force-redownload`
 - `--minecraft-output-plan <path>`
 - `--minecraft-launch`
 - `--minecraft-server-dir <path>`
@@ -148,13 +184,33 @@ Behavior notes:
 - `--minecraft-version-json` overrides local version JSON discovery.
 - `--minecraft-manifest-json` is used only for metadata resolution.
 - `--minecraft-fetch-metadata` may fetch only the version manifest and version JSON.
+- `--minecraft-download-server` explicitly allows caching the vanilla server jar.
+- `--minecraft-cache-dir` defaults to `runtime/minecraft-cache`.
+- `--minecraft-offline` disables all network fetches and downloads.
+- `--minecraft-cache-inspect` inspects cache state, writes `runtime/minecraft-artifacts.json`, writes diagnostics/profile output, and does not launch Minecraft.
+- `--minecraft-cache-repair` may repair missing or invalid cached metadata and the cached server jar, but only when downloads are otherwise allowed.
+- `--minecraft-cache-strict` promotes cache warnings such as lock mismatches to failures.
+- `--minecraft-force-redownload` refreshes allowed cache artifacts even when a cached copy already exists.
 - `--minecraft-dir` defaults to the standard user Minecraft directory only when it can be determined safely for the current OS.
+- `--minecraft-download-server` by itself never downloads anything except metadata needed to identify the server jar and the vanilla server jar itself.
 
 When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-server-launch-result.json` with the managed process command preview, launch outcome, timing, and bounded stdout/stderr tails.
 
 `minecraftServerLaunchDrySmoke` does not require a real Minecraft server jar by default. If `-PminecraftDir` is not provided, it prints a clear skip message and exits successfully.
 
 `minecraftServerLaunchFakeSmoke` builds a tiny fake server jar, launches it through the managed Minecraft server path, detects readiness, sends `stop`, and writes `runtime/minecraft-server-launch-result.json`.
+
+`minecraftServerCacheInspect` does not require network and prints:
+
+```text
+[loader] minecraft cache inspection complete
+```
+
+`minecraftServerCacheRepair` is the explicit network-enabled repair path for metadata plus the vanilla server jar.
+
+`minecraftServerOfflineCacheCheck` verifies that a previously populated cache is complete enough to run offline. It is allowed to fail when the cache has not been populated yet.
+
+`minecraftServerDownloadSmoke` is the explicit network-enabled smoke path. It fetches metadata if needed, fetches and verifies the vanilla server jar if needed, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-cache/server-artifacts.lock.json`, writes `runtime/minecraft-launch-plan.json`, and then attempts a managed vanilla server launch. It does not pass `--minecraft-accept-eula-for-test` by default.
 
 ## Mache reference scan
 

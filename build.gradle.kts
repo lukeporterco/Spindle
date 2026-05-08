@@ -438,3 +438,105 @@ tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
         )
     }
 }
+
+tasks.register<JavaExec>("minecraftServerCacheInspect") {
+    group = "application"
+    description = "Inspects the managed vanilla server artifact cache without launching Minecraft."
+    dependsOn(":loader-core:classes", ":loader-api:classes")
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.CacheInspect",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-side",
+        "server",
+        "--minecraft-dry-run",
+        "--minecraft-cache-inspect"
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
+    group = "application"
+    description = "Verifies the managed vanilla server artifact cache in offline strict mode."
+    dependsOn(":loader-core:classes", ":loader-api:classes")
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.OfflineCacheCheck",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-side",
+        "server",
+        "--minecraft-dry-run",
+        "--minecraft-offline",
+        "--minecraft-verify-files",
+        "--minecraft-cache-strict"
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerCacheRepair") {
+    group = "application"
+    description = "Repairs cached vanilla server metadata and the server jar when explicitly allowed."
+    dependsOn(":loader-core:classes", ":loader-api:classes")
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.CacheRepair",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-side",
+        "server",
+        "--minecraft-dry-run",
+        "--minecraft-fetch-metadata",
+        "--minecraft-download-server",
+        "--minecraft-cache-repair",
+        "--minecraft-verify-files"
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
+    group = "application"
+    description = "Downloads and verifies the vanilla Minecraft server artifact, then attempts a managed launch."
+    dependsOn(":loader-core:classes", ":loader-api:classes")
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.ServerDownloadSmoke",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-side",
+        "server",
+        "--minecraft-dry-run",
+        "--minecraft-fetch-metadata",
+        "--minecraft-download-server",
+        "--minecraft-verify-files",
+        "--minecraft-launch",
+        "--minecraft-launch-timeout-seconds",
+        "30",
+        "--minecraft-server-arg",
+        "nogui",
+        "--minecraft-output-plan",
+        "runtime/minecraft-launch-plan.json"
+    )
+}

@@ -1,6 +1,5 @@
 package com.mcmodloader.core.minecraft;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,16 +10,14 @@ public final class MinecraftLaunchPlanBuilder {
         MinecraftProviderConfig config,
         MinecraftMetadataResolver.ResolvedVersionJson resolvedVersionJson,
         MinecraftVersionMetadata metadata,
+        Path resolvedServerJar,
+        String serverJarSource,
         MinecraftLibrarySelector.Selection librarySelection,
         MinecraftArgumentResolver.ResolvedArguments resolvedArguments,
         MinecraftInstallLocator installLocator
     ) {
         Path minecraftDirectory = config.minecraftDirectory();
-        Path clientJar = installLocator.clientJarPath(minecraftDirectory, metadata.id());
-        Path primaryServerJar = installLocator.primaryServerJarPath(minecraftDirectory, metadata.id());
-        Path alternateServerJar = installLocator.alternateServerJarPath(minecraftDirectory, metadata.id());
-        Path serverJar = Files.isRegularFile(primaryServerJar) ? primaryServerJar : Files.isRegularFile(alternateServerJar) ? alternateServerJar : primaryServerJar;
-        Path assetsRoot = installLocator.assetsRoot(minecraftDirectory);
+        Path clientJar = minecraftDirectory == null ? null : installLocator.clientJarPath(minecraftDirectory, metadata.id());
 
         List<MinecraftLaunchPlan.Library> libraries = toPlanLibraries(workingDirectory, librarySelection.libraries());
         List<MinecraftLaunchPlan.Library> nativeLibraries = toPlanLibraries(workingDirectory, librarySelection.nativeLibraries());
@@ -29,14 +26,14 @@ public final class MinecraftLaunchPlanBuilder {
         for (MinecraftLibrarySelector.SelectedLibrary library : librarySelection.libraries()) {
             classpath.add(displayPath(workingDirectory, library.path()));
         }
-        if (config.side() == MinecraftSide.CLIENT) {
+        if (config.side() == MinecraftSide.CLIENT && clientJar != null) {
             classpath.add(displayPath(workingDirectory, clientJar));
-        } else if (metadata.serverDownload() != null) {
-            classpath.add(displayPath(workingDirectory, serverJar));
+        } else if (resolvedServerJar != null) {
+            classpath.add(displayPath(workingDirectory, resolvedServerJar));
         }
 
         MinecraftLaunchPlan.AssetIndex assetIndex = null;
-        if (metadata.assetIndex() != null && metadata.assetIndex().id() != null && !metadata.assetIndex().id().isBlank()) {
+        if (minecraftDirectory != null && metadata.assetIndex() != null && metadata.assetIndex().id() != null && !metadata.assetIndex().id().isBlank()) {
             assetIndex =
                 new MinecraftLaunchPlan.AssetIndex(
                     metadata.assetIndex().id(),
@@ -52,10 +49,11 @@ public final class MinecraftLaunchPlanBuilder {
             metadata.id(),
             config.side().id(),
             config.side() == MinecraftSide.CLIENT ? metadata.mainClass() : null,
-            displayPath(workingDirectory, minecraftDirectory),
+            minecraftDirectory == null ? null : displayPath(workingDirectory, minecraftDirectory),
+            serverJarSource,
             displayPath(workingDirectory, resolvedVersionJson.versionJsonPath()),
-            config.side() == MinecraftSide.CLIENT ? displayPath(workingDirectory, clientJar) : null,
-            metadata.serverDownload() != null ? displayPath(workingDirectory, serverJar) : null,
+            config.side() == MinecraftSide.CLIENT && clientJar != null ? displayPath(workingDirectory, clientJar) : null,
+            resolvedServerJar == null ? null : displayPath(workingDirectory, resolvedServerJar),
             assetIndex,
             libraries,
             nativeLibraries,
