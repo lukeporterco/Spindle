@@ -1,0 +1,24 @@
+{
+  "latest": {
+    "release": "26.1.2",
+    "snapshot": "26w19a"
+  },
+  "versions": [
+    {
+      "id": "26.1.2",
+      "type": "release",
+      "url": "https://example.invalid/minecraft/26.1.2.json",
+      "sha1": "manifest-sha-release",
+      "releaseTime": "2026-05-01T00:00:00+00:00",
+      "time": "2026-05-02T00:00:00+00:00"
+    },
+    {
+      "id": "26w19a",
+      "type": "snapshot",
+      "url": "https://example.invalid/minecraft/26w19a.json",
+      "sha1": "manifest-sha-snapshot",
+      "releaseTime": "2026-05-03T00:00:00+00:00",
+      "time": "2026-05-04T00:00:00+00:00"
+    }
+  ]
+}

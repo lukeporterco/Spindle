@@ -49,6 +49,123 @@ val prepareMilestone0Mods by tasks.registering(Copy::class) {
     includeEmptyDirs = false
 }
 
+val prepareMinecraftFixture by tasks.registering {
+    dependsOn(prepareMilestone0Mods)
+
+    doLast {
+        val fixtureDirectory = layout.projectDirectory.dir("runtime/fixture-minecraft").asFile
+        val versionDirectory = fixtureDirectory.resolve("versions/26.1.2")
+        versionDirectory.mkdirs()
+        versionDirectory.resolve("26.1.2.json").writeText(
+            """
+            {
+              "id": "26.1.2",
+              "type": "release",
+              "mainClass": "net.minecraft.client.main.Main",
+              "assets": "legacy",
+              "assetIndex": {
+                "id": "legacy",
+                "url": "https://example.invalid/assets/indexes/legacy.json",
+                "sha1": "asset-index-sha1",
+                "size": 321
+              },
+              "downloads": {
+                "client": {
+                  "url": "https://example.invalid/client.jar",
+                  "sha1": "client-sha1",
+                  "size": 111
+                },
+                "server": {
+                  "url": "https://example.invalid/server.jar",
+                  "sha1": "server-sha1",
+                  "size": 222
+                }
+              },
+              "libraries": [
+                {
+                  "name": "com.example:alpha:1.0",
+                  "downloads": {
+                    "artifact": {
+                      "path": "com/example/alpha/1.0/alpha-1.0.jar",
+                      "url": "https://example.invalid/libs/alpha-1.0.jar",
+                      "sha1": "alpha-sha1",
+                      "size": 10
+                    }
+                  }
+                },
+                {
+                  "name": "com.example:beta:2.0",
+                  "downloads": {
+                    "artifact": {
+                      "path": "com/example/beta/2.0/beta-2.0.jar",
+                      "url": "https://example.invalid/libs/beta-2.0.jar",
+                      "sha1": "beta-sha1",
+                      "size": 20
+                    }
+                  },
+                  "rules": [
+                    {
+                      "action": "disallow",
+                      "os": {
+                        "name": "linux"
+                      }
+                    },
+                    {
+                      "action": "allow",
+                      "os": {
+                        "name": "windows"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "com.example:gamma:3.0",
+                  "downloads": {
+                    "artifact": {
+                      "path": "com/example/gamma/3.0/gamma-3.0.jar",
+                      "url": "https://example.invalid/libs/gamma-3.0.jar",
+                      "sha1": "gamma-sha1",
+                      "size": 30
+                    },
+                    "classifiers": {
+                      "natives-windows": {
+                        "path": "com/example/gamma/3.0/gamma-3.0-natives-windows.jar",
+                        "url": "https://example.invalid/libs/gamma-3.0-natives-windows.jar",
+                        "sha1": "gamma-native-win",
+                        "size": 31
+                      }
+                    }
+                  },
+                  "natives": {
+                    "windows": "natives-windows"
+                  }
+                }
+              ],
+              "arguments": {
+                "game": [
+                  "--username",
+                  "${'$'}{auth_player_name}",
+                  "--version",
+                  "${'$'}{version_name}",
+                  "--accessToken",
+                  "${'$'}{auth_access_token}"
+                ],
+                "jvm": [
+                  "-Djava.library.path=${'$'}{natives_directory}",
+                  "-cp",
+                  "${'$'}{classpath}"
+                ]
+              }
+            }
+            """.trimIndent()
+        )
+    }
+}
+
+fun minecraftRuntimeClasspath() =
+    project(":loader-core").the<SourceSetContainer>()["main"].runtimeClasspath +
+        project(":loader-api").the<SourceSetContainer>()["main"].output
+
 tasks.register<JavaExec>("runMilestone0") {
     group = "application"
     description = "Builds the sample mod and runs the Milestone 0 deterministic entrypoint loader."
@@ -115,5 +232,100 @@ tasks.register<JavaExec>("explainMilestone0") {
 
     doFirst {
         workingDir.mkdirs()
+    }
+}
+
+tasks.register<JavaExec>("minecraftDryRun") {
+    group = "application"
+    description = "Builds the sample mod and runs the Minecraft client dry-run planner."
+    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.DryRun",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-dir",
+        "fixture-minecraft",
+        "--minecraft-side",
+        "client",
+        "--minecraft-dry-run"
+    )
+
+    doFirst {
+        workingDir.mkdirs()
+    }
+}
+
+tasks.register<JavaExec>("minecraftServerDryRun") {
+    group = "application"
+    description = "Builds the sample mod and runs the Minecraft server dry-run planner."
+    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.DryRun",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-dir",
+        "fixture-minecraft",
+        "--minecraft-side",
+        "server",
+        "--minecraft-dry-run"
+    )
+
+    doFirst {
+        workingDir.mkdirs()
+    }
+}
+
+tasks.register<JavaExec>("macheReferenceScan") {
+    group = "application"
+    description = "Runs the optional read-only Mache reference scan when -PmacheDir is provided."
+    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime").asFile
+    onlyIf {
+        val macheDir = providers.gradleProperty("macheDir").orNull
+        if (macheDir.isNullOrBlank()) {
+            println("No -PmacheDir provided; skipping Mache reference scan.")
+            false
+        } else {
+            true
+        }
+    }
+
+    doFirst {
+        val macheDir = providers.gradleProperty("macheDir").get()
+        args(
+            "--game-main",
+            "unused.for.minecraft.DryRun",
+            "--game-provider",
+            "minecraft",
+            "--minecraft-version",
+            "26.1.2",
+            "--minecraft-dir",
+            "fixture-minecraft",
+            "--minecraft-side",
+            "server",
+            "--minecraft-dry-run",
+            "--mache-dir",
+            macheDir,
+            "--mache-version",
+            "26.1.2",
+            "--mache-reference-scan"
+        )
     }
 }

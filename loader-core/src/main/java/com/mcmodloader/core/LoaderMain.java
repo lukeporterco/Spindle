@@ -19,7 +19,24 @@ import com.mcmodloader.core.launch.LaunchContext;
 import com.mcmodloader.core.launch.LaunchPhase;
 import com.mcmodloader.core.lockfile.LockfileVerifier;
 import com.mcmodloader.core.lockfile.LockfileWriter;
+import com.mcmodloader.core.mache.MacheReferenceReport;
+import com.mcmodloader.core.mache.MacheReferenceScanner;
+import com.mcmodloader.core.mache.MacheReferenceWriter;
 import com.mcmodloader.core.metadata.ModMetadataParser;
+import com.mcmodloader.core.minecraft.MinecraftArgumentResolver;
+import com.mcmodloader.core.minecraft.MinecraftDryRunResult;
+import com.mcmodloader.core.minecraft.MinecraftFileVerifier;
+import com.mcmodloader.core.minecraft.MinecraftGameProvider;
+import com.mcmodloader.core.minecraft.MinecraftInstallLocator;
+import com.mcmodloader.core.minecraft.MinecraftLaunchPlan;
+import com.mcmodloader.core.minecraft.MinecraftLaunchPlanBuilder;
+import com.mcmodloader.core.minecraft.MinecraftLaunchPlanWriter;
+import com.mcmodloader.core.minecraft.MinecraftLibrarySelector;
+import com.mcmodloader.core.minecraft.MinecraftMetadataResolver;
+import com.mcmodloader.core.minecraft.MinecraftProviderConfig;
+import com.mcmodloader.core.minecraft.MinecraftSide;
+import com.mcmodloader.core.minecraft.MinecraftVersionMetadata;
+import com.mcmodloader.core.minecraft.MinecraftVersionMetadataParser;
 import com.mcmodloader.core.ownership.ClassOwnershipIndex;
 import com.mcmodloader.core.ownership.PackageOwnershipIndex;
 import com.mcmodloader.core.profile.StartupProfile;
@@ -81,7 +98,7 @@ public final class LoaderMain {
                 diagnosticSink,
                 "argument.parse",
                 LaunchPhase.ARGUMENT_PARSE,
-                () -> parseArguments(args),
+                () -> resolveLaunchArguments(workingDirectory, parseArguments(args)),
                 parsedArguments -> details(
                     "gameMainClass",
                     parsedArguments.gameMainClass(),
@@ -92,7 +109,13 @@ public final class LoaderMain {
                     "validateOnly",
                     Boolean.toString(parsedArguments.validateOnly()),
                     "explain",
-                    Boolean.toString(parsedArguments.explain())
+                    Boolean.toString(parsedArguments.explain()),
+                    "minecraftVersion",
+                    parsedArguments.minecraftProviderConfig() == null ? null : parsedArguments.minecraftProviderConfig().requestedVersion(),
+                    "minecraftSide",
+                    parsedArguments.minecraftProviderConfig() == null ? null : parsedArguments.minecraftProviderConfig().side().id(),
+                    "macheReferenceScan",
+                    Boolean.toString(parsedArguments.macheReferenceScan())
                 )
             );
 
@@ -102,7 +125,7 @@ public final class LoaderMain {
                 diagnosticSink,
                 "game_provider.resolve",
                 LaunchPhase.GAME_PROVIDER_RESOLVE,
-                () -> new GameProviderResolver().resolve(context),
+                () -> new GameProviderResolver().resolve(context, launchArguments.minecraftProviderConfig()),
                 provider -> details(
                     "gameProviderId",
                     provider.id(),
@@ -111,9 +134,9 @@ public final class LoaderMain {
                     "gameProviderVersion",
                     provider.version()
                 )
-            );
+        );
 
-        run(context, gameProvider, diagnosticSink);
+        run(context, gameProvider, launchArguments, diagnosticSink);
     }
 
     static LaunchArguments parseArguments(String[] args) throws LoaderException {
@@ -124,6 +147,18 @@ public final class LoaderMain {
         boolean explain = false;
         boolean strictResources = false;
         boolean strictPackages = false;
+        String minecraftVersion = null;
+        Path minecraftDirectory = null;
+        Path minecraftVersionJson = null;
+        Path minecraftManifestJson = null;
+        MinecraftSide minecraftSide = MinecraftSide.CLIENT;
+        boolean minecraftDryRun = false;
+        boolean minecraftVerifyFiles = false;
+        boolean minecraftFetchMetadata = false;
+        Path minecraftOutputPlan = Path.of("minecraft-launch-plan.json");
+        Path macheDirectory = null;
+        String macheVersion = null;
+        boolean macheReferenceScan = false;
 
         for (int index = 0; index < args.length; index++) {
             String argument = args[index];
@@ -163,6 +198,90 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--minecraft-version".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-version");
+                }
+                minecraftVersion = args[++index];
+                continue;
+            }
+
+            if ("--minecraft-dir".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-dir");
+                }
+                minecraftDirectory = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-version-json".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-version-json");
+                }
+                minecraftVersionJson = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-manifest-json".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-manifest-json");
+                }
+                minecraftManifestJson = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-side".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-side");
+                }
+                minecraftSide = MinecraftSide.fromCliValue(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-dry-run".equals(argument)) {
+                minecraftDryRun = true;
+                continue;
+            }
+
+            if ("--minecraft-verify-files".equals(argument)) {
+                minecraftVerifyFiles = true;
+                continue;
+            }
+
+            if ("--minecraft-fetch-metadata".equals(argument)) {
+                minecraftFetchMetadata = true;
+                continue;
+            }
+
+            if ("--minecraft-output-plan".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-output-plan");
+                }
+                minecraftOutputPlan = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--mache-dir".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --mache-dir");
+                }
+                macheDirectory = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--mache-version".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --mache-version");
+                }
+                macheVersion = args[++index];
+                continue;
+            }
+
+            if ("--mache-reference-scan".equals(argument)) {
+                macheReferenceScan = true;
+                continue;
+            }
+
             launchArguments.add(argument);
         }
 
@@ -170,10 +289,36 @@ public final class LoaderMain {
             throw new LoaderException("Missing required argument --game-main");
         }
 
-        return new LaunchArguments(gameMainClass, gameProviderId, launchArguments, validateOnly, explain, strictResources, strictPackages);
+        MinecraftProviderConfig minecraftProviderConfig =
+            new MinecraftProviderConfig(
+                minecraftVersion,
+                minecraftDirectory,
+                minecraftVersionJson,
+                minecraftManifestJson,
+                minecraftSide,
+                minecraftDryRun,
+                minecraftVerifyFiles,
+                minecraftFetchMetadata,
+                minecraftOutputPlan
+            );
+
+        return new LaunchArguments(
+            gameMainClass,
+            gameProviderId,
+            launchArguments,
+            validateOnly,
+            explain,
+            strictResources,
+            strictPackages,
+            minecraftProviderConfig,
+            macheDirectory,
+            macheVersion,
+            macheReferenceScan
+        );
     }
 
-    private static void run(LaunchContext context, GameProvider gameProvider, DiagnosticSink diagnosticSink) throws LoaderException {
+    private static void run(LaunchContext context, GameProvider gameProvider, LaunchArguments launchArguments, DiagnosticSink diagnosticSink)
+        throws LoaderException {
         ModDiscoverer modDiscoverer = new ModDiscoverer();
         ModMetadataParser metadataParser = new ModMetadataParser();
         DependencyResolver dependencyResolver = new DependencyResolver();
@@ -339,6 +484,13 @@ public final class LoaderMain {
             outputPath -> details("dependencyGraphOutputPath", displayPath(context, outputPath))
         );
 
+        if (gameProvider instanceof MinecraftGameProvider minecraftGameProvider) {
+            MinecraftDryRunResult dryRunResult = runMinecraftDryRun(context, launchArguments, minecraftGameProvider, diagnosticSink);
+            writeStartupProfile(context, diagnosticSink, startupProfileWriter);
+            System.out.println("[loader] minecraft dry run complete");
+            return;
+        }
+
         if (context.validateOnly()) {
             diagnosticSink.record(
                 new DiagnosticEvent(
@@ -435,7 +587,241 @@ public final class LoaderMain {
         writeStartupProfile(context, diagnosticSink, startupProfileWriter);
     }
 
+    private static MinecraftDryRunResult runMinecraftDryRun(
+        LaunchContext context,
+        LaunchArguments launchArguments,
+        MinecraftGameProvider minecraftGameProvider,
+        DiagnosticSink diagnosticSink
+    ) throws LoaderException {
+        MinecraftProviderConfig config = minecraftGameProvider.config();
+        MinecraftMetadataResolver metadataResolver = new MinecraftMetadataResolver();
+        MinecraftVersionMetadataParser metadataParser = new MinecraftVersionMetadataParser();
+        MinecraftInstallLocator installLocator = new MinecraftInstallLocator();
+        MinecraftLibrarySelector librarySelector = new MinecraftLibrarySelector();
+        MinecraftArgumentResolver argumentResolver = new MinecraftArgumentResolver();
+        MinecraftLaunchPlanBuilder launchPlanBuilder = new MinecraftLaunchPlanBuilder();
+        MinecraftLaunchPlanWriter launchPlanWriter = new MinecraftLaunchPlanWriter();
+        MinecraftFileVerifier fileVerifier = new MinecraftFileVerifier();
+        MacheReferenceScanner macheReferenceScanner = new MacheReferenceScanner();
+        MacheReferenceWriter macheReferenceWriter = new MacheReferenceWriter();
+
+        MinecraftMetadataResolver.ResolvedVersionJson resolvedVersionJson =
+            measure(
+                diagnosticSink,
+                "minecraft.metadata.resolve",
+                LaunchPhase.COMPLETE,
+                () -> metadataResolver.resolve(context.workingDirectory(), config),
+                resolved -> details(
+                    "minecraftVersion",
+                    resolved.requestedVersion(),
+                    "minecraftSide",
+                    config.side().id(),
+                    "versionJsonPath",
+                    displayPath(context, resolved.versionJsonPath()),
+                    "metadataSource",
+                    resolved.metadataSource()
+                )
+            );
+
+        MinecraftVersionMetadata metadata =
+            measure(
+                diagnosticSink,
+                "minecraft.metadata.parse",
+                LaunchPhase.COMPLETE,
+                () -> metadataParser.parse(resolvedVersionJson.json(), resolvedVersionJson.versionJsonPath().toString(), config.side()),
+                parsedMetadata -> details(
+                    "minecraftVersion",
+                    parsedMetadata.id(),
+                    "minecraftSide",
+                    config.side().id(),
+                    "mainClass",
+                    parsedMetadata.mainClass()
+                )
+            );
+
+        MinecraftLibrarySelector.Selection selection =
+            measure(
+                diagnosticSink,
+                "minecraft.library.select",
+                LaunchPhase.COMPLETE,
+                () -> librarySelector.select(metadata, installLocator.librariesRoot(config.minecraftDirectory())),
+                selected -> details(
+                    "minecraftVersion",
+                    metadata.id(),
+                    "minecraftSide",
+                    config.side().id(),
+                    "selectedLibraryCount",
+                    Integer.toString(selected.libraries().size()),
+                    "nativeLibraryCount",
+                    Integer.toString(selected.nativeLibraries().size())
+                )
+            );
+
+        List<Path> launchClasspath = new ArrayList<>();
+        selection.libraries().forEach(library -> launchClasspath.add(library.path()));
+        if (config.side() == MinecraftSide.CLIENT) {
+            launchClasspath.add(installLocator.clientJarPath(config.minecraftDirectory(), metadata.id()));
+        } else if (metadata.serverDownload() != null) {
+            Path primaryServerJar = installLocator.primaryServerJarPath(config.minecraftDirectory(), metadata.id());
+            Path alternateServerJar = installLocator.alternateServerJarPath(config.minecraftDirectory(), metadata.id());
+            launchClasspath.add(
+                java.nio.file.Files.isRegularFile(primaryServerJar)
+                    ? primaryServerJar
+                    : java.nio.file.Files.isRegularFile(alternateServerJar) ? alternateServerJar : primaryServerJar
+            );
+        }
+
+        MinecraftArgumentResolver.ResolvedArguments resolvedArguments =
+            measure(
+                diagnosticSink,
+                "minecraft.arguments.resolve",
+                LaunchPhase.COMPLETE,
+                () -> argumentResolver.resolve(
+                    config,
+                    metadata,
+                    config.minecraftDirectory(),
+                    installLocator.assetsRoot(config.minecraftDirectory()),
+                    installLocator.nativesDirectory(context.workingDirectory(), metadata.id(), config.side()),
+                    launchClasspath
+                ),
+                arguments -> details(
+                    "minecraftVersion",
+                    metadata.id(),
+                    "minecraftSide",
+                    config.side().id(),
+                    "jvmArgumentCount",
+                    Integer.toString(arguments.jvmArguments().size()),
+                    "gameArgumentCount",
+                    Integer.toString(arguments.gameArguments().size())
+                )
+            );
+
+        MinecraftLaunchPlan launchPlan =
+            launchPlanBuilder.build(context.workingDirectory(), config, resolvedVersionJson, metadata, selection, resolvedArguments, installLocator);
+
+        List<Path> missingFiles =
+            config.verifyFiles()
+                ? measure(
+                    diagnosticSink,
+                    "minecraft.file_verify",
+                    LaunchPhase.COMPLETE,
+                    () -> fileVerifier.verify(config, resolvedVersionJson, metadata, selection, installLocator),
+                    missing -> details(
+                        "minecraftVersion",
+                        metadata.id(),
+                        "minecraftSide",
+                        config.side().id(),
+                        "missingFileCount",
+                        Integer.toString(missing.size())
+                    )
+                )
+                : fileVerifier.verify(config, resolvedVersionJson, metadata, selection, installLocator);
+
+        launchPlan =
+            launchPlan.withMissingFiles(
+                missingFiles.stream().map(path -> displayPath(context, path)).toList()
+            );
+
+        MinecraftLaunchPlan finalLaunchPlan = launchPlan;
+        measure(
+            diagnosticSink,
+            "minecraft.launch_plan.write",
+            LaunchPhase.COMPLETE,
+            () -> {
+                launchPlanWriter.write(config.outputPlanPath(), finalLaunchPlan);
+                return config.outputPlanPath();
+            },
+            outputPath -> details(
+                "minecraftVersion",
+                metadata.id(),
+                "minecraftSide",
+                config.side().id(),
+                "missingFileCount",
+                Integer.toString(finalLaunchPlan.missingFiles().size()),
+                "launchPlanOutputPath",
+                displayPath(context, outputPath)
+            )
+        );
+
+        MacheReferenceReport macheReferenceReport = null;
+        if (launchArguments.macheReferenceScan() && launchArguments.macheDirectory() != null) {
+            Path reportPath = context.workingDirectory().resolve("mache-reference-report.json");
+            String requestedMacheVersion =
+                launchArguments.macheVersion() == null || launchArguments.macheVersion().isBlank()
+                    ? metadata.id()
+                    : launchArguments.macheVersion();
+            macheReferenceReport =
+                measure(
+                    diagnosticSink,
+                    "mache.reference.scan",
+                    LaunchPhase.COMPLETE,
+                    () -> macheReferenceScanner.scan(launchArguments.macheDirectory(), requestedMacheVersion),
+                    report -> details(
+                        "minecraftVersion",
+                        metadata.id(),
+                        "macheReferenceScan",
+                        "true",
+                        "macheReportOutputPath",
+                        displayPath(context, reportPath)
+                    )
+                );
+            MacheReferenceReport finalMacheReferenceReport = macheReferenceReport;
+            measure(
+                diagnosticSink,
+                "mache.reference_report.write",
+                LaunchPhase.COMPLETE,
+                () -> {
+                    macheReferenceWriter.write(reportPath, finalMacheReferenceReport);
+                    return reportPath;
+                },
+                outputPath -> details("macheReportOutputPath", displayPath(context, outputPath))
+            );
+        }
+
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.dry_run.complete",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft dry run complete",
+                details(
+                    "minecraftVersion",
+                    metadata.id(),
+                    "minecraftSide",
+                    config.side().id(),
+                    "selectedLibraryCount",
+                    Integer.toString(selection.libraries().size()),
+                    "nativeLibraryCount",
+                    Integer.toString(selection.nativeLibraries().size()),
+                    "missingFileCount",
+                    Integer.toString(launchPlan.missingFiles().size()),
+                    "launchPlanOutputPath",
+                    displayPath(context, config.outputPlanPath()),
+                    "versionJsonPath",
+                    displayPath(context, resolvedVersionJson.versionJsonPath()),
+                    "metadataSource",
+                    resolvedVersionJson.metadataSource(),
+                    "macheReferenceScan",
+                    Boolean.toString(launchArguments.macheReferenceScan() && launchArguments.macheDirectory() != null),
+                    "macheReportOutputPath",
+                    launchArguments.macheReferenceScan() && launchArguments.macheDirectory() != null
+                        ? displayPath(context, context.workingDirectory().resolve("mache-reference-report.json"))
+                        : null
+                )
+            )
+        );
+
+        return new MinecraftDryRunResult(launchPlan, macheReferenceReport);
+    }
+
     private static LaunchContext createLaunchContext(Path workingDirectory, LaunchArguments launchArguments) {
+        String targetMinecraftVersion =
+            "minecraft".equals(launchArguments.gameProviderId())
+                    && launchArguments.minecraftProviderConfig() != null
+                    && launchArguments.minecraftProviderConfig().requestedVersion() != null
+                ? launchArguments.minecraftProviderConfig().requestedVersion()
+                : TARGET_MINECRAFT_VERSION;
         return new LaunchContext(
             workingDirectory,
             workingDirectory.resolve("mods"),
@@ -448,7 +834,69 @@ public final class LoaderMain {
             launchArguments.strictPackages(),
             LOADER_VERSION,
             Runtime.version().feature(),
-            TARGET_MINECRAFT_VERSION
+            targetMinecraftVersion
+        );
+    }
+
+    private static LaunchArguments resolveLaunchArguments(Path workingDirectory, LaunchArguments launchArguments) throws LoaderException {
+        MinecraftProviderConfig resolvedMinecraftProviderConfig = launchArguments.minecraftProviderConfig().resolveAgainst(workingDirectory);
+        if ("minecraft".equals(launchArguments.gameProviderId()) && resolvedMinecraftProviderConfig.minecraftDirectory() == null) {
+            resolvedMinecraftProviderConfig =
+                new MinecraftProviderConfig(
+                    resolvedMinecraftProviderConfig.requestedVersion(),
+                    new MinecraftInstallLocator().defaultMinecraftDirectory().orElse(null),
+                    resolvedMinecraftProviderConfig.explicitVersionJson(),
+                    resolvedMinecraftProviderConfig.manifestJson(),
+                    resolvedMinecraftProviderConfig.side(),
+                    resolvedMinecraftProviderConfig.dryRun(),
+                    resolvedMinecraftProviderConfig.verifyFiles(),
+                    resolvedMinecraftProviderConfig.fetchMetadata(),
+                    resolvedMinecraftProviderConfig.outputPlanPath()
+                ).resolveAgainst(workingDirectory);
+        }
+
+        if ("minecraft".equals(launchArguments.gameProviderId()) && !resolvedMinecraftProviderConfig.dryRun()) {
+            throw new LoaderException("Minecraft provider requires --minecraft-dry-run in Milestone 3");
+        }
+
+        String resolvedVersion = resolvedMinecraftProviderConfig.requestedVersion();
+        if ("minecraft".equals(launchArguments.gameProviderId())
+            && (resolvedVersion == null || resolvedVersion.isBlank())
+            && resolvedMinecraftProviderConfig.explicitVersionJson() != null) {
+            String json;
+            try {
+                json = java.nio.file.Files.readString(resolvedMinecraftProviderConfig.explicitVersionJson());
+            } catch (IOException exception) {
+                throw new LoaderException(
+                    "Failed to read Minecraft version JSON " + resolvedMinecraftProviderConfig.explicitVersionJson(),
+                    exception
+                );
+            }
+            resolvedVersion =
+                new MinecraftVersionMetadataParser()
+                    .parse(json, resolvedMinecraftProviderConfig.explicitVersionJson().toString(), resolvedMinecraftProviderConfig.side())
+                    .id();
+            resolvedMinecraftProviderConfig =
+                new MinecraftProviderConfig(
+                    resolvedVersion,
+                    resolvedMinecraftProviderConfig.minecraftDirectory(),
+                    resolvedMinecraftProviderConfig.explicitVersionJson(),
+                    resolvedMinecraftProviderConfig.manifestJson(),
+                    resolvedMinecraftProviderConfig.side(),
+                    resolvedMinecraftProviderConfig.dryRun(),
+                    resolvedMinecraftProviderConfig.verifyFiles(),
+                    resolvedMinecraftProviderConfig.fetchMetadata(),
+                    resolvedMinecraftProviderConfig.outputPlanPath()
+                );
+        }
+
+        if ("minecraft".equals(launchArguments.gameProviderId())
+            && (resolvedMinecraftProviderConfig.requestedVersion() == null || resolvedMinecraftProviderConfig.requestedVersion().isBlank())) {
+            throw new LoaderException("Minecraft provider requires --minecraft-version unless --minecraft-version-json contains an id");
+        }
+
+        return launchArguments.withMinecraftProviderConfig(resolvedMinecraftProviderConfig).withMacheDirectory(
+            resolveOptionalPath(workingDirectory, launchArguments.macheDirectory())
         );
     }
 
@@ -628,11 +1076,57 @@ public final class LoaderMain {
         boolean validateOnly,
         boolean explain,
         boolean strictResources,
-        boolean strictPackages
+        boolean strictPackages,
+        MinecraftProviderConfig minecraftProviderConfig,
+        Path macheDirectory,
+        String macheVersion,
+        boolean macheReferenceScan
     ) {
         LaunchArguments {
             launchArguments = List.copyOf(launchArguments);
         }
+
+        LaunchArguments withMinecraftProviderConfig(MinecraftProviderConfig updatedMinecraftProviderConfig) {
+            return new LaunchArguments(
+                gameMainClass,
+                gameProviderId,
+                launchArguments,
+                validateOnly,
+                explain,
+                strictResources,
+                strictPackages,
+                updatedMinecraftProviderConfig,
+                macheDirectory,
+                macheVersion,
+                macheReferenceScan
+            );
+        }
+
+        LaunchArguments withMacheDirectory(Path updatedMacheDirectory) {
+            return new LaunchArguments(
+                gameMainClass,
+                gameProviderId,
+                launchArguments,
+                validateOnly,
+                explain,
+                strictResources,
+                strictPackages,
+                minecraftProviderConfig,
+                updatedMacheDirectory,
+                macheVersion,
+                macheReferenceScan
+            );
+        }
+    }
+
+    private static Path resolveOptionalPath(Path workingDirectory, Path path) {
+        if (path == null) {
+            return null;
+        }
+        if (path.isAbsolute()) {
+            return path.toAbsolutePath().normalize();
+        }
+        return workingDirectory.resolve(path).toAbsolutePath().normalize();
     }
 
     @FunctionalInterface

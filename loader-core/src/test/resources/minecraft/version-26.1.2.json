@@ -1,0 +1,138 @@
+{
+  "id": "26.1.2",
+  "type": "release",
+  "mainClass": "net.minecraft.client.main.Main",
+  "assets": "legacy",
+  "assetIndex": {
+    "id": "legacy",
+    "url": "https://example.invalid/assets/indexes/legacy.json",
+    "sha1": "asset-index-sha1",
+    "size": 321
+  },
+  "downloads": {
+    "client": {
+      "url": "https://example.invalid/client.jar",
+      "sha1": "client-sha1",
+      "size": 111
+    },
+    "server": {
+      "url": "https://example.invalid/server.jar",
+      "sha1": "server-sha1",
+      "size": 222
+    }
+  },
+  "libraries": [
+    {
+      "name": "com.example:alpha:1.0",
+      "downloads": {
+        "artifact": {
+          "path": "com/example/alpha/1.0/alpha-1.0.jar",
+          "url": "https://example.invalid/libs/alpha-1.0.jar",
+          "sha1": "alpha-sha1",
+          "size": 10
+        }
+      }
+    },
+    {
+      "name": "com.example:beta:2.0",
+      "downloads": {
+        "artifact": {
+          "path": "com/example/beta/2.0/beta-2.0.jar",
+          "url": "https://example.invalid/libs/beta-2.0.jar",
+          "sha1": "beta-sha1",
+          "size": 20
+        }
+      },
+      "rules": [
+        {
+          "action": "disallow",
+          "os": {
+            "name": "linux"
+          }
+        },
+        {
+          "action": "allow",
+          "os": {
+            "name": "windows"
+          }
+        }
+      ]
+    },
+    {
+      "name": "com.example:gamma:3.0",
+      "downloads": {
+        "artifact": {
+          "path": "com/example/gamma/3.0/gamma-3.0.jar",
+          "url": "https://example.invalid/libs/gamma-3.0.jar",
+          "sha1": "gamma-sha1",
+          "size": 30
+        },
+        "classifiers": {
+          "natives-windows": {
+            "path": "com/example/gamma/3.0/gamma-3.0-natives-windows.jar",
+            "url": "https://example.invalid/libs/gamma-3.0-natives-windows.jar",
+            "sha1": "gamma-native-win",
+            "size": 31
+          },
+          "natives-linux": {
+            "path": "com/example/gamma/3.0/gamma-3.0-natives-linux.jar",
+            "url": "https://example.invalid/libs/gamma-3.0-natives-linux.jar",
+            "sha1": "gamma-native-linux",
+            "size": 32
+          }
+        }
+      },
+      "natives": {
+        "windows": "natives-windows",
+        "linux": "natives-linux"
+      }
+    }
+  ],
+  "arguments": {
+    "game": [
+      "--username",
+      "${auth_player_name}",
+      "--version",
+      "${version_name}",
+      "--gameDir",
+      "${game_directory}",
+      "--assetsDir",
+      "${assets_root}",
+      "--assetIndex",
+      "${assets_index_name}",
+      "--accessToken",
+      "${auth_access_token}",
+      {
+        "rules": [
+          {
+            "action": "allow",
+            "os": {
+              "name": "windows"
+            }
+          }
+        ],
+        "value": [
+          "--demoRule",
+          "windows-only"
+        ]
+      }
+    ],
+    "jvm": [
+      "-Djava.library.path=${natives_directory}",
+      "-cp",
+      "${classpath}",
+      {
+        "rules": [
+          {
+            "action": "allow",
+            "os": {
+              "name": "windows"
+            }
+          }
+        ],
+        "value": "-Dos.preview=true"
+      }
+    ]
+  },
+  "minecraftArguments": "--username ${auth_player_name} --accessToken ${auth_access_token}"
+}
