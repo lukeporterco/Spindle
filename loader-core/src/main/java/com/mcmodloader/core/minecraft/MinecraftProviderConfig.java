@@ -11,11 +11,21 @@ public record MinecraftProviderConfig(
     boolean dryRun,
     boolean verifyFiles,
     boolean fetchMetadata,
-    Path outputPlanPath
+    Path outputPlanPath,
+    boolean launch,
+    Path serverDirectory,
+    boolean acceptEulaForTest,
+    java.util.List<String> serverJvmArgs,
+    java.util.List<String> serverArgs,
+    int launchTimeoutSeconds,
+    boolean stopAfterReady,
+    int readyTimeoutSeconds
 ) {
     public MinecraftProviderConfig {
         side = side == null ? MinecraftSide.CLIENT : side;
         outputPlanPath = outputPlanPath == null ? Path.of("minecraft-launch-plan.json") : outputPlanPath.normalize();
+        serverJvmArgs = java.util.List.copyOf(serverJvmArgs == null ? java.util.List.of() : serverJvmArgs);
+        serverArgs = java.util.List.copyOf(serverArgs == null ? java.util.List.of() : serverArgs);
     }
 
     public MinecraftProviderConfig resolveAgainst(Path workingDirectory) {
@@ -28,7 +38,15 @@ public record MinecraftProviderConfig(
             dryRun,
             verifyFiles,
             fetchMetadata,
-            resolvePath(workingDirectory, outputPlanPath)
+            resolvePath(workingDirectory, outputPlanPath),
+            launch,
+            resolveNullablePath(workingDirectory, serverDirectory),
+            acceptEulaForTest,
+            serverJvmArgs,
+            serverArgs,
+            launchTimeoutSeconds,
+            stopAfterReady,
+            readyTimeoutSeconds
         );
     }
 

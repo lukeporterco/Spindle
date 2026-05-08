@@ -41,6 +41,11 @@ import com.mcmodloader.core.ownership.ClassOwnershipIndex;
 import com.mcmodloader.core.ownership.PackageOwnershipIndex;
 import com.mcmodloader.core.profile.StartupProfile;
 import com.mcmodloader.core.profile.StartupProfileWriter;
+import com.mcmodloader.core.process.JavaExecutableResolver;
+import com.mcmodloader.core.process.MinecraftProcessConfig;
+import com.mcmodloader.core.process.MinecraftProcessResult;
+import com.mcmodloader.core.process.MinecraftProcessResultWriter;
+import com.mcmodloader.core.process.MinecraftServerProcessLauncher;
 import com.mcmodloader.core.resource.ResourceConflict;
 import com.mcmodloader.core.resource.ResourceConflictIndex;
 import com.mcmodloader.core.resolve.DependencyResolver;
@@ -156,6 +161,14 @@ public final class LoaderMain {
         boolean minecraftVerifyFiles = false;
         boolean minecraftFetchMetadata = false;
         Path minecraftOutputPlan = Path.of("minecraft-launch-plan.json");
+        boolean minecraftLaunch = false;
+        Path minecraftServerDirectory = null;
+        boolean minecraftAcceptEulaForTest = false;
+        List<String> minecraftServerJvmArgs = new ArrayList<>();
+        List<String> minecraftServerArgs = new ArrayList<>();
+        int minecraftLaunchTimeoutSeconds = 30;
+        boolean minecraftStopAfterReady = false;
+        int minecraftReadyTimeoutSeconds = 20;
         Path macheDirectory = null;
         String macheVersion = null;
         boolean macheReferenceScan = false;
@@ -261,6 +274,61 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--minecraft-launch".equals(argument)) {
+                minecraftLaunch = true;
+                continue;
+            }
+
+            if ("--minecraft-server-dir".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-server-dir");
+                }
+                minecraftServerDirectory = Path.of(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-accept-eula-for-test".equals(argument)) {
+                minecraftAcceptEulaForTest = true;
+                continue;
+            }
+
+            if ("--minecraft-server-jvm-arg".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-server-jvm-arg");
+                }
+                minecraftServerJvmArgs.add(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-server-arg".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-server-arg");
+                }
+                minecraftServerArgs.add(args[++index]);
+                continue;
+            }
+
+            if ("--minecraft-launch-timeout-seconds".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-launch-timeout-seconds");
+                }
+                minecraftLaunchTimeoutSeconds = parsePositiveInt(args[++index], "--minecraft-launch-timeout-seconds");
+                continue;
+            }
+
+            if ("--minecraft-stop-after-ready".equals(argument)) {
+                minecraftStopAfterReady = true;
+                continue;
+            }
+
+            if ("--minecraft-ready-timeout-seconds".equals(argument)) {
+                if (index + 1 >= args.length) {
+                    throw new LoaderException("Missing value for --minecraft-ready-timeout-seconds");
+                }
+                minecraftReadyTimeoutSeconds = parsePositiveInt(args[++index], "--minecraft-ready-timeout-seconds");
+                continue;
+            }
+
             if ("--mache-dir".equals(argument)) {
                 if (index + 1 >= args.length) {
                     throw new LoaderException("Missing value for --mache-dir");
@@ -299,7 +367,15 @@ public final class LoaderMain {
                 minecraftDryRun,
                 minecraftVerifyFiles,
                 minecraftFetchMetadata,
-                minecraftOutputPlan
+                minecraftOutputPlan,
+                minecraftLaunch,
+                minecraftServerDirectory,
+                minecraftAcceptEulaForTest,
+                minecraftServerJvmArgs,
+                minecraftServerArgs,
+                minecraftLaunchTimeoutSeconds,
+                minecraftStopAfterReady,
+                minecraftReadyTimeoutSeconds
             );
 
         return new LaunchArguments(
@@ -486,6 +562,12 @@ public final class LoaderMain {
 
         if (gameProvider instanceof MinecraftGameProvider minecraftGameProvider) {
             MinecraftDryRunResult dryRunResult = runMinecraftDryRun(context, launchArguments, minecraftGameProvider, diagnosticSink);
+            if (minecraftGameProvider.config().launch()) {
+                launchMinecraftServer(context, minecraftGameProvider.config(), dryRunResult, diagnosticSink);
+                writeStartupProfile(context, diagnosticSink, startupProfileWriter);
+                System.out.println("[loader] minecraft server launch complete");
+                return;
+            }
             writeStartupProfile(context, diagnosticSink, startupProfileWriter);
             System.out.println("[loader] minecraft dry run complete");
             return;
@@ -812,7 +894,16 @@ public final class LoaderMain {
             )
         );
 
-        return new MinecraftDryRunResult(launchPlan, macheReferenceReport);
+        Path serverJarPath = null;
+        if (config.side() == MinecraftSide.SERVER && metadata.serverDownload() != null) {
+            Path primaryServerJar = installLocator.primaryServerJarPath(config.minecraftDirectory(), metadata.id());
+            Path alternateServerJar = installLocator.alternateServerJarPath(config.minecraftDirectory(), metadata.id());
+            serverJarPath =
+                java.nio.file.Files.isRegularFile(primaryServerJar)
+                    ? primaryServerJar
+                    : java.nio.file.Files.isRegularFile(alternateServerJar) ? alternateServerJar : primaryServerJar;
+        }
+        return new MinecraftDryRunResult(launchPlan, macheReferenceReport, serverJarPath);
     }
 
     private static LaunchContext createLaunchContext(Path workingDirectory, LaunchArguments launchArguments) {
@@ -851,7 +942,15 @@ public final class LoaderMain {
                     resolvedMinecraftProviderConfig.dryRun(),
                     resolvedMinecraftProviderConfig.verifyFiles(),
                     resolvedMinecraftProviderConfig.fetchMetadata(),
-                    resolvedMinecraftProviderConfig.outputPlanPath()
+                    resolvedMinecraftProviderConfig.outputPlanPath(),
+                    resolvedMinecraftProviderConfig.launch(),
+                    resolvedMinecraftProviderConfig.serverDirectory(),
+                    resolvedMinecraftProviderConfig.acceptEulaForTest(),
+                    resolvedMinecraftProviderConfig.serverJvmArgs(),
+                    resolvedMinecraftProviderConfig.serverArgs(),
+                    resolvedMinecraftProviderConfig.launchTimeoutSeconds(),
+                    resolvedMinecraftProviderConfig.stopAfterReady(),
+                    resolvedMinecraftProviderConfig.readyTimeoutSeconds()
                 ).resolveAgainst(workingDirectory);
         }
 
@@ -886,7 +985,15 @@ public final class LoaderMain {
                     resolvedMinecraftProviderConfig.dryRun(),
                     resolvedMinecraftProviderConfig.verifyFiles(),
                     resolvedMinecraftProviderConfig.fetchMetadata(),
-                    resolvedMinecraftProviderConfig.outputPlanPath()
+                    resolvedMinecraftProviderConfig.outputPlanPath(),
+                    resolvedMinecraftProviderConfig.launch(),
+                    resolvedMinecraftProviderConfig.serverDirectory(),
+                    resolvedMinecraftProviderConfig.acceptEulaForTest(),
+                    resolvedMinecraftProviderConfig.serverJvmArgs(),
+                    resolvedMinecraftProviderConfig.serverArgs(),
+                    resolvedMinecraftProviderConfig.launchTimeoutSeconds(),
+                    resolvedMinecraftProviderConfig.stopAfterReady(),
+                    resolvedMinecraftProviderConfig.readyTimeoutSeconds()
                 );
         }
 
@@ -895,8 +1002,165 @@ public final class LoaderMain {
             throw new LoaderException("Minecraft provider requires --minecraft-version unless --minecraft-version-json contains an id");
         }
 
+        if (resolvedMinecraftProviderConfig.launch()) {
+            if (!"minecraft".equals(launchArguments.gameProviderId())) {
+                throw new LoaderException("--minecraft-launch requires --game-provider minecraft");
+            }
+            if (resolvedMinecraftProviderConfig.side() != MinecraftSide.SERVER) {
+                throw new LoaderException("--minecraft-launch requires --minecraft-side server");
+            }
+            if (!resolvedMinecraftProviderConfig.dryRun()) {
+                throw new LoaderException("--minecraft-launch requires --minecraft-dry-run");
+            }
+            if (!resolvedMinecraftProviderConfig.verifyFiles()) {
+                throw new LoaderException("--minecraft-launch requires --minecraft-verify-files");
+            }
+
+            Path serverDirectory = resolvedMinecraftProviderConfig.serverDirectory();
+            if (serverDirectory == null) {
+                serverDirectory =
+                    workingDirectory.resolve("runtime").resolve("minecraft-server").resolve(resolvedMinecraftProviderConfig.requestedVersion());
+            }
+            serverDirectory = serverDirectory.toAbsolutePath().normalize();
+            if (serverDirectory.equals(workingDirectory.toAbsolutePath().normalize())) {
+                throw new LoaderException("Minecraft server directory must not be the loader working directory root");
+            }
+            resolvedMinecraftProviderConfig =
+                new MinecraftProviderConfig(
+                    resolvedMinecraftProviderConfig.requestedVersion(),
+                    resolvedMinecraftProviderConfig.minecraftDirectory(),
+                    resolvedMinecraftProviderConfig.explicitVersionJson(),
+                    resolvedMinecraftProviderConfig.manifestJson(),
+                    resolvedMinecraftProviderConfig.side(),
+                    resolvedMinecraftProviderConfig.dryRun(),
+                    resolvedMinecraftProviderConfig.verifyFiles(),
+                    resolvedMinecraftProviderConfig.fetchMetadata(),
+                    resolvedMinecraftProviderConfig.outputPlanPath(),
+                    resolvedMinecraftProviderConfig.launch(),
+                    serverDirectory,
+                    resolvedMinecraftProviderConfig.acceptEulaForTest(),
+                    resolvedMinecraftProviderConfig.serverJvmArgs(),
+                    resolvedMinecraftProviderConfig.serverArgs(),
+                    resolvedMinecraftProviderConfig.launchTimeoutSeconds(),
+                    resolvedMinecraftProviderConfig.stopAfterReady(),
+                    resolvedMinecraftProviderConfig.readyTimeoutSeconds()
+                );
+        }
+
         return launchArguments.withMinecraftProviderConfig(resolvedMinecraftProviderConfig).withMacheDirectory(
             resolveOptionalPath(workingDirectory, launchArguments.macheDirectory())
+        );
+    }
+
+    private static void launchMinecraftServer(
+        LaunchContext context,
+        MinecraftProviderConfig config,
+        MinecraftDryRunResult dryRunResult,
+        DiagnosticSink diagnosticSink
+    ) throws LoaderException {
+        Path serverJarPath = dryRunResult.serverJarPath();
+        if (serverJarPath == null) {
+            throw new LoaderException("Minecraft server launch requires a resolved server jar");
+        }
+
+        Path javaExecutable = new JavaExecutableResolver().resolve();
+        Path resultOutputPath = context.workingDirectory().resolve("runtime/minecraft-server-launch-result.json").toAbsolutePath().normalize();
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.server_launch.preflight",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft server launch preflight complete",
+                minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, null, resultOutputPath)
+            )
+        );
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.server_launch.start",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft server launch starting",
+                minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, null, resultOutputPath)
+            )
+        );
+
+        MinecraftProcessResult result =
+            new MinecraftServerProcessLauncher()
+                .launch(
+                    config.requestedVersion(),
+                    new MinecraftProcessConfig(
+                        config.serverDirectory(),
+                        serverJarPath,
+                        javaExecutable,
+                        config.serverJvmArgs(),
+                        config.serverArgs(),
+                        config.launchTimeoutSeconds(),
+                        config.stopAfterReady(),
+                        config.readyTimeoutSeconds(),
+                        config.acceptEulaForTest()
+                    ),
+                    path -> displayPath(context, path)
+                );
+
+        if (result.readyDetected()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                "minecraft.server_launch.ready",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Minecraft server readiness detected",
+                    minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, result, resultOutputPath)
+                )
+            );
+        }
+        if (result.stopRequested()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "minecraft.server_launch.stop_request",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Minecraft server stop requested",
+                    minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, result, resultOutputPath)
+                )
+            );
+        }
+        if (result.timedOut()) {
+            diagnosticSink.record(
+                new DiagnosticEvent(
+                    "minecraft.server_launch.timeout",
+                    LaunchPhase.COMPLETE.name(),
+                    0L,
+                    "ok",
+                    "Minecraft server launch timed out",
+                    minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, result, resultOutputPath)
+                )
+            );
+        }
+
+        new MinecraftProcessResultWriter().write(resultOutputPath, result);
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.server_launch_result.write",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft server launch result written",
+                minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, result, resultOutputPath)
+            )
+        );
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.server_launch.complete",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft server launch complete",
+                minecraftServerLaunchDetails(context, config, serverJarPath, javaExecutable, result, resultOutputPath)
+            )
         );
     }
 
@@ -1011,7 +1275,13 @@ public final class LoaderMain {
     }
 
     private static String displayPath(LaunchContext context, Path path) {
-        return context.workingDirectory().relativize(path.toAbsolutePath().normalize()).toString().replace('\\', '/');
+        Path normalizedWorkingDirectory = context.workingDirectory().toAbsolutePath().normalize();
+        Path normalizedPath = path.toAbsolutePath().normalize();
+        try {
+            return normalizedWorkingDirectory.relativize(normalizedPath).toString().replace('\\', '/');
+        } catch (IllegalArgumentException exception) {
+            return normalizedPath.toString().replace('\\', '/');
+        }
     }
 
     private static String pluralize(int count) {
@@ -1127,6 +1397,56 @@ public final class LoaderMain {
             return path.toAbsolutePath().normalize();
         }
         return workingDirectory.resolve(path).toAbsolutePath().normalize();
+    }
+
+    private static int parsePositiveInt(String value, String argumentName) throws LoaderException {
+        try {
+            int parsed = Integer.parseInt(value);
+            if (parsed <= 0) {
+                throw new LoaderException(argumentName + " requires a positive integer");
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new LoaderException(argumentName + " requires a positive integer", exception);
+        }
+    }
+
+    private static Map<String, String> minecraftServerLaunchDetails(
+        LaunchContext context,
+        MinecraftProviderConfig config,
+        Path serverJarPath,
+        Path javaExecutable,
+        MinecraftProcessResult result,
+        Path resultOutputPath
+    ) {
+        return details(
+            "minecraftVersion",
+            config.requestedVersion(),
+            "serverDirectory",
+            result == null ? displayPath(context, config.serverDirectory()) : result.serverDirectory(),
+            "serverJar",
+            result == null ? displayPath(context, serverJarPath) : result.serverJar(),
+            "javaExecutable",
+            result == null ? displayPath(context, javaExecutable) : result.javaExecutable(),
+            "timeoutSeconds",
+            Integer.toString(config.launchTimeoutSeconds()),
+            "readyTimeoutSeconds",
+            Integer.toString(config.readyTimeoutSeconds()),
+            "stopAfterReady",
+            Boolean.toString(config.stopAfterReady()),
+            "started",
+            result == null ? null : Boolean.toString(result.started()),
+            "readyDetected",
+            result == null ? null : Boolean.toString(result.readyDetected()),
+            "stopRequested",
+            result == null ? null : Boolean.toString(result.stopRequested()),
+            "exitCode",
+            result == null || result.exitCode() == null ? null : Integer.toString(result.exitCode()),
+            "timedOut",
+            result == null ? null : Boolean.toString(result.timedOut()),
+            "launchResultOutputPath",
+            displayPath(context, resultOutputPath)
+        );
     }
 
     @FunctionalInterface

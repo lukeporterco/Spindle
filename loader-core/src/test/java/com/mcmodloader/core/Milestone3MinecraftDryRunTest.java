@@ -116,7 +116,15 @@ class Milestone3MinecraftDryRunTest {
                         true,
                         false,
                         false,
-                        tempDirectory.resolve("minecraft-launch-plan.json")
+                        tempDirectory.resolve("minecraft-launch-plan.json"),
+                        false,
+                        null,
+                        false,
+                        List.of(),
+                        List.of(),
+                        30,
+                        false,
+                        20
                     )
                 );
 
@@ -266,7 +274,15 @@ class Milestone3MinecraftDryRunTest {
                             true,
                             true,
                             false,
-                            tempDirectory.resolve("minecraft-launch-plan.json")
+                            tempDirectory.resolve("minecraft-launch-plan.json"),
+                            false,
+                            null,
+                            false,
+                            List.of(),
+                            List.of(),
+                            30,
+                            false,
+                            20
                         ),
                         new MinecraftMetadataResolver.ResolvedVersionJson(
                             "26.1.2",
@@ -363,7 +379,15 @@ class Milestone3MinecraftDryRunTest {
                 true,
                 false,
                 false,
-                workingDirectory.resolve("minecraft-launch-plan.json")
+                workingDirectory.resolve("minecraft-launch-plan.json"),
+                false,
+                null,
+                false,
+                List.of(),
+                List.of(),
+                30,
+                false,
+                20
             );
         MinecraftLibrarySelector.Selection selection =
             new MinecraftLibrarySelector()
@@ -421,7 +445,15 @@ class Milestone3MinecraftDryRunTest {
             true,
             false,
             false,
-            tempDirectory.resolve("minecraft-launch-plan.json")
+            tempDirectory.resolve("minecraft-launch-plan.json"),
+            false,
+            null,
+            false,
+            List.of(),
+            List.of(),
+            30,
+            false,
+            20
         );
     }
 

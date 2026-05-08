@@ -166,6 +166,39 @@ fun minecraftRuntimeClasspath() =
     project(":loader-core").the<SourceSetContainer>()["main"].runtimeClasspath +
         project(":loader-api").the<SourceSetContainer>()["main"].output
 
+val prepareMinecraftServerLaunchFixture by tasks.registering {
+    dependsOn(":sample-server-fixture:jar")
+
+    doLast {
+        val fixtureDirectory = layout.projectDirectory.dir("runtime/fixture-minecraft-server-launch").asFile
+        val versionDirectory = fixtureDirectory.resolve("versions/26.1.2")
+        versionDirectory.mkdirs()
+        versionDirectory.resolve("26.1.2.json").writeText(
+            """
+            {
+              "id": "26.1.2",
+              "type": "release",
+              "downloads": {
+                "server": {
+                  "url": "https://example.invalid/fake-server.jar",
+                  "sha1": "fake-server-sha1",
+                  "size": 123
+                }
+              },
+              "libraries": [],
+              "arguments": {
+                "game": [],
+                "jvm": []
+              }
+            }
+            """.trimIndent()
+        )
+
+        val sourceJar = project(":sample-server-fixture").tasks.named<Jar>("jar").get().archiveFile.get().asFile
+        sourceJar.copyTo(versionDirectory.resolve("26.1.2-server.jar"), overwrite = true)
+    }
+}
+
 tasks.register<JavaExec>("runMilestone0") {
     group = "application"
     description = "Builds the sample mod and runs the Milestone 0 deterministic entrypoint loader."
@@ -326,6 +359,82 @@ tasks.register<JavaExec>("macheReferenceScan") {
             "--mache-version",
             "26.1.2",
             "--mache-reference-scan"
+        )
+    }
+}
+
+tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
+    group = "application"
+    description = "Runs the fake managed Minecraft server launch smoke task without Mojang jars."
+    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftServerLaunchFixture)
+
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.asFile
+    args(
+        "--game-main",
+        "unused.for.minecraft.FakeServerLaunch",
+        "--game-provider",
+        "minecraft",
+        "--minecraft-version",
+        "26.1.2",
+        "--minecraft-dir",
+        "runtime/fixture-minecraft-server-launch",
+        "--minecraft-side",
+        "server",
+        "--minecraft-dry-run",
+        "--minecraft-verify-files",
+        "--minecraft-launch",
+        "--minecraft-launch-timeout-seconds",
+        "10",
+        "--minecraft-stop-after-ready",
+        "--minecraft-ready-timeout-seconds",
+        "5",
+        "--minecraft-accept-eula-for-test",
+        "--minecraft-output-plan",
+        "runtime/minecraft-launch-plan.json"
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
+    group = "application"
+    description = "Launches a real local vanilla Minecraft server jar in managed dry-smoke mode when -PminecraftDir is provided."
+    dependsOn(":loader-core:classes", ":loader-api:classes")
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.asFile
+    onlyIf {
+        val minecraftDir = providers.gradleProperty("minecraftDir").orNull
+        if (minecraftDir.isNullOrBlank()) {
+            println("No -PminecraftDir provided; skipping minecraftServerLaunchDrySmoke.")
+            false
+        } else {
+            true
+        }
+    }
+
+    doFirst {
+        val minecraftDir = providers.gradleProperty("minecraftDir").get()
+        args(
+            "--game-main",
+            "unused.for.minecraft.ServerLaunch",
+            "--game-provider",
+            "minecraft",
+            "--minecraft-version",
+            "26.1.2",
+            "--minecraft-dir",
+            minecraftDir,
+            "--minecraft-side",
+            "server",
+            "--minecraft-dry-run",
+            "--minecraft-verify-files",
+            "--minecraft-launch",
+            "--minecraft-launch-timeout-seconds",
+            "30",
+            "--minecraft-server-arg",
+            "nogui",
+            "--minecraft-output-plan",
+            "runtime/minecraft-launch-plan.json"
         )
     }
 }

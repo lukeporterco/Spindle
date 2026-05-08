@@ -34,7 +34,12 @@ public final class MinecraftFileVerifier {
             recordMissing(library.path(), missingFiles);
         }
 
-        if (metadata.assetIndex() != null && metadata.assetIndex().id() != null && !metadata.assetIndex().id().isBlank()) {
+        if (
+            config.side() == MinecraftSide.CLIENT &&
+            metadata.assetIndex() != null &&
+            metadata.assetIndex().id() != null &&
+            !metadata.assetIndex().id().isBlank()
+        ) {
             recordMissing(installLocator.assetIndexPath(config.minecraftDirectory(), metadata.assetIndex().id()), missingFiles);
         }
 

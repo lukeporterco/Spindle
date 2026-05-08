@@ -16,4 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "mc-modloader"
 
-include("loader-api", "loader-core", "sample-game", "sample-mod")
+include("loader-api", "loader-core", "sample-game", "sample-mod", "sample-server-fixture")
