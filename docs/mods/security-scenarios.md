@@ -1,6 +1,6 @@
 # Security Scenarios
 
-These examples show how Runtime-1 trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
+These examples show how Runtime-2 capability grants, trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
 
 ## Clean Lifecycle-Only Mod
 
@@ -74,7 +74,7 @@ Likely fix:
 
 - rename the class and use the real Spindle API type instead of redefining it
 
-## Developer Requests Unsupported Permissions
+## Developer Requests Unsupported Capabilities
 
 A developer declares permissions such as:
 
@@ -84,12 +84,30 @@ A developer declares permissions such as:
 Result:
 
 - Spindle writes `SEC-PERM-001` warnings
-- the report makes the request visible
+- the report marks the requests as `visibility-only`
 - execution still proceeds if no fatal findings exist
 
 Important:
 
-- Spindle is not granting or enforcing those permissions yet
+- Spindle is not sandboxing or enforcing those Java behaviors
+
+## Developer Enables Storage And Receives A Grant
+
+A developer declares:
+
+- `permissions: ["storage.data"]`
+- `storage.data: true`
+
+Result:
+
+- `spindle.profile.json` records `storage.data` as `granted`
+- `ModContext.dataDirectory()` is available at runtime
+- Spindle does not emit `SEC-PERM-001` for that capability
+
+Important:
+
+- this grant controls a Spindle-owned API surface only
+- the mod still runs as unrestricted in-process Java
 
 ## Networked Mod Uses HTTP Intentionally
 

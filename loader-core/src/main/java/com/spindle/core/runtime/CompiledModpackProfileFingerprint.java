@@ -3,6 +3,10 @@ package com.spindle.core.runtime;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
 import com.spindle.core.pipeline.ModpackPlanningResult;
+import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
+import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
+import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
+import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -57,12 +61,32 @@ public final class CompiledModpackProfileFingerprint {
     update(digest, "lockfile.path", profile.lockfile().path());
     update(digest, "lockfile.fingerprint", profile.lockfile().fingerprint());
 
-    for (CompiledModpackProfile.ModPermissions permissions : profile.permissions().mods()) {
-      update(digest, "permissions.modId", permissions.modId());
-      for (String requested : permissions.requested()) {
+    RuntimeCapabilityPlan permissions = profile.permissions();
+    update(digest, "permissions.catalogVersion", Integer.toString(permissions.catalogVersion()));
+    update(digest, "permissions.scope", permissions.scope());
+    update(
+        digest,
+        "permissions.runtimeExecutionIsolationMode",
+        permissions.runtimeExecutionIsolationMode());
+    update(digest, "permissions.sandboxed", Boolean.toString(permissions.sandboxed()));
+    for (RuntimeCapabilityModPlan modPermissions : permissions.mods()) {
+      update(digest, "permissions.modId", modPermissions.modId());
+      for (String requested : modPermissions.requested()) {
         update(digest, "permissions.requested", requested);
       }
+      for (RuntimeCapabilityGrant grant : modPermissions.grants()) {
+        update(digest, "permissions.grant.capability", grant.capability());
+        update(digest, "permissions.grant.state", grant.state());
+        for (String source : grant.sources()) {
+          update(digest, "permissions.grant.source", source);
+        }
+        update(digest, "permissions.grant.reason", grant.reason());
+        update(digest, "permissions.grant.controls", grant.controls());
+        update(digest, "permissions.grant.fix", grant.fix());
+      }
+      updateCapabilitySummary(digest, "permissions.mod.summary", modPermissions.summary());
     }
+    updateCapabilitySummary(digest, "permissions.summary", permissions.summary());
 
     for (String phase : profile.lifecycle().phaseOrder()) {
       update(digest, "lifecycle.phaseOrder", phase);
@@ -135,6 +159,10 @@ public final class CompiledModpackProfileFingerprint {
     update(digest, "lockfileFingerprint", fromFile(planningResult.lockfilePath()));
     update(digest, "strictResources", Boolean.toString(context.strictResources()));
     update(digest, "strictPackages", Boolean.toString(context.strictPackages()));
+    update(
+        digest,
+        "runtimeCapabilityCatalogVersion",
+        Integer.toString(com.spindle.core.runtime.capability.RuntimeCapabilityCatalog.CATALOG_VERSION));
 
     for (var mod : planningResult.resolvedMods().mods()) {
       update(digest, "mod.id", mod.id());
@@ -195,5 +223,15 @@ public final class CompiledModpackProfileFingerprint {
     digest.update((byte) '=');
     digest.update((value == null ? "" : value).getBytes(StandardCharsets.UTF_8));
     digest.update((byte) '\n');
+  }
+
+  private static void updateCapabilitySummary(
+      MessageDigest digest, String keyPrefix, RuntimeCapabilitySummary summary) {
+    update(digest, keyPrefix + ".granted", Integer.toString(summary.granted()));
+    update(digest, keyPrefix + ".denied", Integer.toString(summary.denied()));
+    update(digest, keyPrefix + ".unavailable", Integer.toString(summary.unavailable()));
+    update(digest, keyPrefix + ".unknown", Integer.toString(summary.unknown()));
+    update(
+        digest, keyPrefix + ".visibilityOnly", Integer.toString(summary.visibilityOnly()));
   }
 }

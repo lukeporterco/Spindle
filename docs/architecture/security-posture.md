@@ -2,13 +2,13 @@
 
 Spindle runs mods as executable Java code.
 
-Current Runtime-1 standard mod execution is:
+Current Runtime-2 standard mod execution is:
 
 - in process
 - unrestricted Java
 - not sandboxed
 
-Passing Spindle security validation does not mean a mod is safe. It means the mod passed Spindle's current trust-boundary checks for the current non-invasive Runtime-1 contract.
+Passing Spindle security validation does not mean a mod is safe. It means the mod passed Spindle's current trust-boundary checks for the current non-invasive Runtime contract.
 
 ## Current Scope
 
@@ -29,6 +29,7 @@ It writes `spindle.security-report.json` with:
 - explicit restricted-tool isolation fields
 - an `artifactTrust` section with per-artifact trust state and summary counts
 - a `riskSignals` section with warning-only static jar and constant-pool evidence
+- a `capabilityGrants` section that distinguishes granted, denied, unavailable, unknown, and visibility-only Runtime-2 capability states
 
 The report always states:
 
@@ -57,7 +58,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - schema `2` lifecycle declaration shape and handler signatures
 - planned `ModContext` path boundaries
 - compiled profile cache rebuild visibility
-- requested permissions visibility
+- capability grant contract validation for Spindle-owned API surfaces
 - runtime and compiled profile identity fingerprints
 - static jar risk signals from constant-pool UTF-8 strings, native files, service-provider files, and nested jars
 - restricted child-JVM execution for Spindle-owned static analysis tooling that can treat jars as data
@@ -72,7 +73,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - `SEC-PATH-001`: planned owned path escapes the working directory
 - `SEC-PATH-002`: logical relative path contract is violated
 - `SEC-CACHE-001`: cached compiled profile was rejected and rebuilt
-- `SEC-PERM-001`: mod requests permissions Spindle records but does not enforce
+- `SEC-PERM-001`: mod requests capabilities that Runtime-2 does not grant
 - `SEC-ARTIFACT-001`: lockfile or artifact identity mismatch
 - `SEC-TRUST-001`: artifact is local unsigned
 - `SEC-TRUST-002`: signature sidecar is malformed, unsupported, or unreadable
@@ -96,7 +97,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 
 ## Non-goals
 
-Security-2 still does not add:
+The Runtime-2 capability contract still does not add:
 
 - registry-backed publisher identity
 - human review

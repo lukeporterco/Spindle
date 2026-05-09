@@ -1,6 +1,7 @@
 package com.spindle.core.security;
 
 import com.spindle.core.runtime.CompiledModpackProfile;
+import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.security.risk.StaticRiskSignal;
 import com.spindle.core.security.risk.StaticRiskSummary;
 import com.spindle.core.security.trust.ArtifactTrustEntry;
@@ -22,6 +23,7 @@ public record SecurityValidationReport(
     boolean sandboxed,
     boolean runtimeSandboxed,
     String sandboxClaim,
+    RuntimeCapabilityPlan capabilityGrants,
     ToolIsolation toolIsolation,
     int fatalCount,
     int warningCount,
@@ -35,6 +37,7 @@ public record SecurityValidationReport(
   public static final String REPORT_KIND = "security-validation";
 
   public SecurityValidationReport {
+    capabilityGrants = java.util.Objects.requireNonNull(capabilityGrants, "capabilityGrants");
     toolIsolation = toolIsolation == null ? ToolIsolation.failed() : toolIsolation;
     validatedSurfaces = List.copyOf(validatedSurfaces);
     artifactTrustEntries = List.copyOf(artifactTrustEntries);

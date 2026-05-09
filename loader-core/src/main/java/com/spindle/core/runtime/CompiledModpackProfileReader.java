@@ -5,6 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
+import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
+import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
+import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -118,15 +122,55 @@ public final class CompiledModpackProfileReader {
         requiredString(object, "fingerprint"));
   }
 
-  private CompiledModpackProfile.Permissions readPermissions(JsonObject object) {
-    List<CompiledModpackProfile.ModPermissions> mods = new ArrayList<>();
+  private RuntimeCapabilityPlan readPermissions(JsonObject object) {
+    List<RuntimeCapabilityModPlan> mods = new ArrayList<>();
+    boolean runtimeTwoShape = object.has("catalogVersion");
     for (JsonElement element : requiredArray(object, "mods")) {
       JsonObject mod = element.getAsJsonObject();
       mods.add(
-          new CompiledModpackProfile.ModPermissions(
-              requiredString(mod, "modId"), readStringArray(requiredArray(mod, "requested"))));
+          new RuntimeCapabilityModPlan(
+              requiredString(mod, "modId"),
+              readStringArray(requiredArray(mod, "requested")),
+              runtimeTwoShape ? readGrants(requiredArray(mod, "grants")) : List.of(),
+              runtimeTwoShape
+                  ? readCapabilitySummary(requiredObject(mod, "summary"))
+                  : RuntimeCapabilitySummary.empty()));
     }
-    return new CompiledModpackProfile.Permissions(mods);
+    if (!runtimeTwoShape) {
+      return new RuntimeCapabilityPlan(0, null, null, false, mods, RuntimeCapabilitySummary.empty());
+    }
+    return new RuntimeCapabilityPlan(
+        requiredInt(object, "catalogVersion"),
+        requiredString(object, "scope"),
+        requiredString(object, "runtimeExecutionIsolationMode"),
+        requiredBoolean(object, "sandboxed"),
+        mods,
+        readCapabilitySummary(requiredObject(object, "summary")));
+  }
+
+  private List<RuntimeCapabilityGrant> readGrants(JsonArray array) {
+    List<RuntimeCapabilityGrant> grants = new ArrayList<>();
+    for (JsonElement element : array) {
+      JsonObject grant = element.getAsJsonObject();
+      grants.add(
+          new RuntimeCapabilityGrant(
+              requiredString(grant, "capability"),
+              requiredString(grant, "state"),
+              readStringArray(requiredArray(grant, "sources")),
+              requiredString(grant, "reason"),
+              requiredString(grant, "controls"),
+              optionalString(grant, "fix")));
+    }
+    return List.copyOf(grants);
+  }
+
+  private RuntimeCapabilitySummary readCapabilitySummary(JsonObject object) {
+    return new RuntimeCapabilitySummary(
+        requiredInt(object, "granted"),
+        requiredInt(object, "denied"),
+        requiredInt(object, "unavailable"),
+        requiredInt(object, "unknown"),
+        requiredInt(object, "visibilityOnly"));
   }
 
   private CompiledModpackProfile.Lifecycle readLifecycle(JsonObject object) {

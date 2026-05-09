@@ -24,10 +24,10 @@ public record SecurityPolicy(
 
   public static SecurityPolicy standard() {
     return new SecurityPolicy(
-        3,
+        4,
         1,
         1,
-        1,
+        2,
         1,
         1,
         1,
@@ -39,6 +39,7 @@ public record SecurityPolicy(
         List.of(
             "artifact-lockfile-identity",
             "artifact-trust",
+            "capability-grant-contract",
             "cache-profile-validation",
             "class-ownership",
             "lifecycle-declarations",

@@ -8,6 +8,7 @@ import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.quality.RuntimeQualityReport;
 import com.spindle.core.report.DisplayPaths;
 import com.spindle.core.resolve.ResolvedModSet;
+import com.spindle.core.runtime.capability.RuntimeCapabilityPlanner;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,6 +23,7 @@ public final class CompiledModpackProfileBuilder {
       new CompiledModpackProfileFingerprint();
   private final RuntimePolicyFingerprint runtimePolicyFingerprintCalculator =
       new RuntimePolicyFingerprint();
+  private final RuntimeCapabilityPlanner runtimeCapabilityPlanner = new RuntimeCapabilityPlanner();
 
   public CompiledModpackProfile build(
       LaunchContext context,
@@ -103,7 +105,7 @@ public final class CompiledModpackProfileBuilder {
                 new CompiledModpackProfile.Resources(
                     planningResult.resourceConflictIndex().conflicts().size())),
             lockfile,
-            new CompiledModpackProfile.Permissions(requestedPermissions(planningResult)),
+            runtimeCapabilityPlanner.plan(planningResult.resolvedMods()),
             new CompiledModpackProfile.Lifecycle(
                 lifecyclePlan.phaseOrder(), lifecycleHandlers(lifecyclePlan)),
             new CompiledModpackProfile.Contexts(contextPlans),
@@ -143,13 +145,6 @@ public final class CompiledModpackProfileBuilder {
                     handler.interfaceName(),
                     handler.jarPath(),
                     handler.jarHash()))
-        .toList();
-  }
-
-  private List<CompiledModpackProfile.ModPermissions> requestedPermissions(
-      ModpackPlanningResult planningResult) {
-    return planningResult.resolvedMods().mods().stream()
-        .map(mod -> new CompiledModpackProfile.ModPermissions(mod.id(), mod.permissions()))
         .toList();
   }
 

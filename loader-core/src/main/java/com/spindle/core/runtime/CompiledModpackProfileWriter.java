@@ -3,8 +3,12 @@ package com.spindle.core.runtime;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
+import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
+import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -95,8 +99,13 @@ public final class CompiledModpackProfileWriter {
     root.add("lockfile", lockfile);
 
     JsonObject permissions = new JsonObject();
+    permissions.addProperty("catalogVersion", profile.permissions().catalogVersion());
+    permissions.addProperty("scope", profile.permissions().scope());
+    permissions.addProperty(
+        "runtimeExecutionIsolationMode", profile.permissions().runtimeExecutionIsolationMode());
+    permissions.addProperty("sandboxed", profile.permissions().sandboxed());
     JsonArray permissionMods = new JsonArray();
-    for (CompiledModpackProfile.ModPermissions mod : profile.permissions().mods()) {
+    for (RuntimeCapabilityModPlan mod : profile.permissions().mods()) {
       JsonObject modObject = new JsonObject();
       modObject.addProperty("modId", mod.modId());
       JsonArray requested = new JsonArray();
@@ -104,9 +113,31 @@ public final class CompiledModpackProfileWriter {
         requested.add(permission);
       }
       modObject.add("requested", requested);
+      JsonArray grants = new JsonArray();
+      for (RuntimeCapabilityGrant grant : mod.grants()) {
+        JsonObject grantObject = new JsonObject();
+        grantObject.addProperty("capability", grant.capability());
+        grantObject.addProperty("state", grant.state());
+        JsonArray sources = new JsonArray();
+        for (String source : grant.sources()) {
+          sources.add(source);
+        }
+        grantObject.add("sources", sources);
+        grantObject.addProperty("reason", grant.reason());
+        grantObject.addProperty("controls", grant.controls());
+        if (grant.fix() == null) {
+          grantObject.add("fix", JsonNull.INSTANCE);
+        } else {
+          grantObject.addProperty("fix", grant.fix());
+        }
+        grants.add(grantObject);
+      }
+      modObject.add("grants", grants);
+      modObject.add("summary", capabilitySummary(mod.summary()));
       permissionMods.add(modObject);
     }
     permissions.add("mods", permissionMods);
+    permissions.add("summary", capabilitySummary(profile.permissions().summary()));
     root.add("permissions", permissions);
 
     JsonObject lifecycle = new JsonObject();
@@ -218,5 +249,15 @@ public final class CompiledModpackProfileWriter {
 
     return new CompiledModpackProfileResult(
         outputPath, profile.schemaVersion(), profile.profileKind(), profile.fingerprint());
+  }
+
+  private JsonObject capabilitySummary(RuntimeCapabilitySummary summary) {
+    JsonObject object = new JsonObject();
+    object.addProperty("granted", summary.granted());
+    object.addProperty("denied", summary.denied());
+    object.addProperty("unavailable", summary.unavailable());
+    object.addProperty("unknown", summary.unknown());
+    object.addProperty("visibilityOnly", summary.visibilityOnly());
+    return object;
   }
 }

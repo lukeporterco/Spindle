@@ -1,5 +1,6 @@
 package com.spindle.core.runtime;
 
+import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import java.util.List;
 
 public record CompiledModpackProfile(
@@ -17,12 +18,12 @@ public record CompiledModpackProfile(
     List<ClasspathEntry> classpath,
     Ownership ownership,
     Lockfile lockfile,
-    Permissions permissions,
+    RuntimeCapabilityPlan permissions,
     Lifecycle lifecycle,
     Contexts contexts,
     PackagePolicy packagePolicy,
     Quality quality) {
-  public static final int SCHEMA_VERSION = 2;
+  public static final int SCHEMA_VERSION = 3;
   public static final String PROFILE_KIND = "compiled-modpack";
   public static final String LOADER_ID = "spindle";
 
@@ -125,18 +126,6 @@ public record CompiledModpackProfile(
   public record Resources(int duplicates) {}
 
   public record Lockfile(String mode, String action, String path, String fingerprint) {}
-
-  public record Permissions(List<ModPermissions> mods) {
-    public Permissions {
-      mods = List.copyOf(mods);
-    }
-  }
-
-  public record ModPermissions(String modId, List<String> requested) {
-    public ModPermissions {
-      requested = List.copyOf(requested);
-    }
-  }
 
   public record Lifecycle(List<String> phaseOrder, List<LifecycleHandler> handlers) {
     public Lifecycle {

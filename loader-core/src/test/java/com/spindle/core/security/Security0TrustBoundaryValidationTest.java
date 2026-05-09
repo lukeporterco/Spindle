@@ -166,7 +166,7 @@ class Security0TrustBoundaryValidationTest {
   }
 
   @Test
-  void requestedPermissionsProduceWarningWithoutBlockingExecution() throws Exception {
+  void nonGrantedRequestedCapabilitiesProduceWarningWithoutBlockingExecution() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/permitted.jar"),
         "permittedmod",
@@ -182,6 +182,18 @@ class Security0TrustBoundaryValidationTest {
     assertEquals(0, report.get("fatalCount").getAsInt());
     assertEquals(4, report.get("warningCount").getAsInt());
     assertTrue(ruleIds(report).contains(SecurityRuleId.SEC_PERM_001.id()));
+    assertEquals(
+        "visibility-only",
+        report
+            .getAsJsonObject("capabilityGrants")
+            .getAsJsonArray("mods")
+            .get(0)
+            .getAsJsonObject()
+            .getAsJsonArray("grants")
+            .get(0)
+            .getAsJsonObject()
+            .get("state")
+            .getAsString());
     assertTrue(Files.exists(tempDirectory.resolve("lifecycle.log")));
   }
 

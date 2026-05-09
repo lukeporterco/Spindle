@@ -19,7 +19,7 @@ Schema `2` adds:
 - explicit lifecycle declarations using `ClassName::methodName`
 - deterministic storage declarations for config/data/cache/generated directories
 - `ModContext` delivery to lifecycle handlers
-- explicit permissions lists, currently recorded and reported but not granted
+- explicit permissions lists, now compiled into Runtime-2 capability grants for Spindle-owned APIs only
 
 Lifecycle declaration strings are validated before classloading. Runtime-1 also validates schema `2` handler signatures before any handler invocation. Supported phases are:
 
@@ -29,7 +29,7 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 
 ## Compiled Profile
 
-`spindle.profile.json` now writes schema version `2` and includes:
+`spindle.profile.json` now writes schema version `3` and includes:
 
 - `fingerprint`
 - `inputFingerprint`
@@ -37,7 +37,7 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 - cache status and cache reason
 - metadata schema summary
 - lockfile `mode` plus per-build `action` when available
-- recorded requested permissions per mod
+- requested permissions plus compiled capability grants and summaries per mod
 - lifecycle phase order and planned handlers
 - per-mod owned storage/context plans
 - runtime package policy summaries
@@ -47,7 +47,7 @@ The fingerprint terms are intentionally distinct:
 
 - `fingerprint`: hash of the compiled profile contract itself
 - `inputFingerprint`: hash of stable pre-classload inputs used to decide cache reuse
-- `runtimePolicyFingerprint`: hash of the Runtime-1 policy surface such as protected-package policy, strict flags, and lifecycle phase set
+- `runtimePolicyFingerprint`: hash of the Runtime policy surface such as protected-package policy, capability catalog version, strict flags, and lifecycle phase set
 
 The profile fingerprint remains deterministic. It excludes timestamps, process ids, raw absolute machine paths, cache hit/miss status, and other per-run cache metadata.
 
@@ -84,7 +84,8 @@ Runtime-1 adds:
 
 - `com.spindle.api.ModContext`
 - `com.spindle.api.lifecycle.LifecyclePhase`
-- deterministic owned storage creation under `config/`, `mod-data/`, `cache/mods/`, and `generated/`
+- deterministic owned storage planning under `config/`, `mod-data/`, `cache/mods/`, and `generated/`
+- capability-aware `ModContext` storage access for granted storage surfaces only
 - precomputed mod contexts built from the compiled profile
 - lifecycle execution reports written from planned and executed handlers
 - deterministic security validation reports written before standard lifecycle execution
@@ -110,20 +111,23 @@ Runtime-1 also writes:
 
 These reports are deterministic and summarize planned lifecycle handlers, executed handlers, cache state, owned storage directories, duplicate resources, split packages, protected package findings, metadata findings, security findings, and quality score.
 
-`spindle.security-report.json` is the Runtime-1 trust-boundary report for the standard non-Minecraft path. It includes:
+`spindle.security-report.json` is the Runtime trust-boundary report for the standard non-Minecraft path. It includes:
 
 - `profileFingerprint`
 - `inputFingerprint`
 - `runtimePolicyFingerprint`
 - `securityPolicyFingerprint`
 - `executionIsolationMode`
+- `runtimeExecutionIsolationMode`
 - `sandboxed`
+- `runtimeSandboxed`
 - `sandboxClaim`
+- `capabilityGrants`
 - fatal and warning counts
 - deterministic validated surfaces
 - deterministic findings ordered by severity, rule id, mod id, and location
 
-The report is explicit that Runtime-1 mod execution remains `in-process-unrestricted-java` and `not-sandboxed`. Passing validation means the mod passed current Spindle boundary checks, not that the mod is generally safe.
+The report is explicit that Runtime-2 capability grants control Spindle-owned APIs only. Standard mod execution still remains `in-process-unrestricted-java` and `not-sandboxed`. Passing validation means the mod passed current Spindle boundary checks, not that the mod is generally safe.
 
 `duplicateClasses` may be empty in the compiled profile when duplicate-class situations fail earlier as fatal ownership/package policy violations before a profile is written.
 
@@ -132,7 +136,7 @@ The report is explicit that Runtime-1 mod execution remains `in-process-unrestri
 - `planned`: planning completed and a lifecycle plan was written, but standard runtime execution has not completed
 - `executed`: standard runtime lifecycle execution completed and attempted/successful/failed handler lists reflect that run
 
-`spindle.quality-report.json` is an early deterministic signal, not a certification system. Runtime-1 records the current score as a stable heuristic for duplicate resources, split packages, protected package violations, and metadata/runtime-surface concerns. It is intentionally narrow and should not be read as compatibility certification or long-term ecosystem scoring.
+`spindle.quality-report.json` is an early deterministic signal, not a certification system. Runtime-2 now warns on non-granted requested capabilities while leaving granted storage surfaces quiet.
 
 Milestone 8 Minecraft bootstrap remains separate. Security-0 does not claim that approved bootstrap mods are sandboxed, and not every Runtime-1 schema `2` rule applies to that bootstrap-only path yet.
 

@@ -3,12 +3,16 @@ package com.spindle.core.runtime;
 import com.spindle.api.ModContext;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
+import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
+import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.security.SecurityRuleId;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public final class ModContextFactory {
   public Map<String, ModContext> createContexts(
@@ -19,7 +23,10 @@ public final class ModContextFactory {
     }
 
     Map<String, ModContext> contexts = new LinkedHashMap<>();
+    Map<String, Set<String>> grantedCapabilitiesByModId = grantedCapabilitiesByModId(profile);
     for (CompiledModpackProfile.ModContextPlan plan : profile.contexts().mods()) {
+      Set<String> grantedCapabilities =
+          grantedCapabilitiesByModId.getOrDefault(plan.modId(), Set.of());
       Path configDirectory =
           resolveOwnedPath(context.workingDirectory(), plan.modId(), "config", plan.configDirectory());
       Path dataDirectory =
@@ -29,8 +36,9 @@ public final class ModContextFactory {
       Path generatedDirectory =
           resolveOwnedPath(
               context.workingDirectory(), plan.modId(), "generated", plan.generatedDirectory());
-      createDirectories(
+      createGrantedDirectories(
           plan.modId(),
+          grantedCapabilities,
           configDirectory,
           dataDirectory,
           cacheDirectory,
@@ -45,6 +53,7 @@ public final class ModContextFactory {
               profile.game().version(),
               profile.game().side(),
               context.workingDirectory(),
+              grantedCapabilities,
               configDirectory,
               dataDirectory,
               cacheDirectory,
@@ -72,8 +81,25 @@ public final class ModContextFactory {
     return resolved;
   }
 
-  private void createDirectories(String modId, Path... directories) throws LoaderException {
-    for (Path directory : directories) {
+  private void createGrantedDirectories(
+      String modId,
+      Set<String> grantedCapabilities,
+      Path configDirectory,
+      Path dataDirectory,
+      Path cacheDirectory,
+      Path generatedDirectory)
+      throws LoaderException {
+    Map<String, Path> directories =
+        Map.of(
+            RuntimeCapabilityCatalog.STORAGE_CONFIG, configDirectory,
+            RuntimeCapabilityCatalog.STORAGE_DATA, dataDirectory,
+            RuntimeCapabilityCatalog.STORAGE_CACHE, cacheDirectory,
+            RuntimeCapabilityCatalog.STORAGE_GENERATED, generatedDirectory);
+    for (Map.Entry<String, Path> entry : directories.entrySet()) {
+      if (!grantedCapabilities.contains(entry.getKey())) {
+        continue;
+      }
+      Path directory = entry.getValue();
       try {
         Files.createDirectories(directory);
       } catch (IOException exception) {
@@ -86,5 +112,18 @@ public final class ModContextFactory {
             exception);
       }
     }
+  }
+
+  private Map<String, Set<String>> grantedCapabilitiesByModId(CompiledModpackProfile profile) {
+    Map<String, Set<String>> grantedCapabilitiesByModId = new LinkedHashMap<>();
+    for (RuntimeCapabilityModPlan modPlan : profile.permissions().mods()) {
+      Set<String> grantedCapabilities = new LinkedHashSet<>();
+      modPlan.grants().stream()
+          .filter(grant -> "granted".equals(grant.state()))
+          .map(grant -> grant.capability())
+          .forEach(grantedCapabilities::add);
+      grantedCapabilitiesByModId.put(modPlan.modId(), Set.copyOf(grantedCapabilities));
+    }
+    return grantedCapabilitiesByModId;
   }
 }

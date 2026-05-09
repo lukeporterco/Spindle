@@ -20,11 +20,14 @@
       "com.spindle.sampleruntimemod.SampleRuntimeLifecycle::preServerMain"
     ]
   },
-  "permissions": [],
+  "permissions": [
+    "storage.data",
+    "storage.generated"
+  ],
   "storage": {
-    "config": true,
+    "config": false,
     "data": true,
-    "cache": true,
+    "cache": false,
     "generated": true
   }
 }

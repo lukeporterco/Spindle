@@ -164,7 +164,7 @@ class Runtime1LifecycleKernelTest {
   }
 
   @Test
-  void requestedPermissionsAreRecordedInProfileWithoutRuntimeGranting() throws Exception {
+  void requestedPermissionsAreRecordedAndCompiledIntoRuntimeTwoCapabilityStates() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/permitted.jar"),
         "permittedmod",
@@ -184,6 +184,12 @@ class Runtime1LifecycleKernelTest {
         permissions.getAsJsonArray("requested").asList().stream()
             .map(element -> element.getAsString())
             .toList());
+    JsonObject firstGrant = permissions.getAsJsonArray("grants").get(0).getAsJsonObject();
+    JsonObject secondGrant = permissions.getAsJsonArray("grants").get(1).getAsJsonObject();
+    assertEquals("filesystem.write", firstGrant.get("capability").getAsString());
+    assertEquals("visibility-only", firstGrant.get("state").getAsString());
+    assertEquals("network.outbound", secondGrant.get("capability").getAsString());
+    assertEquals("visibility-only", secondGrant.get("state").getAsString());
     JsonObject qualityReport =
         JsonParser.parseString(
                 Files.readString(

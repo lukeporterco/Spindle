@@ -35,7 +35,14 @@ Spindle does not currently claim:
 - human review
 - network or filesystem permission enforcement
 
-Requested permissions are currently documentation and reporting signals only.
+Runtime-2 capability grants control Spindle-owned APIs only. They do not sandbox arbitrary Java.
+
+Requested capabilities can now produce four practical outcomes:
+
+- granted for supported Spindle API surfaces such as enabled `ModContext` storage
+- unavailable for planned but unimplemented Spindle surfaces
+- unknown for strings outside the Runtime-2 catalog
+- visibility-only for broad Java behavior disclosures that Spindle does not enforce
 
 Static risk signals are also visibility signals only. A warning about reflection, networking, native libraries, or process APIs does not mean the mod is malware. It means the mod references something users and pack builders may want to review and document.
 
@@ -52,7 +59,7 @@ The intended shape is:
 - lifecycle handlers declared as `ClassName::methodName`
 - handler methods declared as `public static void methodName(com.spindle.api.ModContext)`
 - mod-owned Java packages
-- `ModContext` directories used for config, data, cache, and generated output
+- `ModContext` directories used for config, data, cache, and generated output when the matching storage capability is granted
 - logical relative storage paths that stay under the working directory
 
 Preferred package direction:
@@ -87,12 +94,12 @@ Warnings:
 - lockfile-hash identity without publisher identity
 - provenance not present
 - cache rebuilds after cached-profile validation failure
-- requested permissions that Spindle records but does not yet enforce
+- requested capabilities that Runtime-2 does not grant
 - static risk signals for suspicious APIs, native files, service-provider files, nested jars, or malformed class entries
 
 ## Developer Ergonomics
 
-Unsigned local mods remain easy to build and run. Spindle does not require signing for local Runtime-1 development in this pass.
+Unsigned local mods remain easy to build and run. Spindle does not require signing for local Runtime-2 development in this pass.
 
 If you place a sidecar beside a jar, Spindle treats that as an explicit trust claim and verifies it. Invalid claimed trust is fatal because the artifact asserted publisher identity and failed validation.
 
@@ -100,4 +107,4 @@ That convenience does not mean the mod is sandboxed. The report is explicit abou
 
 The Security-2 scanner reads jar entries and class constant-pool UTF-8 strings only. In Security-3 it runs inside a restricted child JVM. That worker does not add mod jars to its classpath, does not use reflection to inspect mod classes, and does not execute mod code while producing these warnings.
 
-Prefer `ModContext` directories over ad hoc file paths. They keep the runtime contract readable, deterministic, and within the working-directory boundary that Spindle can validate.
+Prefer `ModContext` directories over ad hoc file paths. They keep the runtime contract readable, deterministic, capability-aware, and within the working-directory boundary that Spindle can validate.

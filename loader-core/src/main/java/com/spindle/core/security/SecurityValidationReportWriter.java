@@ -3,8 +3,12 @@ package com.spindle.core.security;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
+import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
+import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
 import com.spindle.core.security.risk.StaticRiskSignal;
 import com.spindle.core.security.trust.ArtifactTrustEntry;
 import java.io.IOException;
@@ -42,6 +46,49 @@ public final class SecurityValidationReportWriter {
     root.addProperty("sandboxed", report.sandboxed());
     root.addProperty("runtimeSandboxed", report.runtimeSandboxed());
     root.addProperty("sandboxClaim", report.sandboxClaim());
+
+    JsonObject capabilityGrants = new JsonObject();
+    capabilityGrants.addProperty("catalogVersion", report.capabilityGrants().catalogVersion());
+    capabilityGrants.addProperty("scope", report.capabilityGrants().scope());
+    capabilityGrants.addProperty(
+        "runtimeExecutionIsolationMode", report.capabilityGrants().runtimeExecutionIsolationMode());
+    capabilityGrants.addProperty("sandboxed", report.capabilityGrants().sandboxed());
+    capabilityGrants.add("summary", capabilitySummary(report.capabilityGrants().summary()));
+    JsonArray capabilityMods = new JsonArray();
+    for (RuntimeCapabilityModPlan modPlan : report.capabilityGrants().mods()) {
+      JsonObject modObject = new JsonObject();
+      modObject.addProperty("modId", modPlan.modId());
+      JsonArray requested = new JsonArray();
+      for (String permission : modPlan.requested()) {
+        requested.add(permission);
+      }
+      modObject.add("requested", requested);
+      JsonArray grants = new JsonArray();
+      for (RuntimeCapabilityGrant grant : modPlan.grants()) {
+        JsonObject grantObject = new JsonObject();
+        grantObject.addProperty("capability", grant.capability());
+        grantObject.addProperty("state", grant.state());
+        JsonArray sources = new JsonArray();
+        for (String source : grant.sources()) {
+          sources.add(source);
+        }
+        grantObject.add("sources", sources);
+        grantObject.addProperty("reason", grant.reason());
+        grantObject.addProperty("controls", grant.controls());
+        if (grant.fix() == null) {
+          grantObject.add("fix", JsonNull.INSTANCE);
+        } else {
+          grantObject.addProperty("fix", grant.fix());
+        }
+        grants.add(grantObject);
+      }
+      modObject.add("grants", grants);
+      modObject.add("summary", capabilitySummary(modPlan.summary()));
+      capabilityMods.add(modObject);
+    }
+    capabilityGrants.add("mods", capabilityMods);
+    root.add("capabilityGrants", capabilityGrants);
+
     JsonObject toolIsolation = new JsonObject();
     toolIsolation.addProperty("mode", report.toolIsolation().mode());
     toolIsolation.addProperty("worker", report.toolIsolation().worker());
@@ -156,5 +203,15 @@ public final class SecurityValidationReportWriter {
       throw new LoaderException(
           "Failed to write security validation report " + outputPath.getFileName(), exception);
     }
+  }
+
+  private JsonObject capabilitySummary(RuntimeCapabilitySummary summary) {
+    JsonObject object = new JsonObject();
+    object.addProperty("granted", summary.granted());
+    object.addProperty("denied", summary.denied());
+    object.addProperty("unavailable", summary.unavailable());
+    object.addProperty("unknown", summary.unknown());
+    object.addProperty("visibilityOnly", summary.visibilityOnly());
+    return object;
   }
 }

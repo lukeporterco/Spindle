@@ -8,6 +8,8 @@ import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.CompiledModpackProfileFingerprint;
 import com.spindle.core.runtime.ProtectedPackageViolation;
 import com.spindle.core.runtime.RuntimeProtectedPackagePolicy;
+import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
+import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.security.tool.RestrictedToolProcessLauncher;
 import com.spindle.core.security.tool.RestrictedToolResult;
 import com.spindle.core.security.trust.ArtifactTrustEvaluation;
@@ -91,6 +93,7 @@ public final class SecurityValidator {
         false,
         false,
         SecurityPolicy.SANDBOX_CLAIM,
+        profile.permissions(),
         new SecurityValidationReport.ToolIsolation(
             validationResult.restrictedToolResult().mode().id(),
             validationResult.restrictedToolResult().worker(),
@@ -285,19 +288,20 @@ public final class SecurityValidator {
 
   private void validateRequestedPermissions(
       CompiledModpackProfile compiledProfile, List<SecurityFinding> findings) {
-    for (CompiledModpackProfile.ModPermissions modPermissions :
-        compiledProfile.permissions().mods()) {
-      for (String permission : modPermissions.requested()) {
+    for (RuntimeCapabilityModPlan modPlan : compiledProfile.permissions().mods()) {
+      for (String permission : modPlan.requested()) {
+        RuntimeCapabilityGrant grant = grantFor(modPlan, permission);
+        if (grant == null || "granted".equals(grant.state())) {
+          continue;
+        }
         findings.add(
             new SecurityFinding(
                 SecurityRuleId.SEC_PERM_001,
                 SecuritySeverity.WARNING,
-                modPermissions.modId(),
+                modPlan.modId(),
                 SecurityLocation.of("permission", permission),
-                "requests permission `"
-                    + permission
-                    + "`, which Spindle records for developer visibility but does not yet grant or enforce.",
-                "Treat requested permissions as documentation only for now and design the mod to run without assuming sandbox or permission enforcement"));
+                permissionFindingMessage(permission, grant),
+                grant.fix()));
       }
     }
   }
@@ -373,5 +377,37 @@ public final class SecurityValidator {
       return "[absolute path]";
     }
     return normalizedValue;
+  }
+
+  private RuntimeCapabilityGrant grantFor(RuntimeCapabilityModPlan modPlan, String capability) {
+    return modPlan.grants().stream()
+        .filter(grant -> capability.equals(grant.capability()))
+        .findFirst()
+        .orElse(null);
+  }
+
+  private String permissionFindingMessage(String permission, RuntimeCapabilityGrant grant) {
+    return switch (grant.state()) {
+      case "denied" ->
+          "requests capability `"
+              + permission
+              + "`, but Runtime-2 marks it `denied`; "
+              + grant.controls().replaceFirst("\\.$", "").toLowerCase()
+              + ".";
+      case "unavailable" ->
+          "requests capability `"
+              + permission
+              + "`, but Runtime-2 marks it `unavailable`; no Spindle API surface is granted for this capability.";
+      case "unknown" ->
+          "requests capability `"
+              + permission
+              + "`, but Runtime-2 does not recognize it and grants no Spindle API surface.";
+      case "visibility-only" ->
+          "requests capability `"
+              + permission
+              + "`, which Runtime-2 records for review but does not enforce because runtime Java execution remains in-process unrestricted Java.";
+      default ->
+          throw new IllegalArgumentException("Unsupported capability state " + grant.state());
+    };
   }
 }

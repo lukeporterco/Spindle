@@ -51,13 +51,13 @@ class Runtime1CompiledRuntimeContractTest {
   }
 
   @Test
-  void compiledProfileUsesSchemaVersionTwoAndRuntimeContractSections() throws Exception {
+  void compiledProfileUsesSchemaVersionThreeAndRuntimeContractSections() throws Exception {
     createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
 
     executeValidateOnly();
 
     JsonObject profile = readCompiledProfile();
-    assertEquals(2, profile.get("schemaVersion").getAsInt());
+    assertEquals(3, profile.get("schemaVersion").getAsInt());
     assertEquals("compiled-modpack", profile.get("profileKind").getAsString());
     assertEquals("spindle", profile.getAsJsonObject("loader").get("id").getAsString());
     assertEquals("sample", profile.getAsJsonObject("game").get("id").getAsString());
@@ -65,6 +65,9 @@ class Runtime1CompiledRuntimeContractTest {
     assertEquals("verify-or-write", profile.getAsJsonObject("lockfile").get("mode").getAsString());
     assertEquals("wrote", profile.getAsJsonObject("lockfile").get("action").getAsString());
     assertEquals("miss", profile.getAsJsonObject("cache").get("status").getAsString());
+    assertEquals(1, profile.getAsJsonObject("permissions").get("catalogVersion").getAsInt());
+    assertEquals(
+        "spindle-api-only", profile.getAsJsonObject("permissions").get("scope").getAsString());
     assertEquals(
         List.of(1),
         profile.getAsJsonObject("metadata").getAsJsonArray("schemaVersions").asList().stream()

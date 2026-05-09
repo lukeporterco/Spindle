@@ -54,6 +54,26 @@ public final class RuntimeLifecycleFixtures {
     }
   }
 
+  public static final class CapabilityAwareLifecycle {
+    public static void bootstrap(ModContext context) throws IOException {
+      Files.writeString(
+          context.generatedDirectory().resolve("capabilities.marker"),
+          context.hasCapability("storage.generated")
+              + "|"
+              + context.grantedCapabilities().contains("storage.generated")
+              + System.lineSeparator(),
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+  }
+
+  public static final class DeniedStorageLifecycle {
+    public static void bootstrap(ModContext context) {
+      context.dataDirectory();
+    }
+  }
+
   private static void append(ModContext context, String line) throws IOException {
     Files.writeString(
         context.workingDirectory().resolve("lifecycle.log"),
