@@ -4,6 +4,7 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.testing.Test
+import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.configure
@@ -19,6 +20,7 @@ import java.util.jar.JarOutputStream
 
 plugins {
     base
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 allprojects {
@@ -26,7 +28,20 @@ allprojects {
     version = "0.1.0"
 }
 
+spotless {
+    ratchetFrom("HEAD")
+
+    format("repoFiles") {
+        target("*.md", "docs/**/*.md", "backlog/**/*.md", "*.gradle.kts", ".gitignore")
+        targetExclude("**/build/**", "**/.gradle/**", "**/runtime/**")
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
 subprojects {
+    apply(plugin = "com.diffplug.spotless")
+
     plugins.withId("java") {
         extensions.configure<JavaPluginExtension> {
             toolchain {
@@ -37,6 +52,18 @@ subprojects {
         tasks.withType<Jar>().configureEach {
             isPreserveFileTimestamps = false
             isReproducibleFileOrder = true
+        }
+    }
+
+    extensions.configure<SpotlessExtension> {
+        ratchetFrom("HEAD")
+
+        java {
+            target("src/*/java/**/*.java")
+            targetExclude("**/build/**", "**/runtime/**")
+            googleJavaFormat("1.33.0")
+            trimTrailingWhitespace()
+            endWithNewline()
         }
     }
 

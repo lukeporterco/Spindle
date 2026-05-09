@@ -86,18 +86,15 @@ gradlew.bat <task>
 For normal code changes, run:
 
 ```bash
+./gradlew spotlessApply
+./gradlew spotlessCheck
 ./gradlew :loader-core:test
 ```
 
-For changes touching Minecraft runtime planning, boundary reports, preflight, reproducibility, bundled runtime behavior, or integration planning, run:
+For changes touching Minecraft runtime planning, boundary reports, preflight, reproducibility, bundled runtime behavior, integration planning, approved Minecraft server mod execution, bootstrap classloaders, plan fingerprints, child-JVM bootstrap, or bootstrap reports, also run:
 
 ```bash
 ./gradlew minecraftMegaMilestone7Check
-```
-
-For changes touching approved Minecraft server mod execution, bootstrap classloaders, plan fingerprints, child-JVM bootstrap, or bootstrap reports, run:
-
-```bash
 ./gradlew minecraftMilestone8Check
 ```
 
