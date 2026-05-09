@@ -8,6 +8,8 @@ import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.CompiledModpackProfileFingerprint;
 import com.spindle.core.runtime.ProtectedPackageViolation;
 import com.spindle.core.runtime.RuntimeProtectedPackagePolicy;
+import com.spindle.core.security.trust.ArtifactTrustEvaluation;
+import com.spindle.core.security.trust.ArtifactTrustEvaluator;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ public final class SecurityValidator {
       new RuntimeProtectedPackagePolicy();
   private final CompiledModpackProfileFingerprint profileFingerprintCalculator =
       new CompiledModpackProfileFingerprint();
+  private final ArtifactTrustEvaluator artifactTrustEvaluator = new ArtifactTrustEvaluator();
 
   public SecurityValidationResult validate(SecurityValidationContext context)
       throws LoaderException {
@@ -29,6 +32,10 @@ public final class SecurityValidator {
         resolvedModsById(context.planningResult());
     SecurityPolicyFingerprint securityPolicyFingerprint =
         SecurityPolicyFingerprint.compute(policy, protectedPackagePolicy);
+    ArtifactTrustEvaluation artifactTrustEvaluation =
+        artifactTrustEvaluator.evaluate(
+            context.planningResult().resolvedMods().mods(),
+            context.planningResult().lockfileAction());
 
     validateLoaderOwnedPackages(context.planningResult(), resolvedModsById, findings);
     validateProtectedPackages(context.planningResult(), findings);
@@ -37,9 +44,14 @@ public final class SecurityValidator {
     validateCacheStatus(context.compiledProfile(), findings);
     validateRequestedPermissions(context.compiledProfile(), findings);
     validateRuntimeIdentity(context, findings);
+    findings.addAll(artifactTrustEvaluation.findings());
 
     return new SecurityValidationResult(
-        securityPolicyFingerprint, policy.validatedSurfaces(), findings);
+        securityPolicyFingerprint,
+        policy.validatedSurfaces(),
+        artifactTrustEvaluation.entries(),
+        artifactTrustEvaluation.summary(),
+        findings);
   }
 
   public SecurityValidationReport toReport(
@@ -61,6 +73,8 @@ public final class SecurityValidator {
         validationResult.fatalCount(),
         validationResult.warningCount(),
         validationResult.validatedSurfaces(),
+        validationResult.artifactTrustEntries(),
+        validationResult.artifactTrustSummary(),
         validationResult.findings());
   }
 

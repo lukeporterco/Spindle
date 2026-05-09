@@ -9,6 +9,7 @@ public record SecurityPolicy(
     int permissionPolicyVersion,
     int cacheProfileValidationPolicyVersion,
     int artifactLockfileVerificationPolicyVersion,
+    int artifactTrustPolicyVersion,
     List<String> loaderOwnedPackages,
     List<String> knownShadowedClasses,
     List<String> validatedSurfaces) {
@@ -23,6 +24,7 @@ public record SecurityPolicy(
 
   public static SecurityPolicy standard() {
     return new SecurityPolicy(
+        2,
         1,
         1,
         1,
@@ -36,6 +38,7 @@ public record SecurityPolicy(
             "com.spindle.api.lifecycle.LifecyclePhase"),
         List.of(
             "artifact-lockfile-identity",
+            "artifact-trust",
             "cache-profile-validation",
             "class-ownership",
             "lifecycle-declarations",

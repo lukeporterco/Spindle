@@ -8,6 +8,8 @@ Spindle does not currently sandbox arbitrary runtime mods. A mod that passes val
 
 For schema `2` standard runtime mods, Spindle validates a narrow non-invasive contract before lifecycle execution:
 
+- local artifact hash identity from `spindle.lock.json`
+- optional detached artifact signature sidecars
 - lifecycle declaration shape
 - lifecycle handler signature
 - loader-owned and protected package ownership
@@ -25,11 +27,13 @@ Spindle does not currently claim:
 
 - sandboxing
 - malware detection
-- provenance verification
-- signature trust
+- registry or ecosystem provenance
+- human review
 - network or filesystem permission enforcement
 
 Requested permissions are currently documentation and reporting signals only.
+
+Spindle does verify a small loader-native signature format when a `.spindle-signature.json` sidecar is present. That is artifact identity verification, not a broader safety verdict.
 
 ## Schema `2` Contract
 
@@ -62,6 +66,7 @@ Preferred storage direction:
 
 Hard failures:
 
+- malformed, unsupported, or invalid claimed artifact signatures
 - protected or loader-owned package definitions
 - shadowed Spindle API/core classes
 - invalid schema `2` lifecycle shape or signature
@@ -70,12 +75,17 @@ Hard failures:
 
 Warnings:
 
+- unsigned local jars
+- lockfile-hash identity without publisher identity
+- provenance not present
 - cache rebuilds after cached-profile validation failure
 - requested permissions that Spindle records but does not yet enforce
 
 ## Developer Ergonomics
 
 Unsigned local mods remain easy to build and run. Spindle does not require signing for local Runtime-1 development in this pass.
+
+If you place a sidecar beside a jar, Spindle treats that as an explicit trust claim and verifies it. Invalid claimed trust is fatal because the artifact asserted publisher identity and failed validation.
 
 That convenience does not mean the mod is sandboxed. The report is explicit about the trust model so local development stays ergonomic without overstating security guarantees.
 

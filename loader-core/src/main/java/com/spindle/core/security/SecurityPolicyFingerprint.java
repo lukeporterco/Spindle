@@ -45,6 +45,10 @@ public record SecurityPolicyFingerprint(String value) {
         Integer.toString(policy.artifactLockfileVerificationPolicyVersion()));
     update(
         digest,
+        "artifactTrustPolicyVersion",
+        Integer.toString(policy.artifactTrustPolicyVersion()));
+    update(
+        digest,
         "compiledProfileSchemaVersion",
         Integer.toString(CompiledModpackProfile.SCHEMA_VERSION));
     for (LifecyclePhase phase : LifecyclePhase.values()) {

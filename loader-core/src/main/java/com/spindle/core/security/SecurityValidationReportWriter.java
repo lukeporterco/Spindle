@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.security.trust.ArtifactTrustEntry;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -46,6 +47,38 @@ public final class SecurityValidationReportWriter {
       validatedSurfaces.add(validatedSurface);
     }
     root.add("validatedSurfaces", validatedSurfaces);
+
+    JsonObject artifactTrust = new JsonObject();
+    JsonArray artifactTrustEntries = new JsonArray();
+    for (ArtifactTrustEntry entry : report.artifactTrustEntries()) {
+      JsonObject entryObject = new JsonObject();
+      entryObject.addProperty("modId", entry.modId());
+      entryObject.addProperty("version", entry.version());
+      entryObject.addProperty("path", entry.path());
+      entryObject.addProperty("sha256", entry.sha256());
+      entryObject.addProperty("trustState", entry.trustState().id());
+      entryObject.addProperty("trustTier", entry.trustTier().id());
+      if (entry.signerId() != null) {
+        entryObject.addProperty("signerId", entry.signerId());
+      }
+      if (entry.signatureKind() != null) {
+        entryObject.addProperty("signatureKind", entry.signatureKind());
+      }
+      entryObject.addProperty("provenanceState", entry.provenanceState().id());
+      artifactTrustEntries.add(entryObject);
+    }
+    artifactTrust.add("entries", artifactTrustEntries);
+    JsonObject artifactTrustSummary = new JsonObject();
+    artifactTrustSummary.addProperty(
+        "localUnsignedCount", report.artifactTrustSummary().localUnsignedCount());
+    artifactTrustSummary.addProperty(
+        "lockedHashCount", report.artifactTrustSummary().lockedHashCount());
+    artifactTrustSummary.addProperty(
+        "signedArtifactCount", report.artifactTrustSummary().signedArtifactCount());
+    artifactTrustSummary.addProperty(
+        "invalidSignatureCount", report.artifactTrustSummary().invalidSignatureCount());
+    artifactTrust.add("summary", artifactTrustSummary);
+    root.add("artifactTrust", artifactTrust);
 
     JsonArray findings = new JsonArray();
     for (SecurityFinding finding : report.findings()) {

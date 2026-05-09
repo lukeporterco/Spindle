@@ -8,11 +8,13 @@ Current Runtime-1 standard mod execution is:
 - unrestricted Java
 - not sandboxed
 
-Passing Spindle security validation does not mean a mod is safe. It means the mod passed Spindle's current trust-boundary checks for the non-invasive Runtime-1 contract.
+Passing Spindle security validation does not mean a mod is safe. It means the mod passed Spindle's current trust-boundary checks for the current non-invasive Runtime-1 contract.
 
 ## Current Scope
 
 Security-0 adds deterministic trust-boundary validation before schema `2` standard lifecycle execution.
+
+Security-1 adds deterministic artifact trust reporting for local jars, lockfile hash identity, and optional detached Ed25519 sidecars.
 
 It writes `spindle.security-report.json` with:
 
@@ -20,6 +22,7 @@ It writes `spindle.security-report.json` with:
 - fatal findings that block standard lifecycle execution
 - warning findings that remain report-only
 - explicit runtime posture fields
+- an `artifactTrust` section with per-artifact trust state and summary counts
 
 The report always states:
 
@@ -31,6 +34,8 @@ The report always states:
 
 Runtime-1 validates only narrow Spindle-native boundaries:
 
+- artifact lockfile identity
+- artifact trust sidecar shape and Ed25519 verification
 - loader-owned package ownership
 - protected platform and compatibility packages
 - known Spindle API/core class shadowing
@@ -52,18 +57,26 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - `SEC-CACHE-001`: cached compiled profile was rejected and rebuilt
 - `SEC-PERM-001`: mod requests permissions Spindle records but does not enforce
 - `SEC-ARTIFACT-001`: lockfile or artifact identity mismatch
+- `SEC-TRUST-001`: artifact is local unsigned
+- `SEC-TRUST-002`: signature sidecar is malformed, unsupported, or unreadable
+- `SEC-TRUST-003`: signature artifact hash does not match the jar
+- `SEC-TRUST-004`: signature verification failed
+- `SEC-TRUST-005`: artifact is locked by hash but has no publisher identity
+- `SEC-TRUST-006`: provenance is not present
 - `SEC-METADATA-001`: metadata schema or security-relevant metadata field is invalid
 - `SEC-RUNTIME-001`: runtime policy or compiled profile identity mismatch
 
 ## Non-goals
 
-Security-0 does not add:
+Security-1 still does not add:
 
-- signing
-- provenance
+- registry-backed publisher identity
+- human review
 - sandboxing
 - restricted child-JVM execution for arbitrary runtime mods
 - static bytecode risk scanning
 - compatibility-layer claims
+
+The current sidecar model is intentionally local and loader-native. A valid sidecar proves that a specific signer key signed a specific jar hash and the signed mod id/version. It does not claim ecosystem review, malware analysis, or platform endorsement.
 
 Milestone 8 Minecraft bootstrap remains a separate server-only path. Its bootstrap checks still apply, but Security-0 does not claim that bootstrap-approved Minecraft mods are sandboxed or generally safe either.

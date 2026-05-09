@@ -59,7 +59,7 @@ class Security0TrustBoundaryValidationTest {
     JsonObject report = readSecurityReport();
     assertEquals("validated", report.get("state").getAsString());
     assertEquals(0, report.get("fatalCount").getAsInt());
-    assertEquals(0, report.get("warningCount").getAsInt());
+    assertEquals(2, report.get("warningCount").getAsInt());
     assertEquals(
         "in-process-unrestricted-java", report.get("executionIsolationMode").getAsString());
     assertFalse(report.get("sandboxed").getAsBoolean());
@@ -174,7 +174,7 @@ class Security0TrustBoundaryValidationTest {
     JsonObject report = readSecurityReport();
     assertEquals("validated", report.get("state").getAsString());
     assertEquals(0, report.get("fatalCount").getAsInt());
-    assertEquals(2, report.get("warningCount").getAsInt());
+    assertEquals(4, report.get("warningCount").getAsInt());
     assertTrue(ruleIds(report).contains(SecurityRuleId.SEC_PERM_001.id()));
     assertTrue(Files.exists(tempDirectory.resolve("lifecycle.log")));
   }
@@ -261,6 +261,7 @@ class Security0TrustBoundaryValidationTest {
         List.of());
 
     execute(true);
+    execute(true);
     List<String> firstOrder = findingOrder(readSecurityReport());
 
     execute(true);
@@ -272,7 +273,11 @@ class Security0TrustBoundaryValidationTest {
             "fatal|SEC-CLASS-001|alphamod|class|com.spindle.api.ModContext",
             "fatal|SEC-PACKAGE-001|alphamod|package|com.spindle.api",
             "fatal|SEC-PACKAGE-002|betamod|package|net.minecraft",
-            "warning|SEC-PERM-001|betamod|permission|filesystem.write"),
+            "warning|SEC-PERM-001|betamod|permission|filesystem.write",
+            "warning|SEC-TRUST-005|alphamod|artifact|mods/alpha-shadow.jar",
+            "warning|SEC-TRUST-005|betamod|artifact|mods/beta-protected.jar",
+            "warning|SEC-TRUST-006|alphamod|artifact|mods/alpha-shadow.jar",
+            "warning|SEC-TRUST-006|betamod|artifact|mods/beta-protected.jar"),
         firstOrder);
   }
 

@@ -1,13 +1,18 @@
 package com.spindle.core.security;
 
+import com.spindle.core.security.trust.ArtifactTrustEntry;
+import com.spindle.core.security.trust.ArtifactTrustSummary;
 import java.util.List;
 
 public record SecurityValidationResult(
     SecurityPolicyFingerprint securityPolicyFingerprint,
     List<String> validatedSurfaces,
+    List<ArtifactTrustEntry> artifactTrustEntries,
+    ArtifactTrustSummary artifactTrustSummary,
     List<SecurityFinding> findings) {
   public SecurityValidationResult {
     validatedSurfaces = List.copyOf(validatedSurfaces);
+    artifactTrustEntries = List.copyOf(artifactTrustEntries);
     findings = findings.stream().sorted(SecurityFinding.ORDER).toList();
   }
 
