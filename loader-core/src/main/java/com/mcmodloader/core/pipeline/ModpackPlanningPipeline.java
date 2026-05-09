@@ -214,6 +214,7 @@ public final class ModpackPlanningPipeline {
         List.copyOf(discoveredMods),
         List.copyOf(parsedMods),
         resolvedMods,
+        lockfilePath,
         lockfileAction,
         classpathPlan,
         classOwnershipIndex,

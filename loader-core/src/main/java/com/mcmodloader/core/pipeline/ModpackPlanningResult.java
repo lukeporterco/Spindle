@@ -14,6 +14,7 @@ public record ModpackPlanningResult(
     List<ModCandidate> discoveredMods,
     List<ModCandidate> parsedMods,
     ResolvedModSet resolvedMods,
+    Path lockfilePath,
     String lockfileAction,
     RuntimeClasspathPlan classpathPlan,
     ClassOwnershipIndex classOwnershipIndex,

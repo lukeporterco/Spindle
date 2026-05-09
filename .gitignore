@@ -5,6 +5,10 @@ build/
 
 # Generated runtime artifacts
 runtime/
+!loader-core/src/main/java/com/mcmodloader/core/runtime/
+!loader-core/src/main/java/com/mcmodloader/core/runtime/**
+!loader-core/src/test/java/com/mcmodloader/core/runtime/
+!loader-core/src/test/java/com/mcmodloader/core/runtime/**
 
 # Local scratch space used during development
 .tools/
