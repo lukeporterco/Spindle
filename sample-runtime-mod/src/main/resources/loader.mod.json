@@ -21,15 +21,26 @@
     ]
   },
   "permissions": [
+    "config.read",
     "storage.data",
     "storage.generated"
   ],
+  "config": {
+    "runtimeWrites": false,
+    "entries": [
+      {
+        "key": "enabled",
+        "type": "boolean",
+        "default": true
+      }
+    ]
+  },
   "services": {
     "provides": [],
     "consumes": []
   },
   "storage": {
-    "config": false,
+    "config": true,
     "data": true,
     "cache": false,
     "generated": true

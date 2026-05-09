@@ -1,6 +1,6 @@
 # Security Scenarios
 
-These examples show how Runtime-3 capability grants, deterministic service contracts, trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
+These examples show how Runtime-4 capability grants, deterministic config and service contracts, trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
 
 ## Clean Lifecycle-Only Mod
 
@@ -108,6 +108,39 @@ Important:
 
 - this grant controls a Spindle-owned API surface only
 - the mod still runs as unrestricted in-process Java
+
+## Developer Declares Read-Only Config
+
+A developer declares:
+
+- `storage.config: true`
+- one or more `config.entries`
+- `permissions: ["config.read"]`
+
+Result:
+
+- `spindle.profile.json` records `config.read` as `granted`
+- Spindle writes `config/<modId>/config.json` if it is missing
+- lifecycle code can read only the declared keys through `ModContext.config()`
+
+Important:
+
+- this is a Spindle-owned API contract only
+- the mod still runs as unrestricted in-process Java
+
+## Developer Declares Invalid Config
+
+A config file contains the wrong type, an out-of-range number, or a string outside `allowed`.
+
+Result:
+
+- `spindle.quality-report.json` records a fatal config finding
+- standard lifecycle execution is blocked before classloading
+- Spindle does not rewrite the invalid file
+
+Important:
+
+- this is a runtime contract failure, not a sandbox claim
 
 ## Developer Declares An Optional Service Consumer
 

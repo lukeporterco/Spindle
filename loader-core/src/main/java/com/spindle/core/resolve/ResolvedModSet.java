@@ -25,7 +25,8 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
       Map<String, List<String>> lifecycle,
       List<String> permissions,
       com.spindle.core.metadata.ModMetadata.Storage storage,
-      com.spindle.core.metadata.ModMetadata.Services services) {
+      com.spindle.core.metadata.ModMetadata.Services services,
+      com.spindle.core.metadata.ModMetadata.Config config) {
     public ResolvedMod(
         String id,
         String version,
@@ -48,7 +49,39 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
           Map.of(),
           List.of(),
           com.spindle.core.metadata.ModMetadata.Storage.disabled(),
-          com.spindle.core.metadata.ModMetadata.Services.empty());
+          com.spindle.core.metadata.ModMetadata.Services.empty(),
+          com.spindle.core.metadata.ModMetadata.Config.empty());
+    }
+
+    public ResolvedMod(
+        String id,
+        String version,
+        Path relativePath,
+        Path jarPath,
+        String sha256,
+        Map<String, List<String>> entrypoints,
+        Map<String, String> depends,
+        Map<String, String> breaks,
+        int metadataSchema,
+        Map<String, List<String>> lifecycle,
+        List<String> permissions,
+        com.spindle.core.metadata.ModMetadata.Storage storage,
+        com.spindle.core.metadata.ModMetadata.Services services) {
+      this(
+          id,
+          version,
+          relativePath,
+          jarPath,
+          sha256,
+          entrypoints,
+          depends,
+          breaks,
+          metadataSchema,
+          lifecycle,
+          permissions,
+          storage,
+          services,
+          com.spindle.core.metadata.ModMetadata.Config.empty());
     }
 
     public ResolvedMod {
@@ -77,6 +110,7 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
           storage == null ? com.spindle.core.metadata.ModMetadata.Storage.disabled() : storage;
       services =
           services == null ? com.spindle.core.metadata.ModMetadata.Services.empty() : services;
+      config = config == null ? com.spindle.core.metadata.ModMetadata.Config.empty() : config;
     }
 
     public String normalizedRelativePath() {

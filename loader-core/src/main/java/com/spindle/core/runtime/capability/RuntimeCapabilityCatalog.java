@@ -16,13 +16,13 @@ public final class RuntimeCapabilityCatalog {
   public static final String STORAGE_GENERATED = "storage.generated";
   public static final String SERVICE_PROVIDE = "service.provide";
   public static final String SERVICE_CONSUME = "service.consume";
+  public static final String CONFIG_READ = "config.read";
+  public static final String CONFIG_WRITE = "config.write";
 
   private static final Set<String> GRANTABLE_STORAGE =
       Set.of(STORAGE_CONFIG, STORAGE_DATA, STORAGE_CACHE, STORAGE_GENERATED);
   private static final Set<String> UNAVAILABLE =
       Set.of(
-          "config.read",
-          "config.write",
           "resource.declare",
           "resource.overlay");
   private static final Set<String> VISIBILITY_ONLY =
@@ -81,6 +81,14 @@ public final class RuntimeCapabilityCatalog {
       case SERVICE_PROVIDE -> "metadata.services.provides";
       case SERVICE_CONSUME -> "metadata.services.consumes";
       default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+    };
+  }
+
+  public static String configSource(String capability) {
+    return switch (capability) {
+      case CONFIG_READ -> "metadata.config.entries";
+      case CONFIG_WRITE -> "metadata.config.runtimeWrites";
+      default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
     };
   }
 

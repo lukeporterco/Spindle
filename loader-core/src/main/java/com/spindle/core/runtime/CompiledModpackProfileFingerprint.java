@@ -7,6 +7,9 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
+import com.spindle.core.runtime.config.RuntimeConfigModPlan;
+import com.spindle.core.runtime.config.RuntimeConfigSummary;
 import com.spindle.core.runtime.service.RuntimeServiceBinding;
 import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
 import com.spindle.core.runtime.service.RuntimeServiceModPlan;
@@ -92,6 +95,29 @@ public final class CompiledModpackProfileFingerprint {
       updateCapabilitySummary(digest, "permissions.mod.summary", modPermissions.summary());
     }
     updateCapabilitySummary(digest, "permissions.summary", permissions.summary());
+
+    update(digest, "config.contractVersion", Integer.toString(profile.config().contractVersion()));
+    update(digest, "config.scope", profile.config().scope());
+    update(digest, "config.format", profile.config().format());
+    for (RuntimeConfigModPlan modConfig : profile.config().mods()) {
+      update(digest, "config.modId", modConfig.modId());
+      update(digest, "config.path", modConfig.path());
+      update(digest, "config.runtimeWrites", Boolean.toString(modConfig.runtimeWrites()));
+      update(digest, "config.state", modConfig.state());
+      for (RuntimeConfigEntryPlan entry : modConfig.entries()) {
+        update(digest, "config.entry.key", entry.key());
+        update(digest, "config.entry.type", entry.type());
+        update(digest, "config.entry.default", entry.defaultValue());
+        update(digest, "config.entry.value", entry.value());
+        update(digest, "config.entry.state", entry.state());
+        update(digest, "config.entry.reason", entry.reason());
+      }
+      for (String unknownKey : modConfig.unknownKeys()) {
+        update(digest, "config.unknownKey", unknownKey);
+      }
+      updateConfigSummary(digest, "config.mod.summary", modConfig.summary());
+    }
+    updateConfigSummary(digest, "config.summary", profile.config().summary());
 
     update(digest, "services.contractVersion", Integer.toString(profile.services().contractVersion()));
     update(digest, "services.scope", profile.services().scope());
@@ -205,6 +231,10 @@ public final class CompiledModpackProfileFingerprint {
         "runtimeServiceContractVersion",
         Integer.toString(
             com.spindle.core.runtime.service.RuntimeServiceContract.CONTRACT_VERSION));
+    update(
+        digest,
+        "runtimeConfigContractVersion",
+        Integer.toString(com.spindle.core.runtime.config.RuntimeConfigContract.CONTRACT_VERSION));
 
     for (var mod : planningResult.resolvedMods().mods()) {
       update(digest, "mod.id", mod.id());
@@ -212,6 +242,17 @@ public final class CompiledModpackProfileFingerprint {
       update(digest, "mod.path", mod.normalizedRelativePath());
       update(digest, "mod.hash", mod.sha256());
       update(digest, "mod.schema", Integer.toString(mod.metadataSchema()));
+      update(digest, "mod.config.runtimeWrites", Boolean.toString(mod.config().runtimeWrites()));
+      for (var entry : mod.config().entries()) {
+        update(digest, "mod.config.key", entry.key());
+        update(digest, "mod.config.type", entry.type());
+        update(digest, "mod.config.default", entry.defaultValue());
+        update(digest, "mod.config.min", entry.min());
+        update(digest, "mod.config.max", entry.max());
+        for (String allowed : entry.allowed()) {
+          update(digest, "mod.config.allowed", allowed);
+        }
+      }
       for (var provider : mod.services().provides()) {
         update(digest, "mod.services.provider.id", provider.id());
         update(digest, "mod.services.provider.type", provider.type());
@@ -314,6 +355,22 @@ public final class CompiledModpackProfileFingerprint {
         digest, keyPrefix + ".optionalUnbound", Integer.toString(summary.optionalUnbound()));
     update(
         digest, keyPrefix + ".typeMismatches", Integer.toString(summary.typeMismatches()));
+    update(digest, keyPrefix + ".fatalCount", Integer.toString(summary.fatalCount()));
+    update(digest, keyPrefix + ".warningCount", Integer.toString(summary.warningCount()));
+  }
+
+  private static void updateConfigSummary(
+      MessageDigest digest, String keyPrefix, RuntimeConfigSummary summary) {
+    update(digest, keyPrefix + ".mods", Integer.toString(summary.mods()));
+    update(digest, keyPrefix + ".entries", Integer.toString(summary.entries()));
+    update(digest, keyPrefix + ".valid", Integer.toString(summary.valid()));
+    update(digest, keyPrefix + ".defaulted", Integer.toString(summary.defaulted()));
+    update(digest, keyPrefix + ".invalid", Integer.toString(summary.invalid()));
+    update(digest, keyPrefix + ".unknownKeys", Integer.toString(summary.unknownKeys()));
+    update(
+        digest,
+        keyPrefix + ".storageNotGranted",
+        Integer.toString(summary.storageNotGranted()));
     update(digest, keyPrefix + ".fatalCount", Integer.toString(summary.fatalCount()));
     update(digest, keyPrefix + ".warningCount", Integer.toString(summary.warningCount()));
   }

@@ -23,6 +23,9 @@ import com.spindle.core.security.SecurityValidationResult;
 import com.spindle.core.security.SecurityValidator;
 import com.spindle.core.runtime.service.RuntimeServiceContract;
 import com.spindle.core.runtime.service.RuntimeServicePlanner;
+import com.spindle.core.runtime.config.RuntimeConfigContract;
+import com.spindle.core.runtime.config.RuntimeConfigMaterializer;
+import com.spindle.core.runtime.config.RuntimeConfigPlanner;
 import java.nio.file.Path;
 
 public final class CompiledRuntimeOrchestrator {
@@ -38,6 +41,8 @@ public final class CompiledRuntimeOrchestrator {
   private final LifecycleExecutionReportWriter lifecycleExecutionReportWriter =
       new LifecycleExecutionReportWriter();
   private final RuntimeQualityReporter runtimeQualityReporter = new RuntimeQualityReporter();
+  private final RuntimeConfigPlanner runtimeConfigPlanner = new RuntimeConfigPlanner();
+  private final RuntimeConfigMaterializer runtimeConfigMaterializer = new RuntimeConfigMaterializer();
   private final RuntimeServicePlanner runtimeServicePlanner = new RuntimeServicePlanner();
   private final RuntimeQualityReportWriter runtimeQualityReportWriter =
       new RuntimeQualityReportWriter();
@@ -88,9 +93,13 @@ public final class CompiledRuntimeOrchestrator {
 
     LifecyclePlan lifecyclePlan =
         lifecyclePlanBuilder.build(planningResult.resolvedMods(), planningResult.classOwnershipIndex());
+    RuntimeConfigContract configContract =
+        runtimeConfigMaterializer.materialize(
+            context.workingDirectory(), runtimeConfigPlanner.plan(planningResult.resolvedMods()));
     RuntimeServiceContract serviceContract =
         runtimeServicePlanner.plan(planningResult.resolvedMods(), planningResult.classOwnershipIndex());
-    RuntimeQualityReport qualityReport = runtimeQualityReporter.create(planningResult, serviceContract);
+    RuntimeQualityReport qualityReport =
+        runtimeQualityReporter.create(planningResult, configContract, serviceContract);
     CompiledModpackProfile compiledProfile =
         cacheLookup.hit()
             ? cacheLookup
@@ -109,6 +118,7 @@ public final class CompiledRuntimeOrchestrator {
                 inputFingerprint,
                 new CompiledModpackProfile.Cache("miss", cacheLookup.reason()),
                 lifecyclePlan,
+                configContract,
                 serviceContract,
                 qualityReport);
     if (!cacheLookup.hit()) {

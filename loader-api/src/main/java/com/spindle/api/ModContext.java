@@ -1,5 +1,6 @@
 package com.spindle.api;
 
+import com.spindle.api.config.ModConfig;
 import com.spindle.api.service.ServiceRegistry;
 import java.nio.file.Path;
 import java.util.Set;
@@ -29,6 +30,10 @@ public interface ModContext {
 
   default ServiceRegistry services() {
     return ServiceRegistry.empty();
+  }
+
+  default ModConfig config() {
+    return ModConfig.empty();
   }
 
   Path configDirectory();

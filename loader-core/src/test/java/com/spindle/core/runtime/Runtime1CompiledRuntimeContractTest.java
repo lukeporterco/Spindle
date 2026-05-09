@@ -51,13 +51,13 @@ class Runtime1CompiledRuntimeContractTest {
   }
 
   @Test
-  void compiledProfileUsesSchemaVersionFourAndRuntimeContractSections() throws Exception {
+  void compiledProfileUsesSchemaVersionFiveAndRuntimeContractSections() throws Exception {
     createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
 
     executeValidateOnly();
 
     JsonObject profile = readCompiledProfile();
-    assertEquals(4, profile.get("schemaVersion").getAsInt());
+    assertEquals(5, profile.get("schemaVersion").getAsInt());
     assertEquals("compiled-modpack", profile.get("profileKind").getAsString());
     assertEquals("spindle", profile.getAsJsonObject("loader").get("id").getAsString());
     assertEquals("sample", profile.getAsJsonObject("game").get("id").getAsString());

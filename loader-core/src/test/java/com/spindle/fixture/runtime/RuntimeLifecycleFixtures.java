@@ -134,6 +134,37 @@ public final class RuntimeLifecycleFixtures {
     }
   }
 
+  public static final class ConfigReaderLifecycle {
+    public static void bootstrap(ModContext context) throws IOException {
+      String marker =
+          context.config().getBoolean("enabled")
+              + "|"
+              + context.config().getInteger("maxcount")
+              + "|"
+              + context.config().getNumber("scale")
+              + "|"
+              + context.config().getString("mode");
+      Files.writeString(
+          context.generatedDirectory().resolve("config.marker"),
+          marker + System.lineSeparator(),
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+  }
+
+  public static final class ConfigWriterLifecycle {
+    public static void bootstrap(ModContext context) {
+      context.config().setString("mode", "fast");
+    }
+  }
+
+  public static final class UndeclaredConfigReaderLifecycle {
+    public static void bootstrap(ModContext context) {
+      context.config().getString("missing");
+    }
+  }
+
   private static void append(ModContext context, String line) throws IOException {
     Files.writeString(
         context.workingDirectory().resolve("lifecycle.log"),

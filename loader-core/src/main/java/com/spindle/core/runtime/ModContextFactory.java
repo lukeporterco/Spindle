@@ -1,6 +1,7 @@
 package com.spindle.core.runtime;
 
 import com.spindle.api.ModContext;
+import com.spindle.api.config.ModConfig;
 import com.spindle.api.service.ServiceRegistry;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
@@ -24,6 +25,7 @@ public final class ModContextFactory {
   public Map<String, ModContext> createContexts(
       LaunchContext context,
       CompiledModpackProfile profile,
+      Map<String, ModConfig> configs,
       Map<String, ServiceRegistry> serviceRegistries)
       throws LoaderException {
     Map<String, String> modVersionById = new LinkedHashMap<>();
@@ -63,6 +65,7 @@ public final class ModContextFactory {
               profile.game().side(),
               context.workingDirectory(),
               grantedCapabilities,
+              configs.getOrDefault(plan.modId(), ModConfig.empty()),
               serviceRegistries.getOrDefault(plan.modId(), ServiceRegistry.empty()),
               configDirectory,
               dataDirectory,
@@ -70,6 +73,14 @@ public final class ModContextFactory {
               generatedDirectory));
     }
     return Map.copyOf(contexts);
+  }
+
+  public Map<String, ModContext> createContexts(
+      LaunchContext context,
+      CompiledModpackProfile profile,
+      Map<String, ServiceRegistry> serviceRegistries)
+      throws LoaderException {
+    return createContexts(context, profile, Map.of(), serviceRegistries);
   }
 
   private Path resolveOwnedPath(

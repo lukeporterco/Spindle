@@ -1,6 +1,6 @@
 # Capabilities
 
-Runtime-3 capabilities describe Spindle-owned API surfaces, not process-level Java permissions.
+Runtime-4 capabilities describe Spindle-owned API surfaces, not process-level Java permissions.
 
 Important:
 
@@ -8,20 +8,24 @@ Important:
 - denied means Spindle recognized the request but metadata did not satisfy the contract
 - unavailable means the surface is planned but not implemented yet
 - visibility-only means Spindle records the declaration but does not enforce it
-- Runtime-3 does not sandbox arbitrary Java
+- Runtime-4 does not sandbox arbitrary Java
 
 ## Current Grantable Capabilities
 
-Runtime-3 can grant:
+Runtime-4 can grant:
 
 - `storage.config`
 - `storage.data`
 - `storage.cache`
 - `storage.generated`
+- `config.read`
+- `config.write`
 - `service.provide`
 - `service.consume`
 
 Storage grants derive from schema `2` `storage` booleans.
+
+Config grants derive from schema `2` `config` declarations plus `storage.config`.
 
 Service grants derive from schema `2` `services` declarations.
 
@@ -50,18 +54,21 @@ Example:
 
 If a matching `storage` or `services` declaration exists, Spindle grants the capability even if it is omitted from `permissions`.
 
+For config:
+
+- `config.read` is granted when the mod declares at least one `config.entries` entry and enables `storage.config`
+- `config.write` is granted when the mod also sets `config.runtimeWrites: true`
+
 ## Current Unavailable Capabilities
 
-Runtime-3 still reserves these future surfaces:
+Runtime-4 still reserves these future surfaces:
 
-- `config.read`
-- `config.write`
 - `resource.declare`
 - `resource.overlay`
 
 ## Current Visibility-Only Capabilities
 
-Runtime-3 records these declarations for review only:
+Runtime-4 records these declarations for review only:
 
 - `filesystem.read`
 - `filesystem.write`

@@ -35,6 +35,7 @@ public final class ModMetadataParser {
       Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)+");
   private static final Pattern SERVICE_ID_PATTERN =
       Pattern.compile("[a-z][a-z0-9_-]{1,63}:[a-z][a-z0-9_.-]{1,127}");
+  private static final Pattern CONFIG_KEY_PATTERN = Pattern.compile("[a-z][a-z0-9_-]{0,63}");
   private static final Set<String> VALID_SIDES = Set.of("universal", "client", "server");
   private static final Set<String> VALID_LIFECYCLE_PHASES =
       Set.of(
@@ -107,6 +108,8 @@ public final class ModMetadataParser {
         schema == 2 ? parseStorage(jsonObject, id, sourceName) : ModMetadata.Storage.disabled();
     ModMetadata.Services services =
         schema == 2 ? parseServices(jsonObject, id, sourceName) : ModMetadata.Services.empty();
+    ModMetadata.Config config =
+        schema == 2 ? parseConfig(jsonObject, id, sourceName) : ModMetadata.Config.empty();
     if (schema == 1 && jsonObject.has("lifecycle")) {
       throw new LoaderException(
           "Mod `"
@@ -122,6 +125,15 @@ public final class ModMetadataParser {
               + "` uses metadata schema `1`, which does not support the `services` field in "
               + sourceName
               + ". Upgrade to schema `2`.");
+    }
+    if (schema == 1 && jsonObject.has("config")) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + id
+                  + "` uses metadata schema `1`, which does not support the `config` field in "
+                  + sourceName
+                  + ". Upgrade to schema `2`."));
     }
     if (schema == 2 && entrypoints.isEmpty() && lifecycle.isEmpty() && services.isEmpty()) {
       throw new LoaderException(
@@ -144,7 +156,8 @@ public final class ModMetadataParser {
         lifecycle,
         permissions,
         storage,
-        services);
+        services,
+        config);
   }
 
   private Map<String, List<String>> parseEntrypoints(
@@ -338,6 +351,270 @@ public final class ModMetadataParser {
     return new ModMetadata.Services(
         parseProviders(servicesObject, modId, sourceName),
         parseConsumers(servicesObject, modId, sourceName));
+  }
+
+  private ModMetadata.Config parseConfig(JsonObject jsonObject, String modId, String sourceName)
+      throws LoaderException {
+    if (!jsonObject.has("config") || jsonObject.get("config").isJsonNull()) {
+      return ModMetadata.Config.empty();
+    }
+    if (!jsonObject.get("config").isJsonObject()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `" + modId + "` must declare `config` as an object in " + sourceName + "."));
+    }
+    JsonObject configObject = jsonObject.getAsJsonObject("config");
+    boolean runtimeWrites =
+        optionalBoolean(configObject, "runtimeWrites", modId, "config.runtimeWrites", sourceName);
+    JsonElement entriesElement = configObject.get("entries");
+    if (entriesElement == null || entriesElement.isJsonNull()) {
+      return new ModMetadata.Config(runtimeWrites, List.of());
+    }
+    if (!entriesElement.isJsonArray()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `config.entries` as an array in "
+                  + sourceName
+                  + "."));
+    }
+    List<ModMetadata.ConfigEntry> entries = new ArrayList<>();
+    Set<String> seenKeys = new HashSet<>();
+    for (JsonElement entryElement : entriesElement.getAsJsonArray()) {
+      if (!entryElement.isJsonObject()) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` must declare each `config.entries` entry as an object in "
+                    + sourceName
+                    + "."));
+      }
+      JsonObject entryObject = entryElement.getAsJsonObject();
+      String key = requiredString(entryObject, "key", sourceName).trim();
+      if (!CONFIG_KEY_PATTERN.matcher(key).matches()) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` declares invalid config key `"
+                    + key
+                    + "` in `config.entries` in "
+                    + sourceName
+                    + ". Expected `[a-z][a-z0-9_-]{0,63}`."));
+      }
+      if (!seenKeys.add(key)) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` declares duplicate config key `"
+                    + key
+                    + "` in `config.entries` in "
+                    + sourceName
+                    + "."));
+      }
+      entries.add(parseConfigEntry(entryObject, modId, key, sourceName));
+    }
+    return new ModMetadata.Config(runtimeWrites, entries);
+  }
+
+  private ModMetadata.ConfigEntry parseConfigEntry(
+      JsonObject entryObject, String modId, String key, String sourceName) throws LoaderException {
+    String type = requiredString(entryObject, "type", sourceName).trim();
+    if (!Set.of("boolean", "integer", "number", "string").contains(type)) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares unsupported config type `"
+                  + type
+                  + "` for key `"
+                  + key
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+    JsonElement defaultElement = entryObject.get("default");
+    if (defaultElement == null || defaultElement.isJsonNull()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `default` for config key `"
+                  + key
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+    String defaultValue = parseConfigValue(defaultElement, type, modId, key, "default", sourceName);
+    String min = optionalNumericConfigField(entryObject, "min", type, modId, key, sourceName);
+    String max = optionalNumericConfigField(entryObject, "max", type, modId, key, sourceName);
+    List<String> allowed =
+        optionalAllowedConfigField(entryObject, type, modId, key, defaultValue, sourceName);
+    return new ModMetadata.ConfigEntry(key, type, defaultValue, min, max, allowed);
+  }
+
+  private String parseConfigValue(
+      JsonElement element,
+      String type,
+      String modId,
+      String key,
+      String fieldName,
+      String sourceName)
+      throws LoaderException {
+    if (!element.isJsonPrimitive()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `config.entries."
+                  + fieldName
+                  + "` for key `"
+                  + key
+                  + "` as a primitive "
+                  + type
+                  + " value in "
+                  + sourceName
+                  + "."));
+    }
+    try {
+      return switch (type) {
+        case "boolean" -> {
+          if (!element.getAsJsonPrimitive().isBoolean()) {
+            throw new IllegalArgumentException();
+          }
+          yield Boolean.toString(element.getAsBoolean());
+        }
+        case "integer" -> canonicalInteger(element.getAsString());
+        case "number" -> canonicalNumber(element.getAsString());
+        case "string" -> {
+          if (!element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException();
+          }
+          yield element.getAsString();
+        }
+        default -> throw new IllegalArgumentException(type);
+      };
+    } catch (RuntimeException exception) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares config key `"
+                  + key
+                  + "` with invalid "
+                  + fieldName
+                  + " for type `"
+                  + type
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+  }
+
+  private String optionalNumericConfigField(
+      JsonObject entryObject,
+      String fieldName,
+      String type,
+      String modId,
+      String key,
+      String sourceName)
+      throws LoaderException {
+    JsonElement element = entryObject.get(fieldName);
+    if (element == null || element.isJsonNull()) {
+      return null;
+    }
+    if (!"integer".equals(type) && !"number".equals(type)) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares `"
+                  + fieldName
+                  + "` for config key `"
+                  + key
+                  + "`, but only integer or number entries may use `"
+                  + fieldName
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+    return parseConfigValue(element, type, modId, key, fieldName, sourceName);
+  }
+
+  private List<String> optionalAllowedConfigField(
+      JsonObject entryObject,
+      String type,
+      String modId,
+      String key,
+      String defaultValue,
+      String sourceName)
+      throws LoaderException {
+    JsonElement element = entryObject.get("allowed");
+    if (element == null || element.isJsonNull()) {
+      return List.of();
+    }
+    if (!"string".equals(type)) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares `allowed` for config key `"
+                  + key
+                  + "`, but only string entries may use `allowed` in "
+                  + sourceName
+                  + "."));
+    }
+    if (!element.isJsonArray()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `allowed` as an array for config key `"
+                  + key
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+    List<String> allowed = new ArrayList<>();
+    for (JsonElement optionElement : element.getAsJsonArray()) {
+      if (!optionElement.isJsonPrimitive() || !optionElement.getAsJsonPrimitive().isString()) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` must declare string `allowed` values for config key `"
+                    + key
+                    + "` in "
+                    + sourceName
+                    + "."));
+      }
+      allowed.add(optionElement.getAsString());
+    }
+    if (!allowed.contains(defaultValue)) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares default string `"
+                  + defaultValue
+                  + "` for config key `"
+                  + key
+                  + "`, but it is not included in `allowed` in "
+                  + sourceName
+                  + "."));
+    }
+    return allowed;
+  }
+
+  private String canonicalInteger(String value) {
+    return new BigDecimal(value).toBigIntegerExact().toString();
+  }
+
+  private String canonicalNumber(String value) {
+    return new BigDecimal(value).stripTrailingZeros().toPlainString();
   }
 
   private List<ModMetadata.ServiceProvider> parseProviders(

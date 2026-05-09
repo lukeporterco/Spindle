@@ -9,6 +9,10 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.config.RuntimeConfigContract;
+import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
+import com.spindle.core.runtime.config.RuntimeConfigModPlan;
+import com.spindle.core.runtime.config.RuntimeConfigSummary;
 import com.spindle.core.runtime.service.RuntimeServiceBinding;
 import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
 import com.spindle.core.runtime.service.RuntimeServiceContract;
@@ -43,6 +47,7 @@ public final class CompiledModpackProfileReader {
           readOwnership(requiredObject(root, "ownership")),
           readLockfile(requiredObject(root, "lockfile")),
           readPermissions(requiredObject(root, "permissions")),
+          readConfig(root.has("config") ? root.getAsJsonObject("config") : null),
           readServices(root.has("services") ? root.getAsJsonObject("services") : null),
           readLifecycle(requiredObject(root, "lifecycle")),
           readContexts(requiredObject(root, "contexts")),
@@ -53,6 +58,48 @@ public final class CompiledModpackProfileReader {
           "Failed to read compiled modpack profile " + path.toString().replace('\\', '/'),
           exception);
     }
+  }
+
+  private RuntimeConfigContract readConfig(JsonObject object) {
+    if (object == null) {
+      return RuntimeConfigContract.empty();
+    }
+    List<RuntimeConfigModPlan> mods = new ArrayList<>();
+    for (JsonElement element : requiredArray(object, "mods")) {
+      JsonObject mod = element.getAsJsonObject();
+      List<RuntimeConfigEntryPlan> entries = new ArrayList<>();
+      for (JsonElement entryElement : requiredArray(mod, "entries")) {
+        JsonObject entry = entryElement.getAsJsonObject();
+        entries.add(
+            new RuntimeConfigEntryPlan(
+                requiredString(entry, "key"),
+                requiredString(entry, "type"),
+                requiredString(entry, "default"),
+                optionalString(entry, "value"),
+                requiredString(entry, "state"),
+                requiredString(entry, "reason"),
+                null,
+                null,
+                List.of(),
+                null));
+      }
+      mods.add(
+          new RuntimeConfigModPlan(
+              requiredString(mod, "modId"),
+              requiredString(mod, "path"),
+              requiredBoolean(mod, "runtimeWrites"),
+              requiredString(mod, "state"),
+              entries,
+              readStringArray(requiredArray(mod, "unknownKeys")),
+              readConfigSummary(requiredObject(mod, "summary")),
+              null));
+    }
+    return new RuntimeConfigContract(
+        requiredInt(object, "contractVersion"),
+        requiredString(object, "scope"),
+        requiredString(object, "format"),
+        mods,
+        readConfigSummary(requiredObject(object, "summary")));
   }
 
   private CompiledModpackProfile.Cache readCache(JsonObject object) {
@@ -330,6 +377,19 @@ public final class CompiledModpackProfileReader {
   private CompiledModpackProfile.Quality readQuality(JsonObject object) {
     return new CompiledModpackProfile.Quality(
         requiredInt(object, "score"),
+        requiredInt(object, "fatalCount"),
+        requiredInt(object, "warningCount"));
+  }
+
+  private RuntimeConfigSummary readConfigSummary(JsonObject object) {
+    return new RuntimeConfigSummary(
+        object.has("mods") ? requiredInt(object, "mods") : 0,
+        requiredInt(object, "entries"),
+        requiredInt(object, "valid"),
+        requiredInt(object, "defaulted"),
+        requiredInt(object, "invalid"),
+        requiredInt(object, "unknownKeys"),
+        object.has("storageNotGranted") ? requiredInt(object, "storageNotGranted") : 0,
         requiredInt(object, "fatalCount"),
         requiredInt(object, "warningCount"));
   }

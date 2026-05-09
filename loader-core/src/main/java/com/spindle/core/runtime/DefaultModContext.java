@@ -1,6 +1,7 @@
 package com.spindle.core.runtime;
 
 import com.spindle.api.ModContext;
+import com.spindle.api.config.ModConfig;
 import com.spindle.api.service.ServiceRegistry;
 import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
 import java.nio.file.Path;
@@ -15,6 +16,7 @@ public record DefaultModContext(
     String side,
     Path workingDirectory,
     Set<String> grantedCapabilities,
+    ModConfig config,
     ServiceRegistry services,
     Path configDirectory,
     Path dataDirectory,
@@ -23,6 +25,7 @@ public record DefaultModContext(
     implements ModContext {
   public DefaultModContext {
     grantedCapabilities = Set.copyOf(grantedCapabilities);
+    config = config == null ? ModConfig.empty() : config;
     services = services == null ? ServiceRegistry.empty() : services;
   }
 

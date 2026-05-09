@@ -5,6 +5,10 @@ import com.spindle.core.resolve.ResolvedModSet;
 import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlanner;
+import com.spindle.core.runtime.config.RuntimeConfigContract;
+import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
+import com.spindle.core.runtime.config.RuntimeConfigModPlan;
+import com.spindle.core.runtime.config.RuntimeConfigStates;
 import com.spindle.core.runtime.service.RuntimeServiceBinding;
 import com.spindle.core.runtime.service.RuntimeServiceContract;
 import com.spindle.core.runtime.service.RuntimeServiceModPlan;
@@ -16,7 +20,9 @@ public final class RuntimeQualityReporter {
   private final RuntimeCapabilityPlanner runtimeCapabilityPlanner = new RuntimeCapabilityPlanner();
 
   public RuntimeQualityReport create(
-      ModpackPlanningResult planningResult, RuntimeServiceContract serviceContract) {
+      ModpackPlanningResult planningResult,
+      RuntimeConfigContract configContract,
+      RuntimeServiceContract serviceContract) {
     List<RuntimeQualityReport.Finding> fatalFindings = new ArrayList<>();
     List<RuntimeQualityReport.Finding> warningFindings = new ArrayList<>();
 
@@ -92,6 +98,7 @@ public final class RuntimeQualityReporter {
               metadataFinding.message()));
     }
 
+    addConfigFindings(configContract, fatalFindings, warningFindings);
     addServiceFindings(serviceContract, fatalFindings, warningFindings);
 
     int score = Math.max(0, 100 - (fatalFindings.size() * 25) - (warningFindings.size() * 5));
@@ -253,6 +260,105 @@ public final class RuntimeQualityReporter {
     };
   }
 
+  private void addConfigFindings(
+      RuntimeConfigContract configContract,
+      List<RuntimeQualityReport.Finding> fatalFindings,
+      List<RuntimeQualityReport.Finding> warningFindings) {
+    for (RuntimeConfigModPlan modPlan : configContract.mods()) {
+      if (RuntimeConfigStates.MOD_STORAGE_NOT_GRANTED.equals(modPlan.state())) {
+        fatalFindings.add(
+            new RuntimeQualityReport.Finding(
+                "config.storage_not_granted",
+                "fatal",
+                modPlan.modId(),
+                "Mod `"
+                    + modPlan.modId()
+                    + "` declares config.entries but does not enable storage.config."));
+      }
+      if (modPlan.findingCode() != null && "config.invalid_json".equals(modPlan.findingCode())) {
+        fatalFindings.add(
+            new RuntimeQualityReport.Finding(
+                "config.invalid_json",
+                "fatal",
+                modPlan.modId(),
+                "Mod `" + modPlan.modId() + "` has invalid JSON in `" + modPlan.path() + "`."));
+      }
+      if (!modPlan.unknownKeys().isEmpty()) {
+        warningFindings.add(
+            new RuntimeQualityReport.Finding(
+                "config.unknown_key",
+                "warning",
+                modPlan.modId(),
+                "Mod `"
+                    + modPlan.modId()
+                    + "` has unknown config keys in `"
+                    + modPlan.path()
+                    + "`: "
+                    + String.join(", ", modPlan.unknownKeys())
+                    + "."));
+      }
+      for (RuntimeConfigEntryPlan entry : modPlan.entries()) {
+        if ("config.invalid_type".equals(entry.findingCode())) {
+          fatalFindings.add(
+              new RuntimeQualityReport.Finding(
+                  "config.invalid_type",
+                  "fatal",
+                  modPlan.modId(),
+                  "Mod `"
+                      + modPlan.modId()
+                      + "` has invalid type for config key `"
+                      + entry.key()
+                      + "`."));
+        } else if ("config.invalid_range".equals(entry.findingCode())) {
+          fatalFindings.add(
+              new RuntimeQualityReport.Finding(
+                  "config.invalid_range",
+                  "fatal",
+                  modPlan.modId(),
+                  "Mod `"
+                      + modPlan.modId()
+                      + "` has out-of-range value for config key `"
+                      + entry.key()
+                      + "`."));
+        } else if ("config.invalid_option".equals(entry.findingCode())) {
+          fatalFindings.add(
+              new RuntimeQualityReport.Finding(
+                  "config.invalid_option",
+                  "fatal",
+                  modPlan.modId(),
+                  "Mod `"
+                      + modPlan.modId()
+                      + "` has invalid option for config key `"
+                      + entry.key()
+                      + "`."));
+        } else if ("config.missing_file_defaulted".equals(entry.findingCode())) {
+          warningFindings.add(
+              new RuntimeQualityReport.Finding(
+                  "config.missing_file_defaulted",
+                  "warning",
+                  modPlan.modId(),
+                  "Mod `"
+                      + modPlan.modId()
+                      + "` had no config file, so Spindle wrote defaults to `"
+                      + modPlan.path()
+                      + "`."));
+          break;
+        } else if ("config.missing_key_defaulted".equals(entry.findingCode())) {
+          warningFindings.add(
+              new RuntimeQualityReport.Finding(
+                  "config.missing_key_defaulted",
+                  "warning",
+                  modPlan.modId(),
+                  "Mod `"
+                      + modPlan.modId()
+                      + "` was missing declared config key `"
+                      + entry.key()
+                      + "`, so Spindle added the default."));
+        }
+      }
+    }
+  }
+
   private String deniedCapabilityMessage(String requestedCapability) {
     return switch (requestedCapability) {
       case "service.provide" ->
@@ -261,6 +367,12 @@ public final class RuntimeQualityReporter {
       case "service.consume" ->
           "Runtime-3 denied requested capability `service.consume` because `services.consumes`"
               + " does not declare any service consumers in loader.mod.json.";
+      case "config.read" ->
+          "Runtime-4 denied requested capability `config.read` because config.entries are not declared"
+              + " with storage.config enabled in loader.mod.json.";
+      case "config.write" ->
+          "Runtime-4 denied requested capability `config.write` because config.entries, storage.config,"
+              + " and config.runtimeWrites are not all enabled in loader.mod.json.";
       default ->
           "Runtime-3 denied requested capability `"
               + requestedCapability

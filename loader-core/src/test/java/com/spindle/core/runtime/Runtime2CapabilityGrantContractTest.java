@@ -54,7 +54,7 @@ class Runtime2CapabilityGrantContractTest {
 
     JsonObject profile = readCompiledProfile();
     JsonObject permissions = profile.getAsJsonObject("permissions");
-    assertEquals(4, profile.get("schemaVersion").getAsInt());
+    assertEquals(5, profile.get("schemaVersion").getAsInt());
     assertEquals(1, permissions.get("catalogVersion").getAsInt());
     assertEquals("spindle-api-only", permissions.get("scope").getAsString());
     assertEquals(
@@ -196,7 +196,7 @@ class Runtime2CapabilityGrantContractTest {
   }
 
   @Test
-  void schemaThreeCacheInvalidatesCleanlyAgainstSchemaFourReader() throws Exception {
+  void schemaThreeCacheInvalidatesCleanlyAgainstSchemaFiveReader() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/cache-schema.jar"),
         "cachemod",

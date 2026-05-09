@@ -24,10 +24,10 @@ public record SecurityPolicy(
 
   public static SecurityPolicy standard() {
     return new SecurityPolicy(
-        5,
+        6,
         1,
         1,
-        3,
+        4,
         1,
         1,
         1,
@@ -35,6 +35,7 @@ public record SecurityPolicy(
         List.of(
             "com.spindle.api.ModContext",
             "com.spindle.api.ModInitializer",
+            "com.spindle.api.config.ModConfig",
             "com.spindle.api.lifecycle.LifecyclePhase",
             "com.spindle.api.service.ServiceRegistry"),
         List.of(
@@ -43,6 +44,7 @@ public record SecurityPolicy(
             "capability-grant-contract",
             "cache-profile-validation",
             "class-ownership",
+            "config-schema-capability-grants",
             "lifecycle-declarations",
             "lifecycle-signatures",
             "mod-context-paths",

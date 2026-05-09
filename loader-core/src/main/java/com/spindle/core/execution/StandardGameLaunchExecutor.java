@@ -16,6 +16,8 @@ import com.spindle.core.report.DisplayPaths;
 import com.spindle.core.report.StartupProfileSupport;
 import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.ModContextFactory;
+import com.spindle.core.runtime.config.RuntimeConfigContractGate;
+import com.spindle.core.runtime.config.RuntimeModConfigFactory;
 import com.spindle.core.runtime.service.RuntimeServiceContractGate;
 import com.spindle.core.runtime.service.RuntimeServiceRegistryFactory;
 import com.spindle.core.security.SecurityGate;
@@ -28,8 +30,11 @@ public final class StandardGameLaunchExecutor {
       new LifecycleExecutionReportWriter();
   private final ModContextFactory modContextFactory = new ModContextFactory();
   private final SecurityGate securityGate = new SecurityGate();
+  private final RuntimeConfigContractGate runtimeConfigContractGate =
+      new RuntimeConfigContractGate();
   private final RuntimeServiceContractGate runtimeServiceContractGate =
       new RuntimeServiceContractGate();
+  private final RuntimeModConfigFactory runtimeModConfigFactory = new RuntimeModConfigFactory();
   private final RuntimeServiceRegistryFactory runtimeServiceRegistryFactory =
       new RuntimeServiceRegistryFactory();
 
@@ -61,6 +66,7 @@ public final class StandardGameLaunchExecutor {
       return;
     }
     securityGate.ensureLifecycleExecutionAllowed(securityValidationResult);
+    runtimeConfigContractGate.ensureLifecycleExecutionAllowed(compiledProfile);
     runtimeServiceContractGate.ensureLifecycleExecutionAllowed(compiledProfile);
 
     try (ModClassLoader modClassLoader =
@@ -88,6 +94,8 @@ public final class StandardGameLaunchExecutor {
                       modContextFactory.createContexts(
                           context,
                           compiledProfile,
+                          runtimeModConfigFactory.create(
+                              context.workingDirectory(), compiledProfile),
                           runtimeServiceRegistryFactory.create(compiledProfile, modClassLoader))),
               report ->
                   DiagnosticMeasurements.details(

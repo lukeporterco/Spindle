@@ -1,5 +1,6 @@
 package com.spindle.core.quality;
 
+import java.util.Comparator;
 import java.util.List;
 
 public record RuntimeQualityReport(
@@ -13,13 +14,33 @@ public record RuntimeQualityReport(
     List<LifecycleDeclarationProblem> lifecycleDeclarationProblems,
     List<MetadataFinding> metadataFindings) {
   public RuntimeQualityReport {
-    fatalFindings = List.copyOf(fatalFindings);
-    warningFindings = List.copyOf(warningFindings);
-    duplicateResources = List.copyOf(duplicateResources);
-    splitPackages = List.copyOf(splitPackages);
-    protectedPackageViolations = List.copyOf(protectedPackageViolations);
-    lifecycleDeclarationProblems = List.copyOf(lifecycleDeclarationProblems);
-    metadataFindings = List.copyOf(metadataFindings);
+    fatalFindings = fatalFindings.stream().sorted(Finding.ORDER).toList();
+    warningFindings = warningFindings.stream().sorted(Finding.ORDER).toList();
+    duplicateResources =
+        duplicateResources.stream().sorted(Comparator.comparing(DuplicateResource::resourcePath)).toList();
+    splitPackages = splitPackages.stream().sorted(Comparator.comparing(SplitPackageRisk::packageName)).toList();
+    protectedPackageViolations =
+        protectedPackageViolations.stream()
+            .sorted(
+                Comparator.comparing(ProtectedPackageFinding::modId)
+                    .thenComparing(ProtectedPackageFinding::packageName)
+                    .thenComparing(ProtectedPackageFinding::reason))
+            .toList();
+    lifecycleDeclarationProblems =
+        lifecycleDeclarationProblems.stream()
+            .sorted(
+                Comparator.comparing(LifecycleDeclarationProblem::modId)
+                    .thenComparing(LifecycleDeclarationProblem::phase)
+                    .thenComparing(LifecycleDeclarationProblem::declaration)
+                    .thenComparing(LifecycleDeclarationProblem::reason))
+            .toList();
+    metadataFindings =
+        metadataFindings.stream()
+            .sorted(
+                Comparator.comparing(MetadataFinding::modId)
+                    .thenComparing(MetadataFinding::field)
+                    .thenComparing(MetadataFinding::message))
+            .toList();
   }
 
   public int fatalCount() {
@@ -30,7 +51,12 @@ public record RuntimeQualityReport(
     return warningFindings.size();
   }
 
-  public record Finding(String code, String severity, String modId, String message) {}
+  public record Finding(String code, String severity, String modId, String message) {
+    private static final Comparator<Finding> ORDER =
+        Comparator.comparing(Finding::code)
+            .thenComparing(finding -> finding.modId() == null ? "" : finding.modId())
+            .thenComparing(Finding::message);
+  }
 
   public record DuplicateResource(String resourcePath, List<String> modIds) {
     public DuplicateResource {

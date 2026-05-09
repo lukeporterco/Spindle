@@ -9,6 +9,10 @@ import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.config.RuntimeConfigContract;
+import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
+import com.spindle.core.runtime.config.RuntimeConfigModPlan;
+import com.spindle.core.runtime.config.RuntimeConfigSummary;
 import com.spindle.core.runtime.service.RuntimeServiceBinding;
 import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
 import com.spindle.core.runtime.service.RuntimeServiceModPlan;
@@ -144,6 +148,8 @@ public final class CompiledModpackProfileWriter {
     permissions.add("mods", permissionMods);
     permissions.add("summary", capabilitySummary(profile.permissions().summary()));
     root.add("permissions", permissions);
+
+    root.add("config", configContract(profile.config()));
 
     JsonObject services = new JsonObject();
     services.addProperty("contractVersion", profile.services().contractVersion());
@@ -318,6 +324,47 @@ public final class CompiledModpackProfileWriter {
         outputPath, profile.schemaVersion(), profile.profileKind(), profile.fingerprint());
   }
 
+  private JsonObject configContract(RuntimeConfigContract contract) {
+    JsonObject config = new JsonObject();
+    config.addProperty("contractVersion", contract.contractVersion());
+    config.addProperty("scope", contract.scope());
+    config.addProperty("format", contract.format());
+    JsonArray mods = new JsonArray();
+    for (RuntimeConfigModPlan modPlan : contract.mods()) {
+      JsonObject mod = new JsonObject();
+      mod.addProperty("modId", modPlan.modId());
+      mod.addProperty("path", modPlan.path());
+      mod.addProperty("runtimeWrites", modPlan.runtimeWrites());
+      mod.addProperty("state", modPlan.state());
+      JsonArray entries = new JsonArray();
+      for (RuntimeConfigEntryPlan entry : modPlan.entries()) {
+        JsonObject entryObject = new JsonObject();
+        entryObject.addProperty("key", entry.key());
+        entryObject.addProperty("type", entry.type());
+        entryObject.addProperty("default", entry.defaultValue());
+        if (entry.value() == null) {
+          entryObject.add("value", JsonNull.INSTANCE);
+        } else {
+          entryObject.addProperty("value", entry.value());
+        }
+        entryObject.addProperty("state", entry.state());
+        entryObject.addProperty("reason", entry.reason());
+        entries.add(entryObject);
+      }
+      mod.add("entries", entries);
+      JsonArray unknownKeys = new JsonArray();
+      for (String unknownKey : modPlan.unknownKeys()) {
+        unknownKeys.add(unknownKey);
+      }
+      mod.add("unknownKeys", unknownKeys);
+      mod.add("summary", configSummary(modPlan.summary()));
+      mods.add(mod);
+    }
+    config.add("mods", mods);
+    config.add("summary", configSummary(contract.summary()));
+    return config;
+  }
+
   private JsonObject capabilitySummary(RuntimeCapabilitySummary summary) {
     JsonObject object = new JsonObject();
     object.addProperty("granted", summary.granted());
@@ -341,6 +388,20 @@ public final class CompiledModpackProfileWriter {
     object.addProperty("requiredUnbound", summary.requiredUnbound());
     object.addProperty("optionalUnbound", summary.optionalUnbound());
     object.addProperty("typeMismatches", summary.typeMismatches());
+    object.addProperty("fatalCount", summary.fatalCount());
+    object.addProperty("warningCount", summary.warningCount());
+    return object;
+  }
+
+  private JsonObject configSummary(RuntimeConfigSummary summary) {
+    JsonObject object = new JsonObject();
+    object.addProperty("mods", summary.mods());
+    object.addProperty("entries", summary.entries());
+    object.addProperty("valid", summary.valid());
+    object.addProperty("defaulted", summary.defaulted());
+    object.addProperty("invalid", summary.invalid());
+    object.addProperty("unknownKeys", summary.unknownKeys());
+    object.addProperty("storageNotGranted", summary.storageNotGranted());
     object.addProperty("fatalCount", summary.fatalCount());
     object.addProperty("warningCount", summary.warningCount());
     return object;

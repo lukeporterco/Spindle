@@ -4,6 +4,7 @@ import com.spindle.api.lifecycle.LifecyclePhase;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
 import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
+import com.spindle.core.runtime.config.RuntimeConfigContract;
 import com.spindle.core.runtime.service.RuntimeServiceContract;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -25,6 +26,10 @@ public final class RuntimePolicyFingerprint {
         digest,
         "runtimeServiceContractVersion",
         Integer.toString(RuntimeServiceContract.CONTRACT_VERSION));
+    update(
+        digest,
+        "runtimeConfigContractVersion",
+        Integer.toString(RuntimeConfigContract.CONTRACT_VERSION));
     update(digest, "strictResources", Boolean.toString(context.strictResources()));
     update(digest, "strictPackages", Boolean.toString(context.strictPackages()));
     for (LifecyclePhase phase : LifecyclePhase.values()) {

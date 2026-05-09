@@ -59,7 +59,7 @@ class Runtime3ServiceRegistryContractTest {
     execute(true);
 
     JsonObject profile = readCompiledProfile();
-    assertEquals(4, profile.get("schemaVersion").getAsInt());
+    assertEquals(5, profile.get("schemaVersion").getAsInt());
 
     JsonObject services = profile.getAsJsonObject("services");
     assertEquals(1, services.get("contractVersion").getAsInt());
@@ -341,7 +341,7 @@ class Runtime3ServiceRegistryContractTest {
   }
 
   @Test
-  void schemaThreeCacheInvalidatesCleanlyAgainstSchemaFourReader() throws Exception {
+  void schemaFourCacheInvalidatesCleanlyAgainstSchemaFiveReader() throws Exception {
     createProviderModJar(
         tempDirectory.resolve("mods/provider.jar"),
         "provider",
@@ -361,7 +361,7 @@ class Runtime3ServiceRegistryContractTest {
     JsonObject cachedProfile =
         JsonParser.parseString(Files.readString(cachedProfilePath(), StandardCharsets.UTF_8))
             .getAsJsonObject();
-    cachedProfile.addProperty("schemaVersion", 3);
+    cachedProfile.addProperty("schemaVersion", 4);
     cachedProfile.remove("services");
     Files.writeString(cachedProfilePath(), cachedProfile.toString(), StandardCharsets.UTF_8);
 

@@ -26,6 +26,7 @@ public final class RuntimeCapabilityPlanner {
   private RuntimeCapabilityModPlan planMod(ResolvedModSet.ResolvedMod mod) {
     Map<String, GrantBuilder> grants = new TreeMap<>();
     addGrantedStorageCapabilities(grants, mod.storage());
+    addGrantedConfigCapabilities(grants, mod);
     addGrantedServiceCapabilities(grants, mod);
     for (String requestedCapability : mod.permissions()) {
       if (RuntimeCapabilityCatalog.isGrantableStorage(requestedCapability)) {
@@ -35,6 +36,11 @@ public final class RuntimeCapabilityPlanner {
       if (RuntimeCapabilityCatalog.SERVICE_PROVIDE.equals(requestedCapability)
           || RuntimeCapabilityCatalog.SERVICE_CONSUME.equals(requestedCapability)) {
         addRequestedServiceCapability(grants, requestedCapability, mod);
+        continue;
+      }
+      if (RuntimeCapabilityCatalog.CONFIG_READ.equals(requestedCapability)
+          || RuntimeCapabilityCatalog.CONFIG_WRITE.equals(requestedCapability)) {
+        addRequestedConfigCapability(grants, requestedCapability, mod);
         continue;
       }
       if (RuntimeCapabilityCatalog.isUnavailable(requestedCapability)) {
@@ -142,6 +148,64 @@ public final class RuntimeCapabilityPlanner {
     }
   }
 
+  private void addGrantedConfigCapabilities(
+      Map<String, GrantBuilder> grants, ResolvedModSet.ResolvedMod mod) {
+    boolean hasEntries = !mod.config().entries().isEmpty();
+    boolean storageEnabled = mod.storage().config();
+    if (hasEntries && storageEnabled) {
+      grants.put(RuntimeCapabilityCatalog.CONFIG_READ, grantedConfigCapability(RuntimeCapabilityCatalog.CONFIG_READ));
+      if (mod.config().runtimeWrites()) {
+        grants.put(
+            RuntimeCapabilityCatalog.CONFIG_WRITE,
+            grantedConfigCapability(RuntimeCapabilityCatalog.CONFIG_WRITE));
+      }
+    }
+  }
+
+  private void addRequestedConfigCapability(
+      Map<String, GrantBuilder> grants, String capability, ResolvedModSet.ResolvedMod mod) {
+    boolean hasEntries = !mod.config().entries().isEmpty();
+    boolean storageEnabled = mod.storage().config();
+    boolean runtimeWrites = mod.config().runtimeWrites();
+    boolean granted =
+        switch (capability) {
+          case RuntimeCapabilityCatalog.CONFIG_READ -> hasEntries && storageEnabled;
+          case RuntimeCapabilityCatalog.CONFIG_WRITE -> hasEntries && storageEnabled && runtimeWrites;
+          default -> false;
+        };
+    if (granted) {
+      grants.computeIfAbsent(capability, this::grantedConfigCapability).addSource("metadata.permissions");
+      return;
+    }
+    grants.put(
+        capability,
+        new GrantBuilder(
+            capability,
+            RuntimeCapabilityState.DENIED,
+            List.of("metadata.permissions"),
+            switch (capability) {
+              case RuntimeCapabilityCatalog.CONFIG_READ ->
+                  "Runtime-4 recognizes config.read but the mod does not declare readable config entries with storage.config enabled.";
+              case RuntimeCapabilityCatalog.CONFIG_WRITE ->
+                  "Runtime-4 recognizes config.write but the mod does not declare writable config entries with storage.config enabled.";
+              default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
+            },
+            switch (capability) {
+              case RuntimeCapabilityCatalog.CONFIG_READ ->
+                  "No Spindle ModContext config() access is granted.";
+              case RuntimeCapabilityCatalog.CONFIG_WRITE ->
+                  "No Spindle ModContext config() write access is granted.";
+              default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
+            },
+            switch (capability) {
+              case RuntimeCapabilityCatalog.CONFIG_READ ->
+                  "Declare config.entries and enable storage.config in loader.mod.json.";
+              case RuntimeCapabilityCatalog.CONFIG_WRITE ->
+                  "Declare config.entries, enable storage.config, and set config.runtimeWrites to true in loader.mod.json.";
+              default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
+            }));
+  }
+
   private void addRequestedServiceCapability(
       Map<String, GrantBuilder> grants, String capability, ResolvedModSet.ResolvedMod mod) {
     boolean declared =
@@ -217,6 +281,34 @@ public final class RuntimeCapabilityPlanner {
           case RuntimeCapabilityCatalog.SERVICE_CONSUME ->
               "Spindle ModContext services() access is limited to declared service bindings only.";
           default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+        },
+        null);
+  }
+
+  private GrantBuilder grantedConfigCapability(String capability) {
+    return new GrantBuilder(
+        capability,
+        RuntimeCapabilityState.GRANTED,
+        switch (capability) {
+          case RuntimeCapabilityCatalog.CONFIG_READ ->
+              List.of("metadata.config.entries", "metadata.storage.config");
+          case RuntimeCapabilityCatalog.CONFIG_WRITE ->
+              List.of("metadata.config.runtimeWrites", "metadata.config.entries", "metadata.storage.config");
+          default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
+        },
+        switch (capability) {
+          case RuntimeCapabilityCatalog.CONFIG_READ ->
+              "config.read is granted because config.entries are declared and storage.config is enabled.";
+          case RuntimeCapabilityCatalog.CONFIG_WRITE ->
+              "config.write is granted because config.entries are declared, config.runtimeWrites is true, and storage.config is enabled.";
+          default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
+        },
+        switch (capability) {
+          case RuntimeCapabilityCatalog.CONFIG_READ ->
+              "Spindle ModContext config() access is limited to declared config entries only.";
+          case RuntimeCapabilityCatalog.CONFIG_WRITE ->
+              "Spindle persists only declared Runtime-4 config entries to the owned config file.";
+          default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
         },
         null);
   }

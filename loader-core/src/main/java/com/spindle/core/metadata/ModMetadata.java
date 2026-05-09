@@ -15,7 +15,8 @@ public record ModMetadata(
     Map<String, List<String>> lifecycle,
     List<String> permissions,
     Storage storage,
-    Services services) {
+    Services services,
+    Config config) {
   public ModMetadata(
       int schema,
       String id,
@@ -35,7 +36,8 @@ public record ModMetadata(
         Map.of(),
         List.of(),
         Storage.disabled(),
-        Services.empty());
+        Services.empty(),
+        Config.empty());
   }
 
   public ModMetadata {
@@ -54,6 +56,7 @@ public record ModMetadata(
     permissions = List.copyOf(permissions);
     storage = storage == null ? Storage.disabled() : storage;
     services = services == null ? Services.empty() : services;
+    config = config == null ? Config.empty() : config;
   }
 
   public List<String> mainEntrypoints() {
@@ -102,6 +105,27 @@ public record ModMetadata(
   public record Storage(boolean config, boolean data, boolean cache, boolean generated) {
     public static Storage disabled() {
       return new Storage(false, false, false, false);
+    }
+  }
+
+  public record Config(boolean runtimeWrites, List<ConfigEntry> entries) {
+    public Config {
+      entries = entries.stream().sorted(java.util.Comparator.comparing(ConfigEntry::key)).toList();
+    }
+
+    public static Config empty() {
+      return new Config(false, List.of());
+    }
+
+    public boolean isEmpty() {
+      return entries.isEmpty();
+    }
+  }
+
+  public record ConfigEntry(
+      String key, String type, String defaultValue, String min, String max, List<String> allowed) {
+    public ConfigEntry {
+      allowed = allowed == null ? List.of() : allowed.stream().sorted().toList();
     }
   }
 }
