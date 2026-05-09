@@ -138,7 +138,6 @@ public final class ModpackPlanningPipeline {
         runtimePackagePolicyInspector.findProtectedPackageViolations(
             resolvedMods, packageOwnershipIndex);
     recordProtectedPackageDiagnostics(diagnosticSink, protectedPackageViolations);
-    enforceProtectedPackages(gameProvider, protectedPackageViolations);
 
     ResourceConflictIndex resourceConflictIndex =
         DiagnosticMeasurements.measure(
@@ -309,22 +308,6 @@ public final class ModpackPlanningPipeline {
 
   private static String pluralize(int count) {
     return count == 1 ? "mod" : "mods";
-  }
-
-  private static void enforceProtectedPackages(
-      GameProvider gameProvider, List<ProtectedPackageViolation> protectedPackageViolations)
-      throws LoaderException {
-    if ("minecraft".equals(gameProvider.id()) || protectedPackageViolations.isEmpty()) {
-      return;
-    }
-    ProtectedPackageViolation violation = protectedPackageViolations.getFirst();
-    throw new LoaderException(
-        "Mod `"
-            + violation.modId()
-            + "` defines protected package `"
-            + violation.packageName()
-            + "`. "
-            + violation.reason());
   }
 
   private static void recordResourceDiagnostics(

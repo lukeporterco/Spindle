@@ -3,6 +3,7 @@ package com.spindle.core.lifecycle;
 import com.spindle.api.ModContext;
 import com.spindle.api.ModInitializer;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.security.SecurityRuleId;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -93,7 +94,9 @@ public final class LifecycleHandlerValidator {
 
   private LoaderException invalidSignature(LifecycleHandlerDeclaration declaration) {
     return new LoaderException(
-        "Mod `"
+        "["
+            + SecurityRuleId.SEC_LIFECYCLE_002.id()
+            + "] Mod `"
             + declaration.modId()
             + "` declares lifecycle handler `"
             + declaration.className()

@@ -16,6 +16,11 @@ import com.spindle.core.quality.RuntimeQualityReportWriter;
 import com.spindle.core.quality.RuntimeQualityReporter;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
+import com.spindle.core.security.SecurityValidationContext;
+import com.spindle.core.security.SecurityValidationReport;
+import com.spindle.core.security.SecurityValidationReportWriter;
+import com.spindle.core.security.SecurityValidationResult;
+import com.spindle.core.security.SecurityValidator;
 import java.nio.file.Path;
 
 public final class CompiledRuntimeOrchestrator {
@@ -33,6 +38,9 @@ public final class CompiledRuntimeOrchestrator {
   private final RuntimeQualityReporter runtimeQualityReporter = new RuntimeQualityReporter();
   private final RuntimeQualityReportWriter runtimeQualityReportWriter =
       new RuntimeQualityReportWriter();
+  private final SecurityValidator securityValidator = new SecurityValidator();
+  private final SecurityValidationReportWriter securityValidationReportWriter =
+      new SecurityValidationReportWriter();
 
   public CompiledRuntimeResult compile(
       LaunchContext context,
@@ -101,6 +109,15 @@ public final class CompiledRuntimeOrchestrator {
     LifecycleExecutionReport lifecycleReport = lifecycleExecutor.plannedOnly(compiledProfile);
     lifecycleExecutionReportWriter.write(
         context.workingDirectory().resolve("spindle.lifecycle-report.json"), lifecycleReport);
+    SecurityValidationContext securityValidationContext =
+        new SecurityValidationContext(
+            context, planningResult, compiledProfile, runtimePolicyFingerprint);
+    SecurityValidationResult securityValidationResult =
+        securityValidator.validate(securityValidationContext);
+    SecurityValidationReport securityValidationReport =
+        securityValidator.toReport(securityValidationContext, securityValidationResult);
+    securityValidationReportWriter.write(
+        context.workingDirectory().resolve("spindle.security-report.json"), securityValidationReport);
     diagnosticSink.record(
         new DiagnosticEvent(
             "runtime.compiled_profile.write",
@@ -115,6 +132,11 @@ public final class CompiledRuntimeOrchestrator {
                 Integer.toString(profileResult.schemaVersion()),
                 "compiledProfileFingerprint",
                 profileResult.fingerprint())));
-    return new CompiledRuntimeResult(compiledProfile, profileResult, qualityReport, lifecycleReport);
+    return new CompiledRuntimeResult(
+        compiledProfile,
+        profileResult,
+        qualityReport,
+        lifecycleReport,
+        securityValidationResult);
   }
 }

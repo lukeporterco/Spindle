@@ -16,6 +16,8 @@ import com.spindle.core.report.DisplayPaths;
 import com.spindle.core.report.StartupProfileSupport;
 import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.ModContextFactory;
+import com.spindle.core.security.SecurityGate;
+import com.spindle.core.security.SecurityValidationResult;
 import java.io.IOException;
 
 public final class StandardGameLaunchExecutor {
@@ -23,12 +25,14 @@ public final class StandardGameLaunchExecutor {
   private final LifecycleExecutionReportWriter lifecycleExecutionReportWriter =
       new LifecycleExecutionReportWriter();
   private final ModContextFactory modContextFactory = new ModContextFactory();
+  private final SecurityGate securityGate = new SecurityGate();
 
   public void execute(
       LaunchContext context,
       GameProvider gameProvider,
       ModpackPlanningResult planningResult,
       CompiledModpackProfile compiledProfile,
+      SecurityValidationResult securityValidationResult,
       DiagnosticSink diagnosticSink)
       throws LoaderException {
     if (context.validateOnly()) {
@@ -50,6 +54,7 @@ public final class StandardGameLaunchExecutor {
       System.out.println("[spindle] validation complete");
       return;
     }
+    securityGate.ensureLifecycleExecutionAllowed(securityValidationResult);
 
     try (ModClassLoader modClassLoader =
         DiagnosticMeasurements.measure(

@@ -6,6 +6,7 @@ import com.google.gson.JsonParseException;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
 import com.spindle.core.resolve.ResolvedModSet;
+import com.spindle.core.security.SecurityRuleId;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -28,38 +29,38 @@ public final class LockfileVerifier {
     Lockfile expected = Lockfile.from(context, resolvedModSet);
 
     if (actual.schema() != expected.schema()) {
-      throw new LoaderException("spindle.lock.json schema mismatch");
+      throw artifactMismatch("spindle.lock.json schema mismatch");
     }
     if (!actual.loader().equals(expected.loader())) {
-      throw new LoaderException("spindle.lock.json loader version mismatch");
+      throw artifactMismatch("spindle.lock.json loader version mismatch");
     }
     if (actual.javaMajorVersion() != expected.javaMajorVersion()) {
-      throw new LoaderException("spindle.lock.json Java version mismatch");
+      throw artifactMismatch("spindle.lock.json Java version mismatch");
     }
     if (!actual.minecraftVersion().equals(expected.minecraftVersion())) {
-      throw new LoaderException("spindle.lock.json Minecraft version mismatch");
+      throw artifactMismatch("spindle.lock.json Minecraft version mismatch");
     }
 
     List<Lockfile.LockedMod> actualMods = actual.mods();
     List<Lockfile.LockedMod> expectedMods = expected.mods();
     if (actualMods.size() != expectedMods.size()) {
-      throw new LoaderException("spindle.lock.json selected mod set mismatch");
+      throw artifactMismatch("spindle.lock.json selected mod set mismatch");
     }
 
     for (int index = 0; index < expectedMods.size(); index++) {
       Lockfile.LockedMod actualMod = actualMods.get(index);
       Lockfile.LockedMod expectedMod = expectedMods.get(index);
       if (!actualMod.id().equals(expectedMod.id())) {
-        throw new LoaderException("spindle.lock.json mod id mismatch at index " + index);
+        throw artifactMismatch("spindle.lock.json mod id mismatch at index " + index);
       }
       if (!actualMod.version().equals(expectedMod.version())) {
-        throw new LoaderException("spindle.lock.json version mismatch for mod " + expectedMod.id());
+        throw artifactMismatch("spindle.lock.json version mismatch for mod " + expectedMod.id());
       }
       if (!actualMod.path().equals(expectedMod.path())) {
-        throw new LoaderException("spindle.lock.json path mismatch for mod " + expectedMod.id());
+        throw artifactMismatch("spindle.lock.json path mismatch for mod " + expectedMod.id());
       }
       if (!actualMod.sha256().equals(expectedMod.sha256())) {
-        throw new LoaderException("spindle.lock.json sha256 mismatch for mod " + expectedMod.id());
+        throw artifactMismatch("spindle.lock.json sha256 mismatch for mod " + expectedMod.id());
       }
     }
   }
@@ -110,5 +111,9 @@ public final class LockfileVerifier {
         throw new LoaderException("spindle.lock.json mod sha256 is missing at index " + index);
       }
     }
+  }
+
+  private LoaderException artifactMismatch(String message) {
+    return new LoaderException("[" + SecurityRuleId.SEC_ARTIFACT_001.id() + "] " + message);
   }
 }

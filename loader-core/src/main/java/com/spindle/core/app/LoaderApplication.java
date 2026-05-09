@@ -58,7 +58,12 @@ public final class LoaderApplication {
     }
 
     standardGameLaunchExecutor.execute(
-        context, gameProvider, planningResult, compiledRuntimeResult.profile(), diagnosticSink);
+        context,
+        gameProvider,
+        planningResult,
+        compiledRuntimeResult.profile(),
+        compiledRuntimeResult.securityValidationResult(),
+        diagnosticSink);
   }
 
   private static String resolveGameSide(LaunchArguments launchArguments) {

@@ -1,0 +1,82 @@
+# Security And Trust Boundaries
+
+Spindle mods are Java code loaded into the runtime process.
+
+Spindle does not currently sandbox arbitrary runtime mods. A mod that passes validation is still executable code with the same broad process-level access that normal in-process Java code has.
+
+## What Spindle Validates
+
+For schema `2` standard runtime mods, Spindle validates a narrow non-invasive contract before lifecycle execution:
+
+- lifecycle declaration shape
+- lifecycle handler signature
+- loader-owned and protected package ownership
+- shadowing of key Spindle API/core classes
+- owned `ModContext` path planning
+- runtime/profile/cache identity
+
+If any fatal rule fails, Spindle writes `spindle.security-report.json` and blocks standard lifecycle execution before invoking handlers.
+
+Warnings remain visible in the report but do not block execution.
+
+## What Spindle Does Not Validate
+
+Spindle does not currently claim:
+
+- sandboxing
+- malware detection
+- provenance verification
+- signature trust
+- network or filesystem permission enforcement
+
+Requested permissions are currently documentation and reporting signals only.
+
+## Schema `2` Contract
+
+Use schema `2` when building Spindle-native Runtime-1 mods.
+
+The intended shape is:
+
+- lifecycle handlers declared as `ClassName::methodName`
+- handler methods declared as `public static void methodName(com.spindle.api.ModContext)`
+- mod-owned Java packages
+- `ModContext` directories used for config, data, cache, and generated output
+- logical relative storage paths that stay under the working directory
+
+Preferred package direction:
+
+- good: `com.example.mymod`
+- bad: `com.spindle.core`
+- bad: `com.spindle.api`
+- bad: `net.minecraft`
+- bad: `org.spongepowered.asm`
+
+Preferred storage direction:
+
+- good: `config/my_mod`
+- good: `mod-data/my_mod`
+- bad: `../outside`
+- bad: absolute paths
+
+## Hard Failures And Warnings
+
+Hard failures:
+
+- protected or loader-owned package definitions
+- shadowed Spindle API/core classes
+- invalid schema `2` lifecycle shape or signature
+- escaped or non-logical owned paths
+- runtime/profile identity drift
+
+Warnings:
+
+- cache rebuilds after cached-profile validation failure
+- requested permissions that Spindle records but does not yet enforce
+
+## Developer Ergonomics
+
+Unsigned local mods remain easy to build and run. Spindle does not require signing for local Runtime-1 development in this pass.
+
+That convenience does not mean the mod is sandboxed. The report is explicit about the trust model so local development stays ergonomic without overstating security guarantees.
+
+Prefer `ModContext` directories over ad hoc file paths. They keep the runtime contract readable, deterministic, and within the working-directory boundary that Spindle can validate.

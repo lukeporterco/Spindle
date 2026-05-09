@@ -46,6 +46,7 @@ Future work should move toward named architecture arcs, especially `Runtime-*`, 
     - `profile`: startup profiling
     - `resource`: resource conflict indexes
     - `resolve`: dependency resolution
+    - `security`: trust-boundary validation, gate, and report writing
     - `state`: modpack state reports
 
 - `sample-game/`
@@ -154,6 +155,8 @@ Do not add any of the following unless the task explicitly asks for that capabil
 
 Current Minecraft mod execution is bootstrap-only and server-only. It must remain guarded by execution plans, classloader policy, hash/fingerprint verification, and deterministic reports.
 
+Standard Runtime-1 mod execution is also not sandboxed. New security work should describe that explicitly and should not claim arbitrary runtime mods are safe just because they pass Spindle validation.
+
 ## Metadata and generated files
 
 Current mod metadata file:
@@ -162,11 +165,16 @@ Current mod metadata file:
 loader.mod.json
 ```
 
-Current schema is `schema: 1`.
+Current mod metadata supports `schema: 1` and `schema: 2`.
+
+- `schema: 1` remains the compatibility path.
+- `schema: 2` is the current Spindle-native Runtime-1 lifecycle and trust-boundary contract.
 
 When adding schema features, preserve old schema behavior or reject with a clear diagnostic. Do not silently reinterpret older metadata.
 
 Generated report names should remain stable and descriptive. Prefer the future `spindle.*.json` naming convention for new artifacts, but do not rename existing files unless the task asks for a migration.
+
+`spindle.security-report.json` is a deterministic trust-boundary report, not a sandbox claim or a malware verdict.
 
 Do not commit files from `runtime/`.
 

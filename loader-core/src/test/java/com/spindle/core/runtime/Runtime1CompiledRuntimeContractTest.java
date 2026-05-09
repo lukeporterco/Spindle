@@ -43,6 +43,7 @@ class Runtime1CompiledRuntimeContractTest {
     assertTrue(Files.exists(compiledProfilePath));
     assertTrue(Files.exists(tempDirectory.resolve("spindle.lifecycle-report.json")));
     assertTrue(Files.exists(tempDirectory.resolve("spindle.quality-report.json")));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.security-report.json")));
 
     String diagnostics = Files.readString(tempDirectory.resolve("diagnostics/startup-trace.json"));
     assertTrue(diagnostics.contains("\"name\": \"runtime.compiled_profile.write\""));
@@ -286,6 +287,7 @@ class Runtime1CompiledRuntimeContractTest {
     assertTrue(Files.exists(tempDirectory.resolve("spindle.profile.json")));
     assertTrue(Files.exists(tempDirectory.resolve("spindle.lifecycle-report.json")));
     assertTrue(Files.exists(tempDirectory.resolve("spindle.quality-report.json")));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.security-report.json")));
   }
 
   private JsonObject readCompiledProfile() throws IOException {

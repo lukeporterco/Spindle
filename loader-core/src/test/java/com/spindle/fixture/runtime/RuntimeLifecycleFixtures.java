@@ -1,0 +1,65 @@
+package com.spindle.fixture.runtime;
+
+import com.spindle.api.ModContext;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+
+public final class RuntimeLifecycleFixtures {
+  private RuntimeLifecycleFixtures() {}
+
+  public static final class AlphaLifecycle {
+    public static void bootstrap(ModContext context) throws Exception {
+      append(context, "alpha|BOOTSTRAP");
+      Files.writeString(
+          context.generatedDirectory().resolve("alpha.marker"),
+          "alpha-bootstrap\n",
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    public static void preServerMain(ModContext context) throws Exception {
+      append(context, "alpha|PRE_SERVER_MAIN");
+    }
+  }
+
+  public static final class BetaLifecycle {
+    public static void bootstrap(ModContext context) throws Exception {
+      append(context, "beta|BOOTSTRAP");
+      Files.writeString(
+          context.generatedDirectory().resolve("beta.marker"),
+          "beta-bootstrap\n",
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    public static void configure(ModContext context) throws Exception {
+      append(context, "beta|CONFIGURE");
+    }
+  }
+
+  public static final class InvalidLifecycleHandler {
+    public static void bootstrap(String ignored) {}
+  }
+
+  public static final class SecurityReportAwareLifecycle {
+    public static void bootstrap(ModContext context) throws IOException {
+      append(
+          context,
+          "report-exists="
+              + Files.exists(context.workingDirectory().resolve("spindle.security-report.json")));
+    }
+  }
+
+  private static void append(ModContext context, String line) throws IOException {
+    Files.writeString(
+        context.workingDirectory().resolve("lifecycle.log"),
+        line + System.lineSeparator(),
+        StandardCharsets.UTF_8,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.APPEND);
+  }
+}

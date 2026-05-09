@@ -3,6 +3,7 @@ package com.spindle.core.runtime;
 import com.spindle.api.ModContext;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
+import com.spindle.core.security.SecurityRuleId;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,7 +59,9 @@ public final class ModContextFactory {
     Path resolved = workingDirectory.resolve(relativePath).normalize();
     if (!resolved.startsWith(workingDirectory)) {
       throw new LoaderException(
-          "Mod `"
+          "["
+              + SecurityRuleId.SEC_PATH_001.id()
+              + "] Mod `"
               + modId
               + "` declares "
               + directoryKind

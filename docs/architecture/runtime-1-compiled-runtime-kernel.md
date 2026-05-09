@@ -87,12 +87,13 @@ Runtime-1 adds:
 - deterministic owned storage creation under `config/`, `mod-data/`, `cache/mods/`, and `generated/`
 - precomputed mod contexts built from the compiled profile
 - lifecycle execution reports written from planned and executed handlers
+- deterministic security validation reports written before standard lifecycle execution
 
 Schema `1` `main` entrypoints remain available as legacy `BOOTSTRAP` handlers through a compatibility shim. Milestone 8 `minecraftServer` entrypoints remain on the Minecraft bootstrap path.
 
 ## Package Policy and Reports
 
-Runtime-1 records runtime package policy in the compiled profile and rejects protected package definitions before classloading on the standard runtime path for schema `2` mods. Legacy schema `1` fixtures remain on the compatibility path.
+Runtime-1 records runtime package policy in the compiled profile and writes `spindle.security-report.json` before standard lifecycle execution. Fatal Security-0 findings block schema `2` standard lifecycle execution before handler invocation. Legacy schema `1` fixtures remain on the compatibility path.
 
 Protected package coverage now includes at least:
 
@@ -103,10 +104,26 @@ Protected package coverage now includes at least:
 
 Runtime-1 also writes:
 
+- `spindle.security-report.json`
 - `spindle.lifecycle-report.json`
 - `spindle.quality-report.json`
 
-These reports are deterministic and summarize planned lifecycle handlers, executed handlers, cache state, owned storage directories, duplicate resources, split packages, protected package findings, metadata findings, and quality score.
+These reports are deterministic and summarize planned lifecycle handlers, executed handlers, cache state, owned storage directories, duplicate resources, split packages, protected package findings, metadata findings, security findings, and quality score.
+
+`spindle.security-report.json` is the Runtime-1 trust-boundary report for the standard non-Minecraft path. It includes:
+
+- `profileFingerprint`
+- `inputFingerprint`
+- `runtimePolicyFingerprint`
+- `securityPolicyFingerprint`
+- `executionIsolationMode`
+- `sandboxed`
+- `sandboxClaim`
+- fatal and warning counts
+- deterministic validated surfaces
+- deterministic findings ordered by severity, rule id, mod id, and location
+
+The report is explicit that Runtime-1 mod execution remains `in-process-unrestricted-java` and `not-sandboxed`. Passing validation means the mod passed current Spindle boundary checks, not that the mod is generally safe.
 
 `duplicateClasses` may be empty in the compiled profile when duplicate-class situations fail earlier as fatal ownership/package policy violations before a profile is written.
 
@@ -116,6 +133,8 @@ These reports are deterministic and summarize planned lifecycle handlers, execut
 - `executed`: standard runtime lifecycle execution completed and attempted/successful/failed handler lists reflect that run
 
 `spindle.quality-report.json` is an early deterministic signal, not a certification system. Runtime-1 records the current score as a stable heuristic for duplicate resources, split packages, protected package violations, and metadata/runtime-surface concerns. It is intentionally narrow and should not be read as compatibility certification or long-term ecosystem scoring.
+
+Milestone 8 Minecraft bootstrap remains separate. Security-0 does not claim that approved bootstrap mods are sandboxed, and not every Runtime-1 schema `2` rule applies to that bootstrap-only path yet.
 
 ## Non-goals
 

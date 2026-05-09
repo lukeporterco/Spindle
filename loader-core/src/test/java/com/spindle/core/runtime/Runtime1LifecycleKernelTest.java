@@ -11,6 +11,7 @@ import com.spindle.core.app.LoaderApplication;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.security.SecurityRuleId;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.AlphaLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.BetaLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.InvalidLifecycleHandler;
@@ -96,6 +97,10 @@ class Runtime1LifecycleKernelTest {
     assertTrue(
         exception
             .getMessage()
+            .contains(SecurityRuleId.SEC_LIFECYCLE_002.id()));
+    assertTrue(
+        exception
+            .getMessage()
             .contains("public static void bootstrap(com.spindle.api.ModContext)"));
     assertFalse(Files.exists(tempDirectory.resolve("lifecycle.log")));
     JsonObject report =
@@ -109,7 +114,7 @@ class Runtime1LifecycleKernelTest {
   }
 
   @Test
-  void protectedPackageDefinitionsAreRejectedBeforeClassloading() throws Exception {
+  void protectedPackageDefinitionsProduceBlockedSecurityReportDuringValidateOnly() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/protected.jar"),
         "protectedmod",
@@ -117,11 +122,20 @@ class Runtime1LifecycleKernelTest {
         Map.of("com/spindle/core/Hijack.class", new byte[] {1, 2, 3}),
         true);
 
-    LoaderException exception = assertThrows(LoaderException.class, this::executeValidateOnly);
+    executeValidateOnly();
 
-    assertTrue(exception.getMessage().contains("protectedmod"));
-    assertTrue(exception.getMessage().contains("com.spindle.core"));
-    assertFalse(Files.exists(tempDirectory.resolve("spindle.profile.json")));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.profile.json")));
+    JsonObject securityReport =
+        JsonParser.parseString(
+                Files.readString(
+                    tempDirectory.resolve("spindle.security-report.json"),
+                    StandardCharsets.UTF_8))
+            .getAsJsonObject();
+    assertEquals("blocked", securityReport.get("state").getAsString());
+    assertEquals(1, securityReport.get("fatalCount").getAsInt());
+    assertEquals(
+        SecurityRuleId.SEC_PACKAGE_001.id(),
+        securityReport.getAsJsonArray("findings").get(0).getAsJsonObject().get("ruleId").getAsString());
   }
 
   @Test

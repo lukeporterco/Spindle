@@ -8,6 +8,7 @@ import com.google.gson.JsonParser;
 import com.spindle.api.lifecycle.LifecyclePhase;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.discovery.ModCandidate;
+import com.spindle.core.security.SecurityRuleId;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -64,22 +65,23 @@ public final class ModMetadataParser {
     try {
       jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
     } catch (IllegalStateException | JsonParseException exception) {
-      throw new LoaderException("Invalid metadata JSON in " + sourceName, exception);
+      throw new LoaderException(metadataError("Invalid metadata JSON in " + sourceName), exception);
     }
 
     int schema = requiredInt(jsonObject, "schema", sourceName);
     if (schema != 1 && schema != 2) {
       throw new LoaderException(
-          "Unsupported metadata schema `"
-              + schema
-              + "` in "
-              + sourceName
-              + ". Spindle supports schema `1` and schema `2`.");
+          metadataError(
+              "Unsupported metadata schema `"
+                  + schema
+                  + "` in "
+                  + sourceName
+                  + ". Spindle supports schema `1` and schema `2`."));
     }
 
     String id = requiredString(jsonObject, "id", sourceName).trim();
     if (!MOD_ID_PATTERN.matcher(id).matches()) {
-      throw new LoaderException("Invalid mod id in " + sourceName + ": " + id);
+      throw new LoaderException(metadataError("Invalid mod id in " + sourceName + ": " + id));
     }
 
     String version = requiredString(jsonObject, "version", sourceName).trim();
@@ -89,7 +91,7 @@ public final class ModMetadataParser {
 
     String side = requiredString(jsonObject, "side", sourceName).trim();
     if (!VALID_SIDES.contains(side)) {
-      throw new LoaderException("Invalid mod side in " + sourceName + ": " + side);
+      throw new LoaderException(metadataError("Invalid mod side in " + sourceName + ": " + side));
     }
     Map<String, List<String>> entrypoints = parseEntrypoints(jsonObject, sourceName, schema == 1);
     Map<String, List<String>> lifecycle =
@@ -173,7 +175,8 @@ public final class ModMetadataParser {
     }
     if (!jsonObject.get("lifecycle").isJsonObject()) {
       throw new LoaderException(
-          "Mod `" + modId + "` must declare `lifecycle` as an object in " + sourceName + ".");
+          lifecycleError(
+              "Mod `" + modId + "` must declare `lifecycle` as an object in " + sourceName + "."));
     }
 
     JsonObject lifecycleObject = jsonObject.getAsJsonObject("lifecycle");
@@ -183,59 +186,64 @@ public final class ModMetadataParser {
       String phase = entry.getKey().trim();
       if (!VALID_LIFECYCLE_PHASES.contains(phase)) {
         throw new LoaderException(
-            "Mod `"
-                + modId
-                + "` declares unsupported lifecycle phase `"
-                + phase
-                + "` in "
-                + sourceName
-                + ". Expected one of "
-                + String.join(", ", VALID_LIFECYCLE_PHASES));
+            lifecycleError(
+                "Mod `"
+                    + modId
+                    + "` declares unsupported lifecycle phase `"
+                    + phase
+                    + "` in "
+                    + sourceName
+                    + ". Expected one of "
+                    + String.join(", ", VALID_LIFECYCLE_PHASES)));
       }
       if (!entry.getValue().isJsonArray()) {
         throw new LoaderException(
-            "Mod `"
-                + modId
-                + "` must declare `lifecycle."
-                + phase
-                + "` as an array in "
-                + sourceName
-                + ".");
+            lifecycleError(
+                "Mod `"
+                    + modId
+                    + "` must declare `lifecycle."
+                    + phase
+                    + "` as an array in "
+                    + sourceName
+                    + "."));
       }
       JsonArray array = entry.getValue().getAsJsonArray();
       if (array.size() == 0) {
         throw new LoaderException(
-            "Mod `"
-                + modId
-                + "` declares empty `lifecycle."
-                + phase
-                + "` in "
-                + sourceName
-                + "; declare at least one handler.");
+            lifecycleError(
+                "Mod `"
+                    + modId
+                    + "` declares empty `lifecycle."
+                    + phase
+                    + "` in "
+                    + sourceName
+                    + "; declare at least one handler."));
       }
       List<String> declarations = new ArrayList<>();
       for (JsonElement element : array) {
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
           throw new LoaderException(
-              "Mod `"
-                  + modId
-                  + "` must declare string handler values in `lifecycle."
-                  + phase
-                  + "` in "
-                  + sourceName
-                  + ".");
+              lifecycleError(
+                  "Mod `"
+                      + modId
+                      + "` must declare string handler values in `lifecycle."
+                      + phase
+                      + "` in "
+                      + sourceName
+                      + "."));
         }
         String declaration = element.getAsString().trim();
         if (!LIFECYCLE_DECLARATION_PATTERN.matcher(declaration).matches()) {
           throw new LoaderException(
-              "Mod `"
-                  + modId
-                  + "` declares lifecycle handler `"
-                  + declaration
-                  + "` for phase `"
-                  + phase
-                  + "`, but expected `ClassName::methodName` in "
-                  + sourceName);
+              lifecycleError(
+                  "Mod `"
+                      + modId
+                      + "` declares lifecycle handler `"
+                      + declaration
+                      + "` for phase `"
+                      + phase
+                      + "`, but expected `ClassName::methodName` in "
+                      + sourceName));
         }
         declarations.add(declaration);
       }
@@ -250,18 +258,23 @@ public final class ModMetadataParser {
       return List.of();
     }
     if (!jsonObject.get("permissions").isJsonArray()) {
-      throw new LoaderException("permissions must be an array in " + sourceName);
+      throw new LoaderException(metadataError("permissions must be an array in " + sourceName));
     }
     List<String> permissions = new ArrayList<>();
     for (JsonElement element : jsonObject.getAsJsonArray("permissions")) {
       if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
         throw new LoaderException(
-            "permissions must contain strings for mod `" + modId + "` in " + sourceName);
+            metadataError(
+                "permissions must contain strings for mod `" + modId + "` in " + sourceName));
       }
       String permission = element.getAsString().trim();
       if (permission.isEmpty()) {
         throw new LoaderException(
-            "permissions must not contain empty values for mod `" + modId + "` in " + sourceName);
+            metadataError(
+                "permissions must not contain empty values for mod `"
+                    + modId
+                    + "` in "
+                    + sourceName));
       }
       permissions.add(permission);
     }
@@ -275,7 +288,8 @@ public final class ModMetadataParser {
     }
     if (!jsonObject.get("storage").isJsonObject()) {
       throw new LoaderException(
-          "Mod `" + modId + "` must declare `storage` as an object in " + sourceName + ".");
+          metadataError(
+              "Mod `" + modId + "` must declare `storage` as an object in " + sourceName + "."));
     }
     JsonObject storageObject = jsonObject.getAsJsonObject("storage");
     return new ModMetadata.Storage(
@@ -368,14 +382,23 @@ public final class ModMetadataParser {
     JsonElement element = jsonObject.get(key);
     if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
       throw new LoaderException(
-          "Mod `"
-              + modId
-              + "` must declare `"
-              + displayField
-              + "` as a boolean in "
-              + sourceName
-              + ".");
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `"
+                  + displayField
+                  + "` as a boolean in "
+                  + sourceName
+                  + "."));
     }
     return element.getAsBoolean();
+  }
+
+  private String metadataError(String message) {
+    return "[" + SecurityRuleId.SEC_METADATA_001.id() + "] " + message;
+  }
+
+  private String lifecycleError(String message) {
+    return "[" + SecurityRuleId.SEC_LIFECYCLE_001.id() + "] " + message;
   }
 }
