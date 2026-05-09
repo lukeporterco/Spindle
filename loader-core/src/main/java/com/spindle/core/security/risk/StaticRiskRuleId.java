@@ -29,4 +29,13 @@ public enum StaticRiskRuleId implements RuleId {
   public String toString() {
     return id;
   }
+
+  public static StaticRiskRuleId fromId(String id) {
+    for (StaticRiskRuleId value : values()) {
+      if (value.id.equals(id)) {
+        return value;
+      }
+    }
+    throw new IllegalArgumentException("Unknown static risk rule id: " + id);
+  }
 }

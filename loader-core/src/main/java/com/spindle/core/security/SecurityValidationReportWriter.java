@@ -38,8 +38,18 @@ public final class SecurityValidationReportWriter {
     root.addProperty("runtimePolicyFingerprint", report.runtimePolicyFingerprint());
     root.addProperty("securityPolicyFingerprint", report.securityPolicyFingerprint());
     root.addProperty("executionIsolationMode", report.executionIsolationMode());
+    root.addProperty("runtimeExecutionIsolationMode", report.runtimeExecutionIsolationMode());
     root.addProperty("sandboxed", report.sandboxed());
+    root.addProperty("runtimeSandboxed", report.runtimeSandboxed());
     root.addProperty("sandboxClaim", report.sandboxClaim());
+    JsonObject toolIsolation = new JsonObject();
+    toolIsolation.addProperty("mode", report.toolIsolation().mode());
+    toolIsolation.addProperty("worker", report.toolIsolation().worker());
+    toolIsolation.addProperty("status", report.toolIsolation().status());
+    if (report.toolIsolation().outputPath() != null) {
+      toolIsolation.addProperty("outputPath", report.toolIsolation().outputPath());
+    }
+    root.add("toolIsolation", toolIsolation);
     root.addProperty("fatalCount", report.fatalCount());
     root.addProperty("warningCount", report.warningCount());
 

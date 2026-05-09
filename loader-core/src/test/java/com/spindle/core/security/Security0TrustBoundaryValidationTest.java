@@ -62,8 +62,14 @@ class Security0TrustBoundaryValidationTest {
     assertEquals(2, report.get("warningCount").getAsInt());
     assertEquals(
         "in-process-unrestricted-java", report.get("executionIsolationMode").getAsString());
+    assertEquals(
+        "in-process-unrestricted-java", report.get("runtimeExecutionIsolationMode").getAsString());
     assertFalse(report.get("sandboxed").getAsBoolean());
+    assertFalse(report.get("runtimeSandboxed").getAsBoolean());
     assertEquals("not-sandboxed", report.get("sandboxClaim").getAsString());
+    assertEquals(
+        "restricted-child-jvm", report.getAsJsonObject("toolIsolation").get("mode").getAsString());
+    assertEquals("passed", report.getAsJsonObject("toolIsolation").get("status").getAsString());
     assertTrue(report.get("securityPolicyFingerprint").getAsString().matches("[0-9a-f]{64}"));
   }
 

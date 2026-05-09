@@ -2,12 +2,14 @@ package com.spindle.core.security;
 
 import com.spindle.core.security.risk.StaticRiskSignal;
 import com.spindle.core.security.risk.StaticRiskSummary;
+import com.spindle.core.security.tool.RestrictedToolResult;
 import com.spindle.core.security.trust.ArtifactTrustEntry;
 import com.spindle.core.security.trust.ArtifactTrustSummary;
 import java.util.List;
 
 public record SecurityValidationResult(
     SecurityPolicyFingerprint securityPolicyFingerprint,
+    RestrictedToolResult restrictedToolResult,
     List<String> validatedSurfaces,
     List<ArtifactTrustEntry> artifactTrustEntries,
     ArtifactTrustSummary artifactTrustSummary,
@@ -15,6 +17,8 @@ public record SecurityValidationResult(
     List<StaticRiskSignal> staticRiskSignals,
     List<SecurityFinding> findings) {
   public SecurityValidationResult {
+    restrictedToolResult =
+        java.util.Objects.requireNonNull(restrictedToolResult, "restrictedToolResult");
     validatedSurfaces = List.copyOf(validatedSurfaces);
     artifactTrustEntries = List.copyOf(artifactTrustEntries);
     staticRiskSummary = staticRiskSummary == null ? StaticRiskSummary.EMPTY : staticRiskSummary;

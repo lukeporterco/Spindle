@@ -38,9 +38,17 @@ public final class CompiledRuntimeOrchestrator {
   private final RuntimeQualityReporter runtimeQualityReporter = new RuntimeQualityReporter();
   private final RuntimeQualityReportWriter runtimeQualityReportWriter =
       new RuntimeQualityReportWriter();
-  private final SecurityValidator securityValidator = new SecurityValidator();
+  private final SecurityValidator securityValidator;
   private final SecurityValidationReportWriter securityValidationReportWriter =
       new SecurityValidationReportWriter();
+
+  public CompiledRuntimeOrchestrator() {
+    this(new SecurityValidator());
+  }
+
+  CompiledRuntimeOrchestrator(SecurityValidator securityValidator) {
+    this.securityValidator = securityValidator;
+  }
 
   public CompiledRuntimeResult compile(
       LaunchContext context,

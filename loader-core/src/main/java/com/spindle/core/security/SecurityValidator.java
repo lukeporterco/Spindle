@@ -8,7 +8,8 @@ import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.CompiledModpackProfileFingerprint;
 import com.spindle.core.runtime.ProtectedPackageViolation;
 import com.spindle.core.runtime.RuntimeProtectedPackagePolicy;
-import com.spindle.core.security.risk.StaticRiskAnalyzer;
+import com.spindle.core.security.tool.RestrictedToolProcessLauncher;
+import com.spindle.core.security.tool.RestrictedToolResult;
 import com.spindle.core.security.trust.ArtifactTrustEvaluation;
 import com.spindle.core.security.trust.ArtifactTrustEvaluator;
 import java.nio.file.InvalidPathException;
@@ -25,7 +26,15 @@ public final class SecurityValidator {
   private final CompiledModpackProfileFingerprint profileFingerprintCalculator =
       new CompiledModpackProfileFingerprint();
   private final ArtifactTrustEvaluator artifactTrustEvaluator = new ArtifactTrustEvaluator();
-  private final StaticRiskAnalyzer staticRiskAnalyzer = new StaticRiskAnalyzer();
+  private final RestrictedToolProcessLauncher restrictedToolProcessLauncher;
+
+  public SecurityValidator() {
+    this(new RestrictedToolProcessLauncher());
+  }
+
+  SecurityValidator(RestrictedToolProcessLauncher restrictedToolProcessLauncher) {
+    this.restrictedToolProcessLauncher = restrictedToolProcessLauncher;
+  }
 
   public SecurityValidationResult validate(SecurityValidationContext context)
       throws LoaderException {
@@ -38,8 +47,10 @@ public final class SecurityValidator {
         artifactTrustEvaluator.evaluate(
             context.planningResult().resolvedMods().mods(),
             context.planningResult().lockfileAction());
-    StaticRiskAnalyzer.Analysis staticRiskAnalysis =
-        staticRiskAnalyzer.analyze(context.planningResult().resolvedMods().mods());
+    RestrictedToolResult restrictedToolResult =
+        restrictedToolProcessLauncher.runStaticRiskScan(
+            context.launchContext().workingDirectory(),
+            context.planningResult().resolvedMods().mods());
 
     validateLoaderOwnedPackages(context.planningResult(), resolvedModsById, findings);
     validateProtectedPackages(context.planningResult(), findings);
@@ -49,15 +60,16 @@ public final class SecurityValidator {
     validateRequestedPermissions(context.compiledProfile(), findings);
     validateRuntimeIdentity(context, findings);
     findings.addAll(artifactTrustEvaluation.findings());
-    findings.addAll(staticRiskAnalysis.findings());
+    findings.addAll(restrictedToolResult.findings());
 
     return new SecurityValidationResult(
         securityPolicyFingerprint,
+        restrictedToolResult,
         policy.validatedSurfaces(),
         artifactTrustEvaluation.entries(),
         artifactTrustEvaluation.summary(),
-        staticRiskAnalysis.summary(),
-        staticRiskAnalysis.signals(),
+        restrictedToolResult.analysis().summary(),
+        restrictedToolResult.analysis().signals(),
         findings);
   }
 
@@ -75,8 +87,15 @@ public final class SecurityValidator {
         context.currentRuntimePolicyFingerprint(),
         validationResult.securityPolicyFingerprint().value(),
         SecurityPolicy.EXECUTION_ISOLATION_MODE,
+        SecurityPolicy.EXECUTION_ISOLATION_MODE,
+        false,
         false,
         SecurityPolicy.SANDBOX_CLAIM,
+        new SecurityValidationReport.ToolIsolation(
+            validationResult.restrictedToolResult().mode().id(),
+            validationResult.restrictedToolResult().worker(),
+            validationResult.restrictedToolResult().status(),
+            validationResult.restrictedToolResult().outputPath()),
         validationResult.fatalCount(),
         validationResult.warningCount(),
         validationResult.validatedSurfaces(),

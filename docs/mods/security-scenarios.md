@@ -1,6 +1,6 @@
 # Security Scenarios
 
-These examples show how Runtime-1 trust-boundary validation, artifact trust, and Security-2 static risk signals behave today.
+These examples show how Runtime-1 trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
 
 ## Clean Lifecycle-Only Mod
 
@@ -11,6 +11,7 @@ Result:
 - `spindle.security-report.json` is written
 - `state` is `validated`
 - `riskSignals.summary.signalCount` is `0`
+- `toolIsolation.status` is `passed`
 - standard lifecycle execution proceeds
 
 Interpretation:
@@ -18,6 +19,7 @@ Interpretation:
 - the mod still runs as unrestricted in-process Java code
 - Spindle is not claiming sandboxing or safety
 - the current static scanner did not find warning signals
+- the static scanner still ran, but in a restricted child JVM that treated the jar as data
 
 ## Ada Builds A Local Unsigned Development Jar
 
@@ -97,6 +99,7 @@ Result:
 
 - Spindle writes warning `RISK-NETWORK-001`
 - the detailed `riskSignals.signals[*]` entry points at the class entry and evidence string
+- `toolIsolation.mode` is `restricted-child-jvm`
 - execution still proceeds if no fatal findings exist
 
 Likely follow-up:
@@ -229,3 +232,26 @@ Important:
 - multiple warnings can look concerning
 - Spindle still does not claim that these warnings prove malware
 - users and pack builders should review and document why the mod needs those behaviors
+
+## Worker Fails Before Producing Trusted Output
+
+A user hits a reproducible static-tooling failure, such as invalid worker output or a broken local child-JVM invocation.
+
+Result:
+
+- Spindle writes fatal `SEC-TOOL-001`
+- `toolIsolation.status` is `failed`
+- `toolIsolation.worker` is `static-risk-scan`
+- standard lifecycle execution is blocked before handler invocation
+
+Likely fix:
+
+- rerun Spindle
+- inspect concise diagnostics
+- clear `.spindle/security-tools`
+- report a Spindle bug if the failure is reproducible
+
+Important:
+
+- this is not runtime sandboxing
+- Spindle fails closed because silently skipping security tooling would be misleading

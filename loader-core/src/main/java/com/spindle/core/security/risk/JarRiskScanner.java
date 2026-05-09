@@ -1,7 +1,6 @@
 package com.spindle.core.security.risk;
 
 import com.spindle.core.diagnostics.LoaderException;
-import com.spindle.core.resolve.ResolvedModSet;
 import com.spindle.core.security.SecurityLocation;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,7 +13,7 @@ import java.util.zip.ZipEntry;
 public final class JarRiskScanner {
   private final ClassConstantPoolRiskScanner classScanner = new ClassConstantPoolRiskScanner();
 
-  public JarRiskScanResult scan(ResolvedModSet.ResolvedMod mod) throws LoaderException {
+  public JarRiskScanResult scan(StaticRiskAnalyzer.TargetMod mod) throws LoaderException {
     List<ClassEntryScan> classEntries = new ArrayList<>();
     List<String> nativeEntries = new ArrayList<>();
     List<String> serviceEntries = new ArrayList<>();

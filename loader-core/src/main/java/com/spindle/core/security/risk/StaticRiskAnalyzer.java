@@ -21,15 +21,30 @@ public final class StaticRiskAnalyzer {
   private final JarRiskScanner jarRiskScanner = new JarRiskScanner();
 
   public Analysis analyze(List<ResolvedModSet.ResolvedMod> mods) throws LoaderException {
+    return analyzeTargets(mods.stream().map(TargetMod::fromResolvedMod).toList());
+  }
+
+  public Analysis analyzeTargets(List<TargetMod> mods) throws LoaderException {
     List<StaticRiskSignal> signals = new ArrayList<>();
     Map<String, String> jarPathsByModId = new java.util.TreeMap<>();
-    for (ResolvedModSet.ResolvedMod mod :
-        mods.stream()
-            .sorted(Comparator.comparing(ResolvedModSet.ResolvedMod::normalizedRelativePath))
-            .toList()) {
+    for (TargetMod mod :
+        mods.stream().sorted(Comparator.comparing(TargetMod::normalizedRelativePath)).toList()) {
       jarPathsByModId.put(mod.id(), mod.normalizedRelativePath());
       analyzeMod(mod, signals);
     }
+    return analysisFromSignals(jarPathsByModId, signals);
+  }
+
+  public Analysis analysisFromSignals(List<TargetMod> mods, List<StaticRiskSignal> signals) {
+    Map<String, String> jarPathsByModId = new java.util.TreeMap<>();
+    for (TargetMod mod : mods) {
+      jarPathsByModId.put(mod.id(), mod.normalizedRelativePath());
+    }
+    return analysisFromSignals(jarPathsByModId, signals);
+  }
+
+  private Analysis analysisFromSignals(
+      Map<String, String> jarPathsByModId, List<StaticRiskSignal> signals) {
     List<StaticRiskSignal> sortedSignals = signals.stream().sorted(StaticRiskSignal.ORDER).toList();
     return new Analysis(
         StaticRiskSummary.from(sortedSignals),
@@ -37,8 +52,7 @@ public final class StaticRiskAnalyzer {
         summarizeFindings(sortedSignals, jarPathsByModId));
   }
 
-  private void analyzeMod(ResolvedModSet.ResolvedMod mod, List<StaticRiskSignal> signals)
-      throws LoaderException {
+  private void analyzeMod(TargetMod mod, List<StaticRiskSignal> signals) throws LoaderException {
     JarRiskScanner.JarRiskScanResult scanResult = jarRiskScanner.scan(mod);
     signals.addAll(scanResult.scanWarnings());
 
@@ -395,10 +409,25 @@ public final class StaticRiskAnalyzer {
 
   public record Analysis(
       StaticRiskSummary summary, List<StaticRiskSignal> signals, List<SecurityFinding> findings) {
+    public static final Analysis EMPTY =
+        new Analysis(StaticRiskSummary.EMPTY, List.of(), List.of());
+
     public Analysis {
       summary = summary == null ? StaticRiskSummary.EMPTY : summary;
       signals = List.copyOf(signals);
       findings = List.copyOf(findings);
+    }
+  }
+
+  public record TargetMod(String id, String normalizedRelativePath, java.nio.file.Path jarPath) {
+    public TargetMod {
+      normalizedRelativePath =
+          normalizedRelativePath == null ? null : normalizedRelativePath.trim().replace('\\', '/');
+      jarPath = jarPath.toAbsolutePath().normalize();
+    }
+
+    public static TargetMod fromResolvedMod(ResolvedModSet.ResolvedMod mod) {
+      return new TargetMod(mod.id(), mod.normalizedRelativePath(), mod.jarPath());
     }
   }
 }

@@ -4,6 +4,8 @@ Spindle mods are Java code loaded into the runtime process.
 
 Spindle does not currently sandbox arbitrary runtime mods. A mod that passes validation is still executable code with the same broad process-level access that normal in-process Java code has.
 
+Spindle does isolate some Spindle-owned analysis tooling where that tooling can treat mod jars as data. Today that means the static risk scanner runs in a restricted child JVM instead of the main runtime process.
+
 ## What Spindle Validates
 
 For schema `2` standard runtime mods, Spindle validates a narrow non-invasive contract before lifecycle execution:
@@ -11,6 +13,7 @@ For schema `2` standard runtime mods, Spindle validates a narrow non-invasive co
 - local artifact hash identity from `spindle.lock.json`
 - optional detached artifact signature sidecars
 - warning-only static jar risk signals
+- restricted child-JVM execution for static security tooling
 - lifecycle declaration shape
 - lifecycle handler signature
 - loader-owned and protected package ownership
@@ -37,6 +40,8 @@ Requested permissions are currently documentation and reporting signals only.
 Static risk signals are also visibility signals only. A warning about reflection, networking, native libraries, or process APIs does not mean the mod is malware. It means the mod references something users and pack builders may want to review and document.
 
 Spindle does verify a small loader-native signature format when a `.spindle-signature.json` sidecar is present. That is artifact identity verification, not a broader safety verdict.
+
+If restricted static tooling fails, Spindle treats that as fatal instead of silently skipping the analysis. The report records `SEC-TOOL-001` with the worker name, output path, and a concise likely fix.
 
 ## Schema `2` Contract
 
@@ -93,6 +98,6 @@ If you place a sidecar beside a jar, Spindle treats that as an explicit trust cl
 
 That convenience does not mean the mod is sandboxed. The report is explicit about the trust model so local development stays ergonomic without overstating security guarantees.
 
-The Security-2 scanner reads jar entries and class constant-pool UTF-8 strings only. It does not add mod jars to the scanner classpath, does not use reflection to inspect mod classes, and does not execute mod code while producing these warnings.
+The Security-2 scanner reads jar entries and class constant-pool UTF-8 strings only. In Security-3 it runs inside a restricted child JVM. That worker does not add mod jars to its classpath, does not use reflection to inspect mod classes, and does not execute mod code while producing these warnings.
 
 Prefer `ModContext` directories over ad hoc file paths. They keep the runtime contract readable, deterministic, and within the working-directory boundary that Spindle can validate.

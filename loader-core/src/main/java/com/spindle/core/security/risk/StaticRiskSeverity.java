@@ -18,4 +18,13 @@ public enum StaticRiskSeverity {
   public int sortOrder() {
     return sortOrder;
   }
+
+  public static StaticRiskSeverity fromId(String id) {
+    for (StaticRiskSeverity value : values()) {
+      if (value.id.equals(id)) {
+        return value;
+      }
+    }
+    throw new IllegalArgumentException("Unknown static risk severity id: " + id);
+  }
 }

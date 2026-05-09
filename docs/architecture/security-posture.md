@@ -18,20 +18,32 @@ Security-1 adds deterministic artifact trust reporting for local jars, lockfile 
 
 Security-2 adds warning-only static risk signals for resolved mod jars without classloading or executing mod code.
 
+Security-3 moves static security tooling that can safely run out of process into a restricted child JVM. The first worker is the Security-2 static risk scanner.
+
 It writes `spindle.security-report.json` with:
 
 - stable rule ids
 - fatal findings that block standard lifecycle execution
 - warning findings that remain report-only
 - explicit runtime posture fields
+- explicit restricted-tool isolation fields
 - an `artifactTrust` section with per-artifact trust state and summary counts
 - a `riskSignals` section with warning-only static jar and constant-pool evidence
 
 The report always states:
 
 - `executionIsolationMode: "in-process-unrestricted-java"`
+- `runtimeExecutionIsolationMode: "in-process-unrestricted-java"`
 - `sandboxed: false`
+- `runtimeSandboxed: false`
 - `sandboxClaim: "not-sandboxed"`
+
+For static risk scanning, the report also states:
+
+- `toolIsolation.mode: "restricted-child-jvm"`
+- `toolIsolation.worker: "static-risk-scan"`
+- `toolIsolation.status: "passed"` or `"failed"`
+- `toolIsolation.outputPath: ".spindle/security-tools/static-risk-scan/output.json"`
 
 ## Validated Surfaces
 
@@ -48,6 +60,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - requested permissions visibility
 - runtime and compiled profile identity fingerprints
 - static jar risk signals from constant-pool UTF-8 strings, native files, service-provider files, and nested jars
+- restricted child-JVM execution for Spindle-owned static analysis tooling that can treat jars as data
 
 ## Current Rules
 
@@ -67,6 +80,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - `SEC-TRUST-004`: signature verification failed
 - `SEC-TRUST-005`: artifact is locked by hash but has no publisher identity
 - `SEC-TRUST-006`: provenance is not present
+- `SEC-TOOL-001`: restricted security tool failed or produced invalid output
 - `SEC-METADATA-001`: metadata schema or security-relevant metadata field is invalid
 - `SEC-RUNTIME-001`: runtime policy or compiled profile identity mismatch
 - `RISK-PROCESS-001`: process execution APIs are referenced
@@ -93,5 +107,7 @@ Security-2 still does not add:
 The current sidecar model is intentionally local and loader-native. A valid sidecar proves that a specific signer key signed a specific jar hash and the signed mod id/version. It does not claim ecosystem review, malware analysis, or platform endorsement.
 
 The static risk scanner is intentionally limited. It reads jar entries and UTF-8 constant-pool strings only. It does not classload mods, execute mod code, or claim that a warning proves malicious intent.
+
+Security-3 isolates that scanner in a restricted child JVM because the scanner can run without mod classloading. That child JVM does not put mod jars on its classpath and does not execute mod code. This is tooling isolation, not runtime mod sandboxing.
 
 Milestone 8 Minecraft bootstrap remains a separate server-only path. Its bootstrap checks still apply, but Security-0 does not claim that bootstrap-approved Minecraft mods are sandboxed or generally safe either.
