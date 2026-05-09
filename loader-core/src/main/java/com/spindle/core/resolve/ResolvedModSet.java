@@ -24,7 +24,8 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
       int metadataSchema,
       Map<String, List<String>> lifecycle,
       List<String> permissions,
-      com.spindle.core.metadata.ModMetadata.Storage storage) {
+      com.spindle.core.metadata.ModMetadata.Storage storage,
+      com.spindle.core.metadata.ModMetadata.Services services) {
     public ResolvedMod(
         String id,
         String version,
@@ -46,7 +47,8 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
           1,
           Map.of(),
           List.of(),
-          com.spindle.core.metadata.ModMetadata.Storage.disabled());
+          com.spindle.core.metadata.ModMetadata.Storage.disabled(),
+          com.spindle.core.metadata.ModMetadata.Services.empty());
     }
 
     public ResolvedMod {
@@ -73,6 +75,8 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
       permissions = List.copyOf(permissions);
       storage =
           storage == null ? com.spindle.core.metadata.ModMetadata.Storage.disabled() : storage;
+      services =
+          services == null ? com.spindle.core.metadata.ModMetadata.Services.empty() : services;
     }
 
     public String normalizedRelativePath() {

@@ -9,6 +9,12 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.service.RuntimeServiceBinding;
+import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
+import com.spindle.core.runtime.service.RuntimeServiceContract;
+import com.spindle.core.runtime.service.RuntimeServiceModPlan;
+import com.spindle.core.runtime.service.RuntimeServiceProviderPlan;
+import com.spindle.core.runtime.service.RuntimeServiceSummary;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +43,7 @@ public final class CompiledModpackProfileReader {
           readOwnership(requiredObject(root, "ownership")),
           readLockfile(requiredObject(root, "lockfile")),
           readPermissions(requiredObject(root, "permissions")),
+          readServices(root.has("services") ? root.getAsJsonObject("services") : null),
           readLifecycle(requiredObject(root, "lifecycle")),
           readContexts(requiredObject(root, "contexts")),
           readPackagePolicy(requiredObject(root, "packagePolicy")),
@@ -120,6 +127,75 @@ public final class CompiledModpackProfileReader {
         optionalString(object, "action"),
         requiredString(object, "path"),
         requiredString(object, "fingerprint"));
+  }
+
+  private RuntimeServiceContract readServices(JsonObject object) {
+    if (object == null) {
+      return RuntimeServiceContract.empty();
+    }
+    List<RuntimeServiceModPlan> mods = new ArrayList<>();
+    for (JsonElement element : requiredArray(object, "mods")) {
+      JsonObject mod = element.getAsJsonObject();
+      List<RuntimeServiceProviderPlan> provides = new ArrayList<>();
+      for (JsonElement providerElement : requiredArray(mod, "provides")) {
+        JsonObject provider = providerElement.getAsJsonObject();
+        provides.add(
+            new RuntimeServiceProviderPlan(
+                requiredString(provider, "id"),
+                requiredString(provider, "type"),
+                requiredString(provider, "implementation"),
+                requiredString(provider, "state"),
+                requiredString(provider, "reason")));
+      }
+      List<RuntimeServiceConsumerPlan> consumes = new ArrayList<>();
+      for (JsonElement consumerElement : requiredArray(mod, "consumes")) {
+        JsonObject consumer = consumerElement.getAsJsonObject();
+        consumes.add(
+            new RuntimeServiceConsumerPlan(
+                requiredString(consumer, "id"),
+                requiredString(consumer, "type"),
+                requiredBoolean(consumer, "required"),
+                requiredString(consumer, "state"),
+                optionalString(consumer, "providerModId"),
+                requiredString(consumer, "reason")));
+      }
+      mods.add(new RuntimeServiceModPlan(requiredString(mod, "modId"), provides, consumes));
+    }
+
+    List<RuntimeServiceBinding> bindings = new ArrayList<>();
+    for (JsonElement element : requiredArray(object, "bindings")) {
+      JsonObject binding = element.getAsJsonObject();
+      bindings.add(
+          new RuntimeServiceBinding(
+              requiredString(binding, "id"),
+              requiredString(binding, "consumerModId"),
+              optionalString(binding, "providerModId"),
+              requiredString(binding, "type"),
+              optionalString(binding, "implementation"),
+              requiredBoolean(binding, "required"),
+              requiredString(binding, "state")));
+    }
+
+    JsonObject summary = requiredObject(object, "summary");
+    return new RuntimeServiceContract(
+        requiredInt(object, "contractVersion"),
+        requiredString(object, "scope"),
+        requiredString(object, "providerInstantiation"),
+        mods,
+        bindings,
+        new RuntimeServiceSummary(
+            requiredInt(summary, "providers"),
+            requiredInt(summary, "consumers"),
+            requiredInt(summary, "bindings"),
+            requiredInt(summary, "availableProviders"),
+            requiredInt(summary, "conflictingProviders"),
+            requiredInt(summary, "missingImplementations"),
+            requiredInt(summary, "implementationOwnershipViolations"),
+            requiredInt(summary, "requiredUnbound"),
+            requiredInt(summary, "optionalUnbound"),
+            requiredInt(summary, "typeMismatches"),
+            requiredInt(summary, "fatalCount"),
+            requiredInt(summary, "warningCount")));
   }
 
   private RuntimeCapabilityPlan readPermissions(JsonObject object) {

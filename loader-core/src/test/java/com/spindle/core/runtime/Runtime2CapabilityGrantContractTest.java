@@ -54,7 +54,7 @@ class Runtime2CapabilityGrantContractTest {
 
     JsonObject profile = readCompiledProfile();
     JsonObject permissions = profile.getAsJsonObject("permissions");
-    assertEquals(3, profile.get("schemaVersion").getAsInt());
+    assertEquals(4, profile.get("schemaVersion").getAsInt());
     assertEquals(1, permissions.get("catalogVersion").getAsInt());
     assertEquals("spindle-api-only", permissions.get("scope").getAsString());
     assertEquals(
@@ -74,13 +74,13 @@ class Runtime2CapabilityGrantContractTest {
         List.of("metadata.storage.config", "metadata.permissions"));
     assertGrant(
         grants.get("storage.generated"), "granted", List.of("metadata.storage.generated"));
-    assertGrant(grants.get("service.provide"), "unavailable", List.of("metadata.permissions"));
+    assertGrant(grants.get("service.provide"), "denied", List.of("metadata.permissions"));
     assertGrant(
         grants.get("network.outbound"), "visibility-only", List.of("metadata.permissions"));
     assertGrant(grants.get("example.custom"), "unknown", List.of("metadata.permissions"));
 
-    assertSummary(modPermissions.getAsJsonObject("summary"), 2, 0, 1, 1, 1);
-    assertSummary(permissions.getAsJsonObject("summary"), 2, 0, 1, 1, 1);
+    assertSummary(modPermissions.getAsJsonObject("summary"), 2, 1, 0, 1, 1);
+    assertSummary(permissions.getAsJsonObject("summary"), 2, 1, 0, 1, 1);
   }
 
   @Test
@@ -196,7 +196,7 @@ class Runtime2CapabilityGrantContractTest {
   }
 
   @Test
-  void schemaTwoCacheInvalidatesCleanlyAgainstSchemaThreeReader() throws Exception {
+  void schemaThreeCacheInvalidatesCleanlyAgainstSchemaFourReader() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/cache-schema.jar"),
         "cachemod",
@@ -215,7 +215,7 @@ class Runtime2CapabilityGrantContractTest {
     JsonObject cachedProfile =
         JsonParser.parseString(Files.readString(cachedProfilePath(), StandardCharsets.UTF_8))
             .getAsJsonObject();
-    cachedProfile.addProperty("schemaVersion", 2);
+    cachedProfile.addProperty("schemaVersion", 3);
     JsonObject oldPermissions = new JsonObject();
     JsonArray mods = new JsonArray();
     JsonObject mod = new JsonObject();

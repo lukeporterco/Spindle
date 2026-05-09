@@ -29,7 +29,7 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 
 ## Compiled Profile
 
-`spindle.profile.json` now writes schema version `3` and includes:
+`spindle.profile.json` now writes schema version `4` and includes:
 
 - `fingerprint`
 - `inputFingerprint`
@@ -38,6 +38,7 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 - metadata schema summary
 - lockfile `mode` plus per-build `action` when available
 - requested permissions plus compiled capability grants and summaries per mod
+- deterministic Runtime-3 service contract planning and bindings
 - lifecycle phase order and planned handlers
 - per-mod owned storage/context plans
 - runtime package policy summaries
@@ -127,7 +128,7 @@ These reports are deterministic and summarize planned lifecycle handlers, execut
 - deterministic validated surfaces
 - deterministic findings ordered by severity, rule id, mod id, and location
 
-The report is explicit that Runtime-2 capability grants control Spindle-owned APIs only. Standard mod execution still remains `in-process-unrestricted-java` and `not-sandboxed`. Passing validation means the mod passed current Spindle boundary checks, not that the mod is generally safe.
+The report is explicit that Runtime-3 capability grants and service bindings control Spindle-owned APIs only. Standard mod execution still remains `in-process-unrestricted-java` and `not-sandboxed`. Passing validation means the mod passed current Spindle boundary checks, not that the mod is generally safe.
 
 `duplicateClasses` may be empty in the compiled profile when duplicate-class situations fail earlier as fatal ownership/package policy violations before a profile is written.
 
@@ -136,7 +137,7 @@ The report is explicit that Runtime-2 capability grants control Spindle-owned AP
 - `planned`: planning completed and a lifecycle plan was written, but standard runtime execution has not completed
 - `executed`: standard runtime lifecycle execution completed and attempted/successful/failed handler lists reflect that run
 
-`spindle.quality-report.json` is an early deterministic signal, not a certification system. Runtime-2 now warns on non-granted requested capabilities while leaving granted storage surfaces quiet.
+`spindle.quality-report.json` is an early deterministic signal, not a certification system. Runtime-3 still warns on non-granted requested capabilities and now also records deterministic service contract findings.
 
 Milestone 8 Minecraft bootstrap remains separate. Security-0 does not claim that approved bootstrap mods are sandboxed, and not every Runtime-1 schema `2` rule applies to that bootstrap-only path yet.
 

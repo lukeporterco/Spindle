@@ -1,6 +1,7 @@
 package com.spindle.core.runtime;
 
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
+import com.spindle.core.runtime.service.RuntimeServiceContract;
 import java.util.List;
 
 public record CompiledModpackProfile(
@@ -19,11 +20,12 @@ public record CompiledModpackProfile(
     Ownership ownership,
     Lockfile lockfile,
     RuntimeCapabilityPlan permissions,
+    RuntimeServiceContract services,
     Lifecycle lifecycle,
     Contexts contexts,
     PackagePolicy packagePolicy,
     Quality quality) {
-  public static final int SCHEMA_VERSION = 3;
+  public static final int SCHEMA_VERSION = 4;
   public static final String PROFILE_KIND = "compiled-modpack";
   public static final String LOADER_ID = "spindle";
 
@@ -32,6 +34,7 @@ public record CompiledModpackProfile(
     mods = List.copyOf(mods);
     resolvedOrder = List.copyOf(resolvedOrder);
     classpath = List.copyOf(classpath);
+    services = services == null ? RuntimeServiceContract.empty() : services;
   }
 
   public CompiledModpackProfile withFingerprint(String nextFingerprint) {
@@ -51,6 +54,7 @@ public record CompiledModpackProfile(
         ownership,
         lockfile,
         permissions,
+        services,
         lifecycle,
         contexts,
         packagePolicy,
@@ -74,6 +78,7 @@ public record CompiledModpackProfile(
         ownership,
         lockfile,
         permissions,
+        services,
         lifecycle,
         contexts,
         packagePolicy,
@@ -97,6 +102,7 @@ public record CompiledModpackProfile(
         ownership,
         nextLockfile,
         permissions,
+        services,
         lifecycle,
         contexts,
         packagePolicy,

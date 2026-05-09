@@ -2,7 +2,7 @@
 
 Spindle runs mods as executable Java code.
 
-Current Runtime-2 standard mod execution is:
+Current Runtime-3 standard mod execution is:
 
 - in process
 - unrestricted Java
@@ -29,7 +29,7 @@ It writes `spindle.security-report.json` with:
 - explicit restricted-tool isolation fields
 - an `artifactTrust` section with per-artifact trust state and summary counts
 - a `riskSignals` section with warning-only static jar and constant-pool evidence
-- a `capabilityGrants` section that distinguishes granted, denied, unavailable, unknown, and visibility-only Runtime-2 capability states
+- a `capabilityGrants` section that distinguishes granted, denied, unavailable, unknown, and visibility-only Runtime-3 capability states
 
 The report always states:
 
@@ -59,6 +59,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - planned `ModContext` path boundaries
 - compiled profile cache rebuild visibility
 - capability grant contract validation for Spindle-owned API surfaces
+- deterministic Runtime-3 service capability grants and service contract planning
 - runtime and compiled profile identity fingerprints
 - static jar risk signals from constant-pool UTF-8 strings, native files, service-provider files, and nested jars
 - restricted child-JVM execution for Spindle-owned static analysis tooling that can treat jars as data
@@ -73,7 +74,7 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 - `SEC-PATH-001`: planned owned path escapes the working directory
 - `SEC-PATH-002`: logical relative path contract is violated
 - `SEC-CACHE-001`: cached compiled profile was rejected and rebuilt
-- `SEC-PERM-001`: mod requests capabilities that Runtime-2 does not grant
+- `SEC-PERM-001`: mod requests capabilities that Runtime-3 does not grant
 - `SEC-ARTIFACT-001`: lockfile or artifact identity mismatch
 - `SEC-TRUST-001`: artifact is local unsigned
 - `SEC-TRUST-002`: signature sidecar is malformed, unsupported, or unreadable
@@ -97,13 +98,15 @@ Runtime-1 validates only narrow Spindle-native boundaries:
 
 ## Non-goals
 
-The Runtime-2 capability contract still does not add:
+The Runtime-3 capability and service contract still does not add:
 
 - registry-backed publisher identity
 - human review
 - sandboxing
 - restricted child-JVM execution for arbitrary runtime mods
 - compatibility-layer claims
+
+Runtime-3 service bindings are runtime contract findings, not sandbox findings. Duplicate providers, missing implementations, ownership violations, required unbound services, and type mismatches can block execution, but they do not change the honesty fields: execution remains `in-process-unrestricted-java`, `sandboxed: false`, and `sandboxClaim: "not-sandboxed"`.
 
 The current sidecar model is intentionally local and loader-native. A valid sidecar proves that a specific signer key signed a specific jar hash and the signed mod id/version. It does not claim ecosystem review, malware analysis, or platform endorsement.
 

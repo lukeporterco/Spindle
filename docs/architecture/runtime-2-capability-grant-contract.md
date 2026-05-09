@@ -1,41 +1,47 @@
 # Runtime-2 Capability Grant Contract
 
-`Runtime-2: Capability Grant Contract` turns Runtime-1 permission recording into a deterministic grant plan for Spindle-owned APIs.
+`Runtime-2: Capability Grant Contract` introduced deterministic capability planning for Spindle-owned APIs. Runtime-3 keeps that contract and extends it with real service capabilities.
 
-Runtime-2 is still not a Java sandbox.
+Capability grants still are not a Java sandbox:
 
-- Standard runtime mods still run as in-process unrestricted Java.
-- Capability grants only control whether Spindle exposes specific loader-owned API surfaces.
-- Broad Java behaviors such as network, process, native loading, reflection, unsafe access, and broad filesystem claims remain visibility-only disclosures.
+- standard runtime mods still run as `in-process-unrestricted-java`
+- grants only control Spindle-owned API surfaces
+- broad Java behaviors remain visibility-only disclosures
 
-## Scope
+## Current Grantable Capabilities
 
-Runtime-2 currently governs only these grantable capabilities:
+Runtime-3 can grant:
 
 - `storage.config`
 - `storage.data`
 - `storage.cache`
 - `storage.generated`
+- `service.provide`
+- `service.consume`
 
-These capabilities control `ModContext` directory access only.
+Storage grants come from matching `storage` booleans.
 
-If a schema `2` mod enables a matching `storage` flag in `loader.mod.json`, Spindle grants the matching storage capability even when the capability is not explicitly listed in `permissions`.
-
-That preserves the Runtime-1 developer experience for mods that already relied on enabled `ModContext` storage.
+Service grants come from matching `services.provides` and `services.consumes` declarations, even when the capability is not explicitly listed in `permissions`.
 
 ## States
 
-Runtime-2 compiles requested and derived capabilities into deterministic states:
+Capability states remain:
 
-- `granted`: Spindle exposes that specific API surface.
-- `denied`: Spindle recognizes the capability, but the metadata does not satisfy the requirement.
-- `unavailable`: Spindle reserves the capability for a future Runtime or Platform pass.
-- `unknown`: Spindle does not recognize the string.
-- `visibility-only`: Spindle records the declaration for review but does not enforce it.
+- `granted`
+- `denied`
+- `unavailable`
+- `unknown`
+- `visibility-only`
+
+`service.provide` is denied when requested without any `services.provides` entries.
+
+`service.consume` is denied when requested without any `services.consumes` entries.
 
 ## Profile And Reports
 
-`spindle.profile.json` now writes schema version `3` and extends the `permissions` section with:
+`spindle.profile.json` now writes schema version `4`.
+
+The `permissions` section still records:
 
 - `catalogVersion`
 - `scope`
@@ -45,9 +51,9 @@ Runtime-2 compiles requested and derived capabilities into deterministic states:
 - per-mod summaries
 - global summary
 
-`spindle.security-report.json` now includes a matching `capabilityGrants` section so the runtime posture stays honest.
+Runtime-3 also adds a top-level `services` section for the deterministic service contract.
 
-The report still states:
+`spindle.security-report.json` still includes `capabilityGrants`, and the runtime posture fields remain explicit:
 
 - `executionIsolationMode: "in-process-unrestricted-java"`
 - `runtimeExecutionIsolationMode: "in-process-unrestricted-java"`
@@ -57,15 +63,15 @@ The report still states:
 
 ## Non-goals
 
-Runtime-2 does not add:
+The capability contract still does not add:
 
 - network sandboxing
 - filesystem sandboxing
 - process restrictions
 - Java agent isolation
-- SecurityManager usage
 - bytecode instrumentation
-- service registry behavior
+- classpath scanning for services
+- dependency injection
 - config schema behavior
 - resource overlay behavior
 - SteelHook

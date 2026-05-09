@@ -14,6 +14,8 @@ public final class RuntimeCapabilityCatalog {
   public static final String STORAGE_DATA = "storage.data";
   public static final String STORAGE_CACHE = "storage.cache";
   public static final String STORAGE_GENERATED = "storage.generated";
+  public static final String SERVICE_PROVIDE = "service.provide";
+  public static final String SERVICE_CONSUME = "service.consume";
 
   private static final Set<String> GRANTABLE_STORAGE =
       Set.of(STORAGE_CONFIG, STORAGE_DATA, STORAGE_CACHE, STORAGE_GENERATED);
@@ -21,8 +23,6 @@ public final class RuntimeCapabilityCatalog {
       Set.of(
           "config.read",
           "config.write",
-          "service.provide",
-          "service.consume",
           "resource.declare",
           "resource.overlay");
   private static final Set<String> VISIBILITY_ONLY =
@@ -76,6 +76,14 @@ public final class RuntimeCapabilityCatalog {
     return "Spindle ModContext " + storageMethodName(capability) + " access only.";
   }
 
+  public static String serviceSource(String capability) {
+    return switch (capability) {
+      case SERVICE_PROVIDE -> "metadata.services.provides";
+      case SERVICE_CONSUME -> "metadata.services.consumes";
+      default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+    };
+  }
+
   public static Comparator<String> sourceComparator() {
     return Comparator.comparingInt(RuntimeCapabilityCatalog::sourceRank).thenComparing(value -> value);
   }
@@ -84,9 +92,12 @@ public final class RuntimeCapabilityCatalog {
     if (source != null && source.startsWith("metadata.storage.")) {
       return 0;
     }
-    if ("metadata.permissions".equals(source)) {
+    if (source != null && source.startsWith("metadata.services.")) {
       return 1;
     }
-    return 2;
+    if ("metadata.permissions".equals(source)) {
+      return 2;
+    }
+    return 3;
   }
 }

@@ -1,6 +1,7 @@
 package com.spindle.core.runtime;
 
 import com.spindle.api.ModContext;
+import com.spindle.api.service.ServiceRegistry;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.launch.LaunchContext;
 import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
@@ -17,6 +18,14 @@ import java.util.Set;
 public final class ModContextFactory {
   public Map<String, ModContext> createContexts(
       LaunchContext context, CompiledModpackProfile profile) throws LoaderException {
+    return createContexts(context, profile, Map.of());
+  }
+
+  public Map<String, ModContext> createContexts(
+      LaunchContext context,
+      CompiledModpackProfile profile,
+      Map<String, ServiceRegistry> serviceRegistries)
+      throws LoaderException {
     Map<String, String> modVersionById = new LinkedHashMap<>();
     for (CompiledModpackProfile.Mod mod : profile.mods()) {
       modVersionById.put(mod.id(), mod.version());
@@ -54,6 +63,7 @@ public final class ModContextFactory {
               profile.game().side(),
               context.workingDirectory(),
               grantedCapabilities,
+              serviceRegistries.getOrDefault(plan.modId(), ServiceRegistry.empty()),
               configDirectory,
               dataDirectory,
               cacheDirectory,

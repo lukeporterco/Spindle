@@ -291,7 +291,8 @@ class Security2StaticRiskSignalsTest {
         2,
         Map.of(),
         List.of(),
-        ModMetadata.Storage.disabled());
+        ModMetadata.Storage.disabled(),
+        ModMetadata.Services.empty());
   }
 
   private JsonObject readSecurityReport() throws IOException {

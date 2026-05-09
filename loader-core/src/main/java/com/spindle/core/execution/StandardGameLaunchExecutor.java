@@ -16,6 +16,8 @@ import com.spindle.core.report.DisplayPaths;
 import com.spindle.core.report.StartupProfileSupport;
 import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.ModContextFactory;
+import com.spindle.core.runtime.service.RuntimeServiceContractGate;
+import com.spindle.core.runtime.service.RuntimeServiceRegistryFactory;
 import com.spindle.core.security.SecurityGate;
 import com.spindle.core.security.SecurityValidationResult;
 import java.io.IOException;
@@ -26,6 +28,10 @@ public final class StandardGameLaunchExecutor {
       new LifecycleExecutionReportWriter();
   private final ModContextFactory modContextFactory = new ModContextFactory();
   private final SecurityGate securityGate = new SecurityGate();
+  private final RuntimeServiceContractGate runtimeServiceContractGate =
+      new RuntimeServiceContractGate();
+  private final RuntimeServiceRegistryFactory runtimeServiceRegistryFactory =
+      new RuntimeServiceRegistryFactory();
 
   public void execute(
       LaunchContext context,
@@ -55,6 +61,7 @@ public final class StandardGameLaunchExecutor {
       return;
     }
     securityGate.ensureLifecycleExecutionAllowed(securityValidationResult);
+    runtimeServiceContractGate.ensureLifecycleExecutionAllowed(compiledProfile);
 
     try (ModClassLoader modClassLoader =
         DiagnosticMeasurements.measure(
@@ -78,7 +85,10 @@ public final class StandardGameLaunchExecutor {
                   lifecycleExecutor.execute(
                       compiledProfile,
                       modClassLoader,
-                      modContextFactory.createContexts(context, compiledProfile)),
+                      modContextFactory.createContexts(
+                          context,
+                          compiledProfile,
+                          runtimeServiceRegistryFactory.create(compiledProfile, modClassLoader))),
               report ->
                   DiagnosticMeasurements.details(
                       "handlerCount",

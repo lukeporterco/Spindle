@@ -21,6 +21,8 @@ import com.spindle.core.security.SecurityValidationReport;
 import com.spindle.core.security.SecurityValidationReportWriter;
 import com.spindle.core.security.SecurityValidationResult;
 import com.spindle.core.security.SecurityValidator;
+import com.spindle.core.runtime.service.RuntimeServiceContract;
+import com.spindle.core.runtime.service.RuntimeServicePlanner;
 import java.nio.file.Path;
 
 public final class CompiledRuntimeOrchestrator {
@@ -36,6 +38,7 @@ public final class CompiledRuntimeOrchestrator {
   private final LifecycleExecutionReportWriter lifecycleExecutionReportWriter =
       new LifecycleExecutionReportWriter();
   private final RuntimeQualityReporter runtimeQualityReporter = new RuntimeQualityReporter();
+  private final RuntimeServicePlanner runtimeServicePlanner = new RuntimeServicePlanner();
   private final RuntimeQualityReportWriter runtimeQualityReportWriter =
       new RuntimeQualityReportWriter();
   private final SecurityValidator securityValidator;
@@ -85,7 +88,9 @@ public final class CompiledRuntimeOrchestrator {
 
     LifecyclePlan lifecyclePlan =
         lifecyclePlanBuilder.build(planningResult.resolvedMods(), planningResult.classOwnershipIndex());
-    RuntimeQualityReport qualityReport = runtimeQualityReporter.create(planningResult);
+    RuntimeServiceContract serviceContract =
+        runtimeServicePlanner.plan(planningResult.resolvedMods(), planningResult.classOwnershipIndex());
+    RuntimeQualityReport qualityReport = runtimeQualityReporter.create(planningResult, serviceContract);
     CompiledModpackProfile compiledProfile =
         cacheLookup.hit()
             ? cacheLookup
@@ -104,6 +109,7 @@ public final class CompiledRuntimeOrchestrator {
                 inputFingerprint,
                 new CompiledModpackProfile.Cache("miss", cacheLookup.reason()),
                 lifecyclePlan,
+                serviceContract,
                 qualityReport);
     if (!cacheLookup.hit()) {
       cache.store(context, inputFingerprint, compiledProfile);

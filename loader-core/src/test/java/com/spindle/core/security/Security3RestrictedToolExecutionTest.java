@@ -350,7 +350,8 @@ class Security3RestrictedToolExecutionTest {
         2,
         Map.of(),
         List.of(),
-        ModMetadata.Storage.disabled());
+        ModMetadata.Storage.disabled(),
+        ModMetadata.Services.empty());
   }
 
   private Path createSchemaTwoModJar(

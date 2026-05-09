@@ -36,13 +36,23 @@ Spindle does not currently claim:
 - network or filesystem permission enforcement
 
 Runtime-2 capability grants control Spindle-owned APIs only. They do not sandbox arbitrary Java.
+Runtime-3 service registry access also controls Spindle-owned APIs only. It does not sandbox arbitrary Java.
 
 Requested capabilities can now produce four practical outcomes:
 
 - granted for supported Spindle API surfaces such as enabled `ModContext` storage
 - unavailable for planned but unimplemented Spindle surfaces
-- unknown for strings outside the Runtime-2 catalog
+- unknown for strings outside the Runtime-3 catalog
 - visibility-only for broad Java behavior disclosures that Spindle does not enforce
+
+Runtime-3 adds deterministic service planning:
+
+- services are declared in `loader.mod.json`
+- services are bound deterministically before lifecycle execution
+- Spindle does not scan classes for providers
+- Spindle does not instantiate providers before the security gate
+- provider constructors are not sandboxed
+- a mod can only access services it declares in `services.consumes`
 
 Static risk signals are also visibility signals only. A warning about reflection, networking, native libraries, or process APIs does not mean the mod is malware. It means the mod references something users and pack builders may want to review and document.
 
@@ -94,12 +104,13 @@ Warnings:
 - lockfile-hash identity without publisher identity
 - provenance not present
 - cache rebuilds after cached-profile validation failure
-- requested capabilities that Runtime-2 does not grant
+- requested capabilities that Runtime-3 does not grant
+- duplicate service providers, missing implementations, provider ownership violations, required unbound consumers, or service type mismatches
 - static risk signals for suspicious APIs, native files, service-provider files, nested jars, or malformed class entries
 
 ## Developer Ergonomics
 
-Unsigned local mods remain easy to build and run. Spindle does not require signing for local Runtime-2 development in this pass.
+Unsigned local mods remain easy to build and run. Spindle does not require signing for local Runtime-3 development in this pass.
 
 If you place a sidecar beside a jar, Spindle treats that as an explicit trust claim and verifies it. Invalid claimed trust is fatal because the artifact asserted publisher identity and failed validation.
 

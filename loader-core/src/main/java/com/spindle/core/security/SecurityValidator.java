@@ -391,21 +391,21 @@ public final class SecurityValidator {
       case "denied" ->
           "requests capability `"
               + permission
-              + "`, but Runtime-2 marks it `denied`; "
+              + "`, but Runtime-3 marks it `denied`; "
               + grant.controls().replaceFirst("\\.$", "").toLowerCase()
               + ".";
       case "unavailable" ->
           "requests capability `"
               + permission
-              + "`, but Runtime-2 marks it `unavailable`; no Spindle API surface is granted for this capability.";
+              + "`, but Runtime-3 marks it `unavailable`; no Spindle API surface is granted for this capability.";
       case "unknown" ->
           "requests capability `"
               + permission
-              + "`, but Runtime-2 does not recognize it and grants no Spindle API surface.";
+              + "`, but Runtime-3 does not recognize it and grants no Spindle API surface.";
       case "visibility-only" ->
           "requests capability `"
               + permission
-              + "`, which Runtime-2 records for review but does not enforce because runtime Java execution remains in-process unrestricted Java.";
+              + "`, which Runtime-3 records for review but does not enforce because runtime Java execution remains in-process unrestricted Java.";
       default ->
           throw new IllegalArgumentException("Unsupported capability state " + grant.state());
     };

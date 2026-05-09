@@ -14,7 +14,8 @@ public record ModMetadata(
     Map<String, String> breaks,
     Map<String, List<String>> lifecycle,
     List<String> permissions,
-    Storage storage) {
+    Storage storage,
+    Services services) {
   public ModMetadata(
       int schema,
       String id,
@@ -33,7 +34,8 @@ public record ModMetadata(
         breaks,
         Map.of(),
         List.of(),
-        Storage.disabled());
+        Storage.disabled(),
+        Services.empty());
   }
 
   public ModMetadata {
@@ -51,6 +53,7 @@ public record ModMetadata(
     breaks = java.util.Collections.unmodifiableMap(new TreeMap<>(breaks));
     permissions = List.copyOf(permissions);
     storage = storage == null ? Storage.disabled() : storage;
+    services = services == null ? Services.empty() : services;
   }
 
   public List<String> mainEntrypoints() {
@@ -64,6 +67,37 @@ public record ModMetadata(
   public boolean usesRuntimeLifecycle() {
     return !lifecycle.isEmpty();
   }
+
+  public record Services(List<ServiceProvider> provides, List<ServiceConsumer> consumes) {
+    public Services {
+      provides =
+          provides.stream()
+              .sorted(
+                  java.util.Comparator.comparing(ServiceProvider::id)
+                      .thenComparing(ServiceProvider::type)
+                      .thenComparing(ServiceProvider::implementation))
+              .toList();
+      consumes =
+          consumes.stream()
+              .sorted(
+                  java.util.Comparator.comparing(ServiceConsumer::id)
+                      .thenComparing(ServiceConsumer::type)
+                      .thenComparing(ServiceConsumer::required))
+              .toList();
+    }
+
+    public static Services empty() {
+      return new Services(List.of(), List.of());
+    }
+
+    public boolean isEmpty() {
+      return provides.isEmpty() && consumes.isEmpty();
+    }
+  }
+
+  public record ServiceProvider(String id, String type, String implementation) {}
+
+  public record ServiceConsumer(String id, String type, boolean required) {}
 
   public record Storage(boolean config, boolean data, boolean cache, boolean generated) {
     public static Storage disabled() {

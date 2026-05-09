@@ -26,9 +26,15 @@ public final class RuntimeCapabilityPlanner {
   private RuntimeCapabilityModPlan planMod(ResolvedModSet.ResolvedMod mod) {
     Map<String, GrantBuilder> grants = new TreeMap<>();
     addGrantedStorageCapabilities(grants, mod.storage());
+    addGrantedServiceCapabilities(grants, mod);
     for (String requestedCapability : mod.permissions()) {
       if (RuntimeCapabilityCatalog.isGrantableStorage(requestedCapability)) {
         addRequestedStorageCapability(grants, requestedCapability, mod.storage());
+        continue;
+      }
+      if (RuntimeCapabilityCatalog.SERVICE_PROVIDE.equals(requestedCapability)
+          || RuntimeCapabilityCatalog.SERVICE_CONSUME.equals(requestedCapability)) {
+        addRequestedServiceCapability(grants, requestedCapability, mod);
         continue;
       }
       if (RuntimeCapabilityCatalog.isUnavailable(requestedCapability)) {
@@ -38,7 +44,7 @@ public final class RuntimeCapabilityPlanner {
                 requestedCapability,
                 RuntimeCapabilityState.UNAVAILABLE,
                 List.of("metadata.permissions"),
-                "Runtime-2 recognizes "
+                "Runtime-3 recognizes "
                     + requestedCapability
                     + " but the corresponding Spindle API surface is not implemented yet.",
                 "No Spindle API surface is granted in this runtime version.",
@@ -52,7 +58,7 @@ public final class RuntimeCapabilityPlanner {
                 requestedCapability,
                 RuntimeCapabilityState.VISIBILITY_ONLY,
                 List.of("metadata.permissions"),
-                "Runtime-2 records "
+                "Runtime-3 records "
                     + requestedCapability
                     + " for review but does not enforce this broad Java behavior.",
                 "No Java sandbox or process restriction is applied.",
@@ -65,9 +71,9 @@ public final class RuntimeCapabilityPlanner {
               requestedCapability,
               RuntimeCapabilityState.UNKNOWN,
               List.of("metadata.permissions"),
-              "Runtime-2 does not recognize requested capability `" + requestedCapability + "`.",
+              "Runtime-3 does not recognize requested capability `" + requestedCapability + "`.",
               "No Spindle API surface is granted for unknown capabilities.",
-              "Rename the capability to a Runtime-2 catalog entry or keep it as documentation only."));
+              "Rename the capability to a Runtime-3 catalog entry or keep it as documentation only."));
     }
     List<RuntimeCapabilityGrant> compiledGrants =
         grants.values().stream().map(GrantBuilder::build).toList();
@@ -111,7 +117,7 @@ public final class RuntimeCapabilityPlanner {
             capability,
             RuntimeCapabilityState.DENIED,
             List.of("metadata.permissions"),
-            "Runtime-2 recognizes "
+            "Runtime-3 recognizes "
                 + capability
                 + " but "
                 + RuntimeCapabilityCatalog.storageFlag(capability)
@@ -120,6 +126,57 @@ public final class RuntimeCapabilityPlanner {
                 + RuntimeCapabilityCatalog.storageMethodName(capability)
                 + " access is granted.",
             "Enable " + RuntimeCapabilityCatalog.storageFlag(capability) + " in loader.mod.json."));
+  }
+
+  private void addGrantedServiceCapabilities(
+      Map<String, GrantBuilder> grants, ResolvedModSet.ResolvedMod mod) {
+    if (!mod.services().provides().isEmpty()) {
+      grants.put(
+          RuntimeCapabilityCatalog.SERVICE_PROVIDE,
+          grantedServiceCapability(RuntimeCapabilityCatalog.SERVICE_PROVIDE));
+    }
+    if (!mod.services().consumes().isEmpty()) {
+      grants.put(
+          RuntimeCapabilityCatalog.SERVICE_CONSUME,
+          grantedServiceCapability(RuntimeCapabilityCatalog.SERVICE_CONSUME));
+    }
+  }
+
+  private void addRequestedServiceCapability(
+      Map<String, GrantBuilder> grants, String capability, ResolvedModSet.ResolvedMod mod) {
+    boolean declared =
+        switch (capability) {
+          case RuntimeCapabilityCatalog.SERVICE_PROVIDE -> !mod.services().provides().isEmpty();
+          case RuntimeCapabilityCatalog.SERVICE_CONSUME -> !mod.services().consumes().isEmpty();
+          default -> false;
+        };
+    if (declared) {
+      grants.computeIfAbsent(capability, this::grantedServiceCapability).addSource("metadata.permissions");
+      return;
+    }
+    grants.put(
+        capability,
+        new GrantBuilder(
+            capability,
+            RuntimeCapabilityState.DENIED,
+            List.of("metadata.permissions"),
+            "Runtime-3 recognizes "
+                + capability
+                + " but matching service declarations are missing in loader.mod.json.",
+            switch (capability) {
+              case RuntimeCapabilityCatalog.SERVICE_PROVIDE ->
+                  "No Spindle runtime service provider contract is granted.";
+              case RuntimeCapabilityCatalog.SERVICE_CONSUME ->
+                  "No Spindle ModContext services() access is granted.";
+              default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+            },
+            switch (capability) {
+              case RuntimeCapabilityCatalog.SERVICE_PROVIDE ->
+                  "Declare one or more services.provides entries in loader.mod.json.";
+              case RuntimeCapabilityCatalog.SERVICE_CONSUME ->
+                  "Declare one or more services.consumes entries in loader.mod.json.";
+              default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+            }));
   }
 
   private boolean isStorageEnabled(String capability, ModMetadata.Storage storage) {
@@ -139,6 +196,28 @@ public final class RuntimeCapabilityPlanner {
         List.of(RuntimeCapabilityCatalog.storageSource(capability)),
         capability + " is enabled in loader.mod.json.",
         RuntimeCapabilityCatalog.storageControls(capability),
+        null);
+  }
+
+  private GrantBuilder grantedServiceCapability(String capability) {
+    return new GrantBuilder(
+        capability,
+        RuntimeCapabilityState.GRANTED,
+        List.of(RuntimeCapabilityCatalog.serviceSource(capability)),
+        switch (capability) {
+          case RuntimeCapabilityCatalog.SERVICE_PROVIDE ->
+              "service.provide is granted because services.provides declares one or more service providers.";
+          case RuntimeCapabilityCatalog.SERVICE_CONSUME ->
+              "service.consume is granted because services.consumes declares one or more service consumers.";
+          default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+        },
+        switch (capability) {
+          case RuntimeCapabilityCatalog.SERVICE_PROVIDE ->
+              "Spindle compiles deterministic runtime service provider plans only.";
+          case RuntimeCapabilityCatalog.SERVICE_CONSUME ->
+              "Spindle ModContext services() access is limited to declared service bindings only.";
+          default -> throw new IllegalArgumentException("Unsupported service capability " + capability);
+        },
         null);
   }
 

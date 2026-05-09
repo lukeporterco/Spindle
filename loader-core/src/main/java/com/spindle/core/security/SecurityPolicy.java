@@ -24,10 +24,10 @@ public record SecurityPolicy(
 
   public static SecurityPolicy standard() {
     return new SecurityPolicy(
-        4,
+        5,
         1,
         1,
-        2,
+        3,
         1,
         1,
         1,
@@ -35,7 +35,8 @@ public record SecurityPolicy(
         List.of(
             "com.spindle.api.ModContext",
             "com.spindle.api.ModInitializer",
-            "com.spindle.api.lifecycle.LifecyclePhase"),
+            "com.spindle.api.lifecycle.LifecyclePhase",
+            "com.spindle.api.service.ServiceRegistry"),
         List.of(
             "artifact-lockfile-identity",
             "artifact-trust",
@@ -48,6 +49,7 @@ public record SecurityPolicy(
             "package-ownership",
             "permission-declarations",
             "runtime-policy-fingerprint",
+            "service-registry-capability-grants",
             "static-risk-signals"));
   }
 

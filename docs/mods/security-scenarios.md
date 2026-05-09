@@ -1,6 +1,6 @@
 # Security Scenarios
 
-These examples show how Runtime-2 capability grants, trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
+These examples show how Runtime-3 capability grants, deterministic service contracts, trust-boundary validation, artifact trust, Security-2 static risk signals, and Security-3 restricted tooling behave today.
 
 ## Clean Lifecycle-Only Mod
 
@@ -108,6 +108,39 @@ Important:
 
 - this grant controls a Spindle-owned API surface only
 - the mod still runs as unrestricted in-process Java
+
+## Developer Declares An Optional Service Consumer
+
+A developer declares:
+
+- `services.consumes` with `required: false`
+- no matching provider is present
+
+Result:
+
+- `spindle.profile.json` records `optional-unbound`
+- `spindle.quality-report.json` records warning `service.optional_unbound`
+- standard lifecycle execution still proceeds
+
+Important:
+
+- optional consumers do not block execution
+- the mod still runs as unrestricted in-process Java
+
+## Duplicate Providers Are Rejected
+
+Two mods both declare the same service id in `services.provides`.
+
+Result:
+
+- `spindle.profile.json` records provider state `conflict`
+- consumer bindings for that id record `provider-conflict`
+- standard lifecycle execution is blocked before handler invocation
+
+Important:
+
+- Runtime-3 has no provider priority model yet
+- this is a runtime contract failure, not sandboxing
 
 ## Networked Mod Uses HTTP Intentionally
 

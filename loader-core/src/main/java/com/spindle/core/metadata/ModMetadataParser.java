@@ -15,6 +15,7 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,10 @@ public final class ModMetadataParser {
   private static final Pattern LIFECYCLE_DECLARATION_PATTERN =
       Pattern.compile(
           "[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)+::[A-Za-z_$][A-Za-z0-9_$]*");
+  private static final Pattern JAVA_CLASS_NAME_PATTERN =
+      Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)+");
+  private static final Pattern SERVICE_ID_PATTERN =
+      Pattern.compile("[a-z][a-z0-9_-]{1,63}:[a-z][a-z0-9_.-]{1,127}");
   private static final Set<String> VALID_SIDES = Set.of("universal", "client", "server");
   private static final Set<String> VALID_LIFECYCLE_PHASES =
       Set.of(
@@ -100,6 +105,8 @@ public final class ModMetadataParser {
         schema == 2 ? parsePermissions(jsonObject, id, sourceName) : List.of();
     ModMetadata.Storage storage =
         schema == 2 ? parseStorage(jsonObject, id, sourceName) : ModMetadata.Storage.disabled();
+    ModMetadata.Services services =
+        schema == 2 ? parseServices(jsonObject, id, sourceName) : ModMetadata.Services.empty();
     if (schema == 1 && jsonObject.has("lifecycle")) {
       throw new LoaderException(
           "Mod `"
@@ -108,18 +115,36 @@ public final class ModMetadataParser {
               + sourceName
               + ". Use `entrypoints.main` or upgrade to schema `2`.");
     }
-    if (schema == 2 && entrypoints.isEmpty() && lifecycle.isEmpty()) {
+    if (schema == 1 && jsonObject.has("services")) {
       throw new LoaderException(
           "Mod `"
               + id
-              + "` uses metadata schema `2` but declares neither `lifecycle` handlers nor compatibility `entrypoints` in "
+              + "` uses metadata schema `1`, which does not support the `services` field in "
+              + sourceName
+              + ". Upgrade to schema `2`.");
+    }
+    if (schema == 2 && entrypoints.isEmpty() && lifecycle.isEmpty() && services.isEmpty()) {
+      throw new LoaderException(
+          "Mod `"
+              + id
+              + "` uses metadata schema `2` but declares neither `lifecycle` handlers, compatibility `entrypoints`, nor `services` in "
               + sourceName
               + ".");
     }
     Map<String, String> depends = parseDepends(jsonObject, sourceName);
     Map<String, String> breaks = parseStringMap(jsonObject, "breaks", sourceName);
     return new ModMetadata(
-        schema, id, version, side, entrypoints, depends, breaks, lifecycle, permissions, storage);
+        schema,
+        id,
+        version,
+        side,
+        entrypoints,
+        depends,
+        breaks,
+        lifecycle,
+        permissions,
+        storage,
+        services);
   }
 
   private Map<String, List<String>> parseEntrypoints(
@@ -299,6 +324,119 @@ public final class ModMetadataParser {
         optionalBoolean(storageObject, "generated", modId, "storage.generated", sourceName));
   }
 
+  private ModMetadata.Services parseServices(JsonObject jsonObject, String modId, String sourceName)
+      throws LoaderException {
+    if (!jsonObject.has("services") || jsonObject.get("services").isJsonNull()) {
+      return ModMetadata.Services.empty();
+    }
+    if (!jsonObject.get("services").isJsonObject()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `" + modId + "` must declare `services` as an object in " + sourceName + "."));
+    }
+    JsonObject servicesObject = jsonObject.getAsJsonObject("services");
+    return new ModMetadata.Services(
+        parseProviders(servicesObject, modId, sourceName),
+        parseConsumers(servicesObject, modId, sourceName));
+  }
+
+  private List<ModMetadata.ServiceProvider> parseProviders(
+      JsonObject servicesObject, String modId, String sourceName) throws LoaderException {
+    JsonElement element = servicesObject.get("provides");
+    if (element == null || element.isJsonNull()) {
+      return List.of();
+    }
+    if (!element.isJsonArray()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `services.provides` as an array in "
+                  + sourceName
+                  + "."));
+    }
+    List<ModMetadata.ServiceProvider> providers = new ArrayList<>();
+    for (JsonElement providerElement : element.getAsJsonArray()) {
+      if (!providerElement.isJsonObject()) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` must declare each `services.provides` entry as an object in "
+                    + sourceName
+                    + "."));
+      }
+      JsonObject providerObject = providerElement.getAsJsonObject();
+      providers.add(
+          new ModMetadata.ServiceProvider(
+              requiredServiceId(providerObject, "id", modId, "services.provides", sourceName),
+              requiredJavaClassName(providerObject, "type", modId, "services.provides", sourceName),
+              requiredJavaClassName(
+                  providerObject, "implementation", modId, "services.provides", sourceName)));
+    }
+    return providers.stream()
+        .sorted(
+            java.util.Comparator.comparing(ModMetadata.ServiceProvider::id)
+                .thenComparing(ModMetadata.ServiceProvider::type)
+                .thenComparing(ModMetadata.ServiceProvider::implementation))
+        .toList();
+  }
+
+  private List<ModMetadata.ServiceConsumer> parseConsumers(
+      JsonObject servicesObject, String modId, String sourceName) throws LoaderException {
+    JsonElement element = servicesObject.get("consumes");
+    if (element == null || element.isJsonNull()) {
+      return List.of();
+    }
+    if (!element.isJsonArray()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` must declare `services.consumes` as an array in "
+                  + sourceName
+                  + "."));
+    }
+    List<ModMetadata.ServiceConsumer> consumers = new ArrayList<>();
+    Set<String> seenServiceIds = new HashSet<>();
+    for (JsonElement consumerElement : element.getAsJsonArray()) {
+      if (!consumerElement.isJsonObject()) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` must declare each `services.consumes` entry as an object in "
+                    + sourceName
+                    + "."));
+      }
+      JsonObject consumerObject = consumerElement.getAsJsonObject();
+      String serviceId =
+          requiredServiceId(consumerObject, "id", modId, "services.consumes", sourceName);
+      if (!seenServiceIds.add(serviceId)) {
+        throw new LoaderException(
+            metadataError(
+                "Mod `"
+                    + modId
+                    + "` declares duplicate consumed service id `"
+                    + serviceId
+                    + "` in `services.consumes` in "
+                    + sourceName
+                    + ". Declare each consumed service id at most once per mod."));
+      }
+      consumers.add(
+          new ModMetadata.ServiceConsumer(
+              serviceId,
+              requiredJavaClassName(consumerObject, "type", modId, "services.consumes", sourceName),
+              optionalBooleanRequired(consumerObject, modId, sourceName)));
+    }
+    return consumers.stream()
+        .sorted(
+            java.util.Comparator.comparing(ModMetadata.ServiceConsumer::id)
+                .thenComparing(ModMetadata.ServiceConsumer::type)
+                .thenComparing(ModMetadata.ServiceConsumer::required))
+        .toList();
+  }
+
   private Map<String, String> parseDepends(JsonObject jsonObject, String sourceName)
       throws LoaderException {
     return parseStringMap(jsonObject, "depends", sourceName);
@@ -392,6 +530,54 @@ public final class ModMetadataParser {
                   + "."));
     }
     return element.getAsBoolean();
+  }
+
+  private boolean optionalBooleanRequired(JsonObject jsonObject, String modId, String sourceName)
+      throws LoaderException {
+    if (!jsonObject.has("required") || jsonObject.get("required").isJsonNull()) {
+      return true;
+    }
+    return optionalBoolean(jsonObject, "required", modId, "services.consumes.required", sourceName);
+  }
+
+  private String requiredServiceId(
+      JsonObject jsonObject, String key, String modId, String field, String sourceName)
+      throws LoaderException {
+    String value = requiredString(jsonObject, key, sourceName).trim();
+    if (!SERVICE_ID_PATTERN.matcher(value).matches()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares invalid service id `"
+                  + value
+                  + "` in `"
+                  + field
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+    return value;
+  }
+
+  private String requiredJavaClassName(
+      JsonObject jsonObject, String key, String modId, String field, String sourceName)
+      throws LoaderException {
+    String value = requiredString(jsonObject, key, sourceName).trim();
+    if (!JAVA_CLASS_NAME_PATTERN.matcher(value).matches()) {
+      throw new LoaderException(
+          metadataError(
+              "Mod `"
+                  + modId
+                  + "` declares invalid Java class name `"
+                  + value
+                  + "` in `"
+                  + field
+                  + "` in "
+                  + sourceName
+                  + "."));
+    }
+    return value;
   }
 
   private String metadataError(String message) {

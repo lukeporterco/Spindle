@@ -74,6 +74,66 @@ public final class RuntimeLifecycleFixtures {
     }
   }
 
+  public interface GreetingService {
+    String greeting();
+  }
+
+  public interface AlternateGreetingService {
+    String alternateGreeting();
+  }
+
+  public static final class GreetingServiceImpl implements GreetingService {
+    public GreetingServiceImpl() {}
+
+    @Override
+    public String greeting() {
+      return "hello-from-provider";
+    }
+  }
+
+  public static final class GreetingServiceImplTwo implements GreetingService {
+    public GreetingServiceImplTwo() {}
+
+    @Override
+    public String greeting() {
+      return "hello-from-provider-two";
+    }
+  }
+
+  public static final class GreetingConsumerLifecycle {
+    public static void bootstrap(ModContext context) throws IOException {
+      GreetingService greetingService =
+          context.services().require("sample:greeting", GreetingService.class);
+      Files.writeString(
+          context.generatedDirectory().resolve("greeting.marker"),
+          greetingService.greeting() + System.lineSeparator(),
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+  }
+
+  public static final class OptionalGreetingConsumerLifecycle {
+    public static void bootstrap(ModContext context) throws IOException {
+      String marker =
+          context.services().find("sample:greeting", GreetingService.class).isPresent()
+              ? "present"
+              : "missing";
+      Files.writeString(
+          context.generatedDirectory().resolve("optional-greeting.marker"),
+          marker + System.lineSeparator(),
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+  }
+
+  public static final class UndeclaredServiceConsumerLifecycle {
+    public static void bootstrap(ModContext context) {
+      context.services().require("sample:greeting", GreetingService.class);
+    }
+  }
+
   private static void append(ModContext context, String line) throws IOException {
     Files.writeString(
         context.workingDirectory().resolve("lifecycle.log"),

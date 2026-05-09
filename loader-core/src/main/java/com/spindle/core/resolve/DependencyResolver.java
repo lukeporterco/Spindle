@@ -49,7 +49,8 @@ public final class DependencyResolver {
               metadata.schema(),
               metadata.lifecycle(),
               metadata.permissions(),
-              metadata.storage()));
+              metadata.storage(),
+              metadata.services()));
     }
 
     resolvedMods.sort(Comparator.comparing(ResolvedModSet.ResolvedMod::id));

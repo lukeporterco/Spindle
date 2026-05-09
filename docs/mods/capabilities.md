@@ -1,57 +1,67 @@
 # Capabilities
 
-Runtime-2 capabilities describe Spindle-owned API surfaces, not process-level Java permissions.
+Runtime-3 capabilities describe Spindle-owned API surfaces, not process-level Java permissions.
 
 Important:
 
-- A granted capability means Spindle exposes that specific API surface.
-- A denied capability means Spindle recognized the request but did not grant the API surface.
-- An unavailable capability means the surface is planned but not implemented yet.
-- A visibility-only capability means Spindle records the declaration but does not enforce it.
-- Runtime-2 does not sandbox arbitrary Java.
+- granted means Spindle exposes a specific loader-owned API surface
+- denied means Spindle recognized the request but metadata did not satisfy the contract
+- unavailable means the surface is planned but not implemented yet
+- visibility-only means Spindle records the declaration but does not enforce it
+- Runtime-3 does not sandbox arbitrary Java
 
 ## Current Grantable Capabilities
 
-Runtime-2 can currently grant:
+Runtime-3 can grant:
 
 - `storage.config`
 - `storage.data`
 - `storage.cache`
 - `storage.generated`
+- `service.provide`
+- `service.consume`
 
-These are granted from the matching `storage` booleans in schema `2` metadata.
+Storage grants derive from schema `2` `storage` booleans.
+
+Service grants derive from schema `2` `services` declarations.
 
 Example:
 
 ```json
 {
   "permissions": [
-    "storage.data",
+    "service.consume",
     "storage.generated"
   ],
   "storage": {
-    "data": true,
     "generated": true
+  },
+  "services": {
+    "consumes": [
+      {
+        "id": "sample:greeting",
+        "type": "com.example.api.GreetingService",
+        "required": true
+      }
+    ]
   }
 }
 ```
 
-If `storage.generated` is `true`, Spindle grants `storage.generated` even if it is not listed in `permissions`.
+If a matching `storage` or `services` declaration exists, Spindle grants the capability even if it is omitted from `permissions`.
 
 ## Current Unavailable Capabilities
 
-Runtime-2 recognizes these future Spindle surfaces but does not implement them yet:
+Runtime-3 still reserves these future surfaces:
 
 - `config.read`
 - `config.write`
-- `service.provide`
-- `service.consume`
 - `resource.declare`
 - `resource.overlay`
 
 ## Current Visibility-Only Capabilities
 
-Runtime-2 records these declarations for review only:
+Runtime-3 records these declarations for review only:
 
 - `filesystem.read`
 - `filesystem.write`

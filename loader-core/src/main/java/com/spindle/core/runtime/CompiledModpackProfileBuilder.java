@@ -9,6 +9,7 @@ import com.spindle.core.quality.RuntimeQualityReport;
 import com.spindle.core.report.DisplayPaths;
 import com.spindle.core.resolve.ResolvedModSet;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlanner;
+import com.spindle.core.runtime.service.RuntimeServiceContract;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,6 +33,7 @@ public final class CompiledModpackProfileBuilder {
       String inputFingerprint,
       CompiledModpackProfile.Cache cache,
       LifecyclePlan lifecyclePlan,
+      RuntimeServiceContract services,
       RuntimeQualityReport qualityReport)
       throws LoaderException {
     List<CompiledModpackProfile.Mod> mods =
@@ -106,6 +108,7 @@ public final class CompiledModpackProfileBuilder {
                     planningResult.resourceConflictIndex().conflicts().size())),
             lockfile,
             runtimeCapabilityPlanner.plan(planningResult.resolvedMods()),
+            services,
             new CompiledModpackProfile.Lifecycle(
                 lifecyclePlan.phaseOrder(), lifecycleHandlers(lifecyclePlan)),
             new CompiledModpackProfile.Contexts(contextPlans),

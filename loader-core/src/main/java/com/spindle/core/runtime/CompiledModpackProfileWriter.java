@@ -9,6 +9,11 @@ import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.service.RuntimeServiceBinding;
+import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
+import com.spindle.core.runtime.service.RuntimeServiceModPlan;
+import com.spindle.core.runtime.service.RuntimeServiceProviderPlan;
+import com.spindle.core.runtime.service.RuntimeServiceSummary;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -140,6 +145,68 @@ public final class CompiledModpackProfileWriter {
     permissions.add("summary", capabilitySummary(profile.permissions().summary()));
     root.add("permissions", permissions);
 
+    JsonObject services = new JsonObject();
+    services.addProperty("contractVersion", profile.services().contractVersion());
+    services.addProperty("scope", profile.services().scope());
+    services.addProperty("providerInstantiation", profile.services().providerInstantiation());
+    JsonArray serviceMods = new JsonArray();
+    for (RuntimeServiceModPlan modPlan : profile.services().mods()) {
+      JsonObject modObject = new JsonObject();
+      modObject.addProperty("modId", modPlan.modId());
+      JsonArray provides = new JsonArray();
+      for (RuntimeServiceProviderPlan provider : modPlan.provides()) {
+        JsonObject providerObject = new JsonObject();
+        providerObject.addProperty("id", provider.id());
+        providerObject.addProperty("type", provider.type());
+        providerObject.addProperty("implementation", provider.implementation());
+        providerObject.addProperty("state", provider.state());
+        providerObject.addProperty("reason", provider.reason());
+        provides.add(providerObject);
+      }
+      modObject.add("provides", provides);
+      JsonArray consumes = new JsonArray();
+      for (RuntimeServiceConsumerPlan consumer : modPlan.consumes()) {
+        JsonObject consumerObject = new JsonObject();
+        consumerObject.addProperty("id", consumer.id());
+        consumerObject.addProperty("type", consumer.type());
+        consumerObject.addProperty("required", consumer.required());
+        consumerObject.addProperty("state", consumer.state());
+        if (consumer.providerModId() == null) {
+          consumerObject.add("providerModId", JsonNull.INSTANCE);
+        } else {
+          consumerObject.addProperty("providerModId", consumer.providerModId());
+        }
+        consumerObject.addProperty("reason", consumer.reason());
+        consumes.add(consumerObject);
+      }
+      modObject.add("consumes", consumes);
+      serviceMods.add(modObject);
+    }
+    services.add("mods", serviceMods);
+    JsonArray bindings = new JsonArray();
+    for (RuntimeServiceBinding binding : profile.services().bindings()) {
+      JsonObject bindingObject = new JsonObject();
+      bindingObject.addProperty("id", binding.id());
+      bindingObject.addProperty("consumerModId", binding.consumerModId());
+      if (binding.providerModId() == null) {
+        bindingObject.add("providerModId", JsonNull.INSTANCE);
+      } else {
+        bindingObject.addProperty("providerModId", binding.providerModId());
+      }
+      bindingObject.addProperty("type", binding.type());
+      if (binding.implementation() == null) {
+        bindingObject.add("implementation", JsonNull.INSTANCE);
+      } else {
+        bindingObject.addProperty("implementation", binding.implementation());
+      }
+      bindingObject.addProperty("required", binding.required());
+      bindingObject.addProperty("state", binding.state());
+      bindings.add(bindingObject);
+    }
+    services.add("bindings", bindings);
+    services.add("summary", serviceSummary(profile.services().summary()));
+    root.add("services", services);
+
     JsonObject lifecycle = new JsonObject();
     JsonArray phaseOrder = new JsonArray();
     for (String phase : profile.lifecycle().phaseOrder()) {
@@ -258,6 +325,24 @@ public final class CompiledModpackProfileWriter {
     object.addProperty("unavailable", summary.unavailable());
     object.addProperty("unknown", summary.unknown());
     object.addProperty("visibilityOnly", summary.visibilityOnly());
+    return object;
+  }
+
+  private JsonObject serviceSummary(RuntimeServiceSummary summary) {
+    JsonObject object = new JsonObject();
+    object.addProperty("providers", summary.providers());
+    object.addProperty("consumers", summary.consumers());
+    object.addProperty("bindings", summary.bindings());
+    object.addProperty("availableProviders", summary.availableProviders());
+    object.addProperty("conflictingProviders", summary.conflictingProviders());
+    object.addProperty("missingImplementations", summary.missingImplementations());
+    object.addProperty(
+        "implementationOwnershipViolations", summary.implementationOwnershipViolations());
+    object.addProperty("requiredUnbound", summary.requiredUnbound());
+    object.addProperty("optionalUnbound", summary.optionalUnbound());
+    object.addProperty("typeMismatches", summary.typeMismatches());
+    object.addProperty("fatalCount", summary.fatalCount());
+    object.addProperty("warningCount", summary.warningCount());
     return object;
   }
 }

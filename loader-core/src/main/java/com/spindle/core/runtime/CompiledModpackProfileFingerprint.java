@@ -7,6 +7,11 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.service.RuntimeServiceBinding;
+import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
+import com.spindle.core.runtime.service.RuntimeServiceModPlan;
+import com.spindle.core.runtime.service.RuntimeServiceProviderPlan;
+import com.spindle.core.runtime.service.RuntimeServiceSummary;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -88,6 +93,38 @@ public final class CompiledModpackProfileFingerprint {
     }
     updateCapabilitySummary(digest, "permissions.summary", permissions.summary());
 
+    update(digest, "services.contractVersion", Integer.toString(profile.services().contractVersion()));
+    update(digest, "services.scope", profile.services().scope());
+    update(digest, "services.providerInstantiation", profile.services().providerInstantiation());
+    for (RuntimeServiceModPlan modServices : profile.services().mods()) {
+      update(digest, "services.modId", modServices.modId());
+      for (RuntimeServiceProviderPlan provider : modServices.provides()) {
+        update(digest, "services.provider.id", provider.id());
+        update(digest, "services.provider.type", provider.type());
+        update(digest, "services.provider.implementation", provider.implementation());
+        update(digest, "services.provider.state", provider.state());
+        update(digest, "services.provider.reason", provider.reason());
+      }
+      for (RuntimeServiceConsumerPlan consumer : modServices.consumes()) {
+        update(digest, "services.consumer.id", consumer.id());
+        update(digest, "services.consumer.type", consumer.type());
+        update(digest, "services.consumer.required", Boolean.toString(consumer.required()));
+        update(digest, "services.consumer.state", consumer.state());
+        update(digest, "services.consumer.providerModId", consumer.providerModId());
+        update(digest, "services.consumer.reason", consumer.reason());
+      }
+    }
+    for (RuntimeServiceBinding binding : profile.services().bindings()) {
+      update(digest, "services.binding.id", binding.id());
+      update(digest, "services.binding.consumerModId", binding.consumerModId());
+      update(digest, "services.binding.providerModId", binding.providerModId());
+      update(digest, "services.binding.type", binding.type());
+      update(digest, "services.binding.implementation", binding.implementation());
+      update(digest, "services.binding.required", Boolean.toString(binding.required()));
+      update(digest, "services.binding.state", binding.state());
+    }
+    updateServiceSummary(digest, "services.summary", profile.services().summary());
+
     for (String phase : profile.lifecycle().phaseOrder()) {
       update(digest, "lifecycle.phaseOrder", phase);
     }
@@ -163,6 +200,11 @@ public final class CompiledModpackProfileFingerprint {
         digest,
         "runtimeCapabilityCatalogVersion",
         Integer.toString(com.spindle.core.runtime.capability.RuntimeCapabilityCatalog.CATALOG_VERSION));
+    update(
+        digest,
+        "runtimeServiceContractVersion",
+        Integer.toString(
+            com.spindle.core.runtime.service.RuntimeServiceContract.CONTRACT_VERSION));
 
     for (var mod : planningResult.resolvedMods().mods()) {
       update(digest, "mod.id", mod.id());
@@ -170,6 +212,16 @@ public final class CompiledModpackProfileFingerprint {
       update(digest, "mod.path", mod.normalizedRelativePath());
       update(digest, "mod.hash", mod.sha256());
       update(digest, "mod.schema", Integer.toString(mod.metadataSchema()));
+      for (var provider : mod.services().provides()) {
+        update(digest, "mod.services.provider.id", provider.id());
+        update(digest, "mod.services.provider.type", provider.type());
+        update(digest, "mod.services.provider.implementation", provider.implementation());
+      }
+      for (var consumer : mod.services().consumes()) {
+        update(digest, "mod.services.consumer.id", consumer.id());
+        update(digest, "mod.services.consumer.type", consumer.type());
+        update(digest, "mod.services.consumer.required", Boolean.toString(consumer.required()));
+      }
     }
     for (String modId :
         planningResult.resolvedMods().mods().stream().map(mod -> mod.id()).toList()) {
@@ -233,5 +285,36 @@ public final class CompiledModpackProfileFingerprint {
     update(digest, keyPrefix + ".unknown", Integer.toString(summary.unknown()));
     update(
         digest, keyPrefix + ".visibilityOnly", Integer.toString(summary.visibilityOnly()));
+  }
+
+  private static void updateServiceSummary(
+      MessageDigest digest, String keyPrefix, RuntimeServiceSummary summary) {
+    update(digest, keyPrefix + ".providers", Integer.toString(summary.providers()));
+    update(digest, keyPrefix + ".consumers", Integer.toString(summary.consumers()));
+    update(digest, keyPrefix + ".bindings", Integer.toString(summary.bindings()));
+    update(
+        digest,
+        keyPrefix + ".availableProviders",
+        Integer.toString(summary.availableProviders()));
+    update(
+        digest,
+        keyPrefix + ".conflictingProviders",
+        Integer.toString(summary.conflictingProviders()));
+    update(
+        digest,
+        keyPrefix + ".missingImplementations",
+        Integer.toString(summary.missingImplementations()));
+    update(
+        digest,
+        keyPrefix + ".implementationOwnershipViolations",
+        Integer.toString(summary.implementationOwnershipViolations()));
+    update(
+        digest, keyPrefix + ".requiredUnbound", Integer.toString(summary.requiredUnbound()));
+    update(
+        digest, keyPrefix + ".optionalUnbound", Integer.toString(summary.optionalUnbound()));
+    update(
+        digest, keyPrefix + ".typeMismatches", Integer.toString(summary.typeMismatches()));
+    update(digest, keyPrefix + ".fatalCount", Integer.toString(summary.fatalCount()));
+    update(digest, keyPrefix + ".warningCount", Integer.toString(summary.warningCount()));
   }
 }

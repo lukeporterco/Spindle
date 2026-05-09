@@ -24,6 +24,10 @@
     "storage.data",
     "storage.generated"
   ],
+  "services": {
+    "provides": [],
+    "consumes": []
+  },
   "storage": {
     "config": false,
     "data": true,

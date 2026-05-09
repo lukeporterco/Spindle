@@ -393,6 +393,7 @@ class Security0TrustBoundaryValidationTest {
             profile.ownership(),
             profile.lockfile(),
             profile.permissions(),
+            profile.services(),
             profile.lifecycle(),
             new CompiledModpackProfile.Contexts(
                 List.of(
