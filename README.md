@@ -1,9 +1,9 @@
-# MC ModLoader
+# Spindle
 
-MC ModLoader currently provides a deterministic loader core with two provider paths:
+Spindle currently provides a deterministic loader core with two provider paths:
 
 - `sample`: the existing fake-game provider used for Milestone 0-2 launches
-- `minecraft`: a Mega-Milestone 7 plus Milestone 8 provider that runs deterministic dry-run planning, owns a server runtime capsule, writes pre-mod boundary reports, and now has a guarded child-JVM server bootstrap path for approved MC ModLoader Minecraft server entrypoints before the managed vanilla server main is invoked
+- `minecraft`: a Mega-Milestone 7 plus Milestone 8 provider that runs deterministic dry-run planning, owns a server runtime capsule, writes pre-mod boundary reports, and now has a guarded child-JVM server bootstrap path for approved Spindle Minecraft server entrypoints before the managed vanilla server main is invoked
 
 Minimum Java version: Java 25
 
@@ -11,9 +11,9 @@ First intended Minecraft target: 26.1.2
 
 Mega-Milestone 7 keeps `26.1.2` as the project target Minecraft version for loader metadata and dependency validation. Real vanilla server smoke tasks use a separate official baseline version selected from Mojang metadata, for example `latest-release` or an exact version such as `1.21.8`.
 
-Mega-Milestone 7 turns MC ModLoader into a deterministic Minecraft server runtime owner with a frozen, inspectable, replayable, and explainable pre-mod integration boundary. It still deliberately stops before real Minecraft mod loading: no Minecraft mod classes are loaded, no Minecraft entrypoints are invoked, no mod jars are placed on the real Minecraft runtime classpath, and no Mixin, remapping, bytecode transformation, patching, Fabric/Forge/NeoForge/Quilt/Paper/Bukkit/Sponge compatibility, or injection exists.
+Mega-Milestone 7 turns Spindle into a deterministic Minecraft server runtime owner with a frozen, inspectable, replayable, and explainable pre-mod integration boundary. It still deliberately stops before real Minecraft mod loading: no Minecraft mod classes are loaded, no Minecraft entrypoints are invoked, no mod jars are placed on the real Minecraft runtime classpath, and no Mixin, remapping, bytecode transformation, patching, Fabric/Forge/NeoForge/Quilt/Paper/Bukkit/Sponge compatibility, or injection exists.
 
-Milestone 8 crosses that boundary in one narrow place only: approved server-side MC ModLoader mods may now execute a tiny `minecraftServer` bootstrap entrypoint through a loader-owned child JVM, under a hardened mod classloader, before the Minecraft server main class is invoked. Preflight, runtime planning, boundary reporting, integration planning, explain paths, and reproducibility checks remain non-executing. This is still not a gameplay modding layer: no Mixin, remapping, bytecode transformation, patching, access wideners, compatibility layer, client launch, or Minecraft API exposure exists.
+Milestone 8 crosses that boundary in one narrow place only: approved server-side Spindle mods may now execute a tiny `minecraftServer` bootstrap entrypoint through a loader-owned child JVM, under a hardened mod classloader, before the Minecraft server main class is invoked. Preflight, runtime planning, boundary reporting, integration planning, explain paths, and reproducibility checks remain non-executing. This is still not a gameplay modding layer: no Mixin, remapping, bytecode transformation, patching, access wideners, compatibility layer, client launch, or Minecraft API exposure exists.
 
 ## Tasks
 
@@ -162,40 +162,42 @@ If `-PmacheDir` is not provided, `macheReferenceScan` prints a skip message and 
 First successful sample run:
 
 ```text
-[loader] discovered 1 mod
-[loader] resolved 1 mod
-[loader] wrote loader.lock.json
+[spindle] discovered 1 mod
+[spindle] resolved 1 mod
+[spindle] wrote spindle.lock.json
 Sample mod initialized
 Game starting
-[loader] startup complete
+[spindle] startup complete
 ```
 
 Second successful sample run:
 
 ```text
-[loader] discovered 1 mod
-[loader] resolved 1 mod
-[loader] verified loader.lock.json
+[spindle] discovered 1 mod
+[spindle] resolved 1 mod
+[spindle] verified spindle.lock.json
 Sample mod initialized
 Game starting
-[loader] startup complete
+[spindle] startup complete
 ```
 
 ## Validation and dry-run outputs
 
 Validation mode resolves and verifies the modpack without loading mod classes, creating a mod class loader, invoking entrypoints, or launching the game. Successful validation writes:
 
-- `runtime/modpack-state.json`
-- `runtime/dependency-graph.json`
+- `runtime/spindle.profile.json`
+- `runtime/spindle.report.json`
+- `runtime/spindle.graph.json`
 - `runtime/diagnostics/startup-trace.json`
 - `runtime/diagnostics/startup-profile.json`
 
 Minecraft dry run keeps the same deterministic mod-resolution pipeline, then parses Minecraft version metadata and writes:
 
+- `runtime/spindle.profile.json`
 - `runtime/minecraft-launch-plan.json`
 - `runtime/minecraft-artifacts.json`
-- `runtime/modpack-state.json`
-- `runtime/dependency-graph.json`
+- `runtime/spindle.report.json`
+- `runtime/spindle.graph.json`
 - `runtime/diagnostics/startup-trace.json`
 - `runtime/diagnostics/startup-profile.json`
 
@@ -213,15 +215,15 @@ Mega-Milestone 7 also writes:
 
 - `runtime/minecraft-runtime-boundary.json`
 - `runtime/minecraft-mod-integration-plan.json`
-- `runtime/minecraft-preflight-result.json`
+- `runtime/spindle.preflight.json`
 - `runtime/minecraft-runtime-provenance.json`
 - `runtime/minecraft-reproducibility-check.json`
 
 The runtime boundary report indexes Minecraft runtime packages, resources, services, module-info presence, multi-release jars, native libraries, duplicate resources, split packages, classpath ownership by layer, and explicit proof fields showing that no Minecraft injection, mod class loading, entrypoint invocation, Mixin, remapping, transformation, patching, or mod-runtime classpath attachment occurred. It is analysis-only and defines boundaries future mods must not cross.
 
-The mod integration plan discovers MC ModLoader mod jars intended for Minecraft server usage, parses `loader.mod.json`, validates loader, Java, Minecraft, side, dependency, and breaks metadata, scans jar bytes, and freezes a would-load order. `--minecraft-plan-mods` performs the required prerequisite runtime analysis first, writes the runtime plan and boundary report, writes `runtime/minecraft-mod-integration-plan.json`, never launches Minecraft, never defines or loads scanned mod classes, and never invokes `ModInitializer`.
+The mod integration plan discovers Spindle mod jars intended for Minecraft server usage, parses `loader.mod.json`, validates loader, Java, Minecraft, side, dependency, and breaks metadata, scans jar bytes, and freezes a would-load order. `--minecraft-plan-mods` performs the required prerequisite runtime analysis first, writes the runtime plan and boundary report, writes `runtime/minecraft-mod-integration-plan.json`, never launches Minecraft, never defines or loads scanned mod classes, and never invokes `ModInitializer`.
 
-The preflight report is now a real gate instead of a declarative summary. `runtime/minecraft-preflight-result.json` keeps accepted and rejected counts, warning and fatal counts, rejected mod details, and explicit failure reasons. Preflight exits non-zero when fatal runtime boundary issues exist, fatal integration issues exist, or any discovered Minecraft-targeted mod candidate is rejected.
+The preflight report is now a real gate instead of a declarative summary. `runtime/spindle.preflight.json` keeps accepted and rejected counts, warning and fatal counts, rejected mod details, and explicit failure reasons. Preflight exits non-zero when fatal runtime boundary issues exist, fatal integration issues exist, or any discovered Minecraft-targeted mod candidate is rejected.
 
 The reproducibility report is also real. `runtime/minecraft-reproducibility-check.json` compares the generated runtime plan, runtime boundary, mod integration plan, and preflight report when present against a controlled second run, records both file paths and SHA-256 hashes, reports byte equality, and flags nondeterministic ordering, timestamp leakage, path instability, or offline-network violations.
 
@@ -317,7 +319,7 @@ Behavior notes:
 - `--minecraft-boundary-report` writes `runtime/minecraft-runtime-boundary.json`.
 - `--minecraft-plan-mods` performs runtime planning plus boundary analysis before writing `runtime/minecraft-mod-integration-plan.json`.
 - `--minecraft-integration-plan` writes `runtime/minecraft-mod-integration-plan.json`.
-- `--minecraft-preflight` runs runtime planning, boundary reporting, and mod integration planning, writes `runtime/minecraft-preflight-result.json`, and exits non-zero on fatal issues or rejected required mod candidates before launch or class loading.
+- `--minecraft-preflight` runs runtime planning, boundary reporting, and mod integration planning, writes `runtime/spindle.preflight.json`, and exits non-zero on fatal issues or rejected required mod candidates before launch or class loading.
 - `--minecraft-offline-preflight` combines preflight with offline cache-only behavior.
 - `--minecraft-reproducibility-check` writes `runtime/minecraft-reproducibility-check.json` after rerunning the relevant report generation path and comparing deterministic outputs byte-for-byte.
 - `--minecraft-strict-boundary` promotes boundary warnings such as runtime duplicate-resource and split-package findings to fatal now.
@@ -335,7 +337,7 @@ When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-ser
 `minecraftServerCacheInspect` does not require network and prints:
 
 ```text
-[loader] minecraft cache inspection complete
+[spindle] minecraft cache inspection complete
 ```
 
 `minecraftServerCacheRepair` is the explicit network-enabled repair path for metadata plus the vanilla server jar.
@@ -367,7 +369,7 @@ Boundary reports also label issues as fatal now, warning now but fatal before in
 
 ## Remaining gap before real Minecraft mod loading
 
-Before real Minecraft mod loading can happen, MC ModLoader still needs a safe Minecraft classloader attachment design, injection lifecycle, verified entrypoint execution boundary, compatibility and conflict policy, and explicit user-facing safety gates. Mega-Milestone 7 prepares those decisions by owning the Minecraft runtime plan and freezing the pre-mod boundary, but it does not cross into injection.
+Before real Minecraft mod loading can happen, Spindle still needs a safe Minecraft classloader attachment design, injection lifecycle, verified entrypoint execution boundary, compatibility and conflict policy, and explicit user-facing safety gates. Mega-Milestone 7 prepares those decisions by owning the Minecraft runtime plan and freezing the pre-mod boundary, but it does not cross into injection.
 
 ## Mache reference scan
 

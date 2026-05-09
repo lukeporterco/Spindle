@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("com.mcmodloader.sampleserverfixture.FakeMinecraftServerMain")
+    mainClass.set("com.spindle.sampleserverfixture.FakeMinecraftServerMain")
 }
 
 tasks.named<Jar>("jar") {

@@ -5,7 +5,7 @@
   "side": "server",
   "entrypoints": {
     "minecraftServer": [
-      "com.mcmodloader.sampleminecraftmod.SampleMinecraftServerMod"
+      "com.spindle.sampleminecraftmod.SampleMinecraftServerMod"
     ]
   },
   "depends": {

@@ -2,7 +2,7 @@
 
 ## Project scope
 
-MC ModLoader is a forward-only Java 25 Minecraft mod loader for baseline Minecraft `26.1.2`.
+Spindle is a forward-only Java 25 Minecraft mod loader for baseline Minecraft `26.1.2`.
 
 It is not a Fabric, Forge, NeoForge, Quilt, Paper, Bukkit, Sponge, Mixin, remapping, access widener, or compatibility-layer project. Do not add compatibility features unless the task explicitly asks for them.
 
@@ -166,7 +166,7 @@ Current schema is `schema: 1`.
 
 When adding schema features, preserve old schema behavior or reject with a clear diagnostic. Do not silently reinterpret older metadata.
 
-Generated report names should remain stable and descriptive. Prefer the future `mcml.*.json` naming convention for new artifacts, but do not rename existing files unless the task asks for a migration.
+Generated report names should remain stable and descriptive. Prefer the future `spindle.*.json` naming convention for new artifacts, but do not rename existing files unless the task asks for a migration.
 
 Do not commit files from `runtime/`.
 

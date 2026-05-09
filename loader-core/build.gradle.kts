@@ -13,5 +13,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
 }

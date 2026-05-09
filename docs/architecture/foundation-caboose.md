@@ -4,12 +4,12 @@
 
 Current structure:
 
-- CLI parsing and launch argument resolution live in `loader-core/src/main/java/com/mcmodloader/core/cli/`.
-- Top-level application orchestration lives in `loader-core/src/main/java/com/mcmodloader/core/app/LoaderApplication.java`.
-- Normal modpack planning lives in `loader-core/src/main/java/com/mcmodloader/core/pipeline/`.
-- Standard non-Minecraft execution lives in `loader-core/src/main/java/com/mcmodloader/core/execution/`.
-- Minecraft dry-run, baseline, launch, bootstrap, preflight, and reproducibility orchestration live in `loader-core/src/main/java/com/mcmodloader/core/minecraft/flow/`.
-- Shared timing, diagnostic detail, display-path, startup-profile, and process-output helpers live in `loader-core/src/main/java/com/mcmodloader/core/report/` and `loader-core/src/main/java/com/mcmodloader/core/io/`.
+- CLI parsing and launch argument resolution live in `loader-core/src/main/java/com/spindle/core/cli/`.
+- Top-level application orchestration lives in `loader-core/src/main/java/com/spindle/core/app/LoaderApplication.java`.
+- Normal modpack planning lives in `loader-core/src/main/java/com/spindle/core/pipeline/`.
+- Standard non-Minecraft execution lives in `loader-core/src/main/java/com/spindle/core/execution/`.
+- Minecraft dry-run, baseline, launch, bootstrap, preflight, and reproducibility orchestration live in `loader-core/src/main/java/com/spindle/core/minecraft/flow/`.
+- Shared timing, diagnostic detail, display-path, startup-profile, and process-output helpers live in `loader-core/src/main/java/com/spindle/core/report/` and `loader-core/src/main/java/com/spindle/core/io/`.
 
 The intended Runtime Arc seam is the modpack planning result returned by `ModpackPlanningPipeline`. Future `Runtime-1: Compiled Modpack Runtime` work should attach there by compiling the deterministic planning outputs into a reusable runtime profile before classloading or execution.
 

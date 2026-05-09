@@ -24,7 +24,7 @@ plugins {
 }
 
 allprojects {
-    group = "com.mcmodloader"
+    group = "com.spindle"
     version = "0.1.0"
 }
 
@@ -275,7 +275,7 @@ val prepareMinecraftBundledServerFixture by tasks.registering {
                 jar.write(bytes)
                 jar.closeEntry()
             }
-            entry("META-INF/main-class", "com.mcmodloader.sampleserverfixture.FakeMinecraftServerMain\n".toByteArray())
+            entry("META-INF/main-class", "com.spindle.sampleserverfixture.FakeMinecraftServerMain\n".toByteArray())
             entry("META-INF/versions.list", "${nestedSha1}\tfixture\tfixture-server.jar\n".toByteArray())
             entry("META-INF/libraries.list", "${nestedSha1}\tfixture-lib\tfixture-lib.jar\n".toByteArray())
             entry("META-INF/versions/fixture-server.jar", nestedBytes)
@@ -295,9 +295,9 @@ tasks.register<JavaExec>("runMilestone0") {
         loaderCoreSourceSets["main"].runtimeClasspath +
             sampleGameSourceSets["main"].output
 
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
-    args("--game-main", "com.mcmodloader.samplegame.SampleGameMain")
+    args("--game-main", "com.spindle.samplegame.SampleGameMain")
 
     ensureRuntimeWorkingDir()
 }
@@ -313,9 +313,9 @@ tasks.register<JavaExec>("validateMilestone0") {
         loaderCoreSourceSets["main"].runtimeClasspath +
             sampleGameSourceSets["main"].output
 
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
-    args("--game-main", "com.mcmodloader.samplegame.SampleGameMain", "--validate-only")
+    args("--game-main", "com.spindle.samplegame.SampleGameMain", "--validate-only")
 
     ensureRuntimeWorkingDir()
 }
@@ -331,9 +331,9 @@ tasks.register<JavaExec>("explainMilestone0") {
         loaderCoreSourceSets["main"].runtimeClasspath +
             sampleGameSourceSets["main"].output
 
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
-    args("--game-main", "com.mcmodloader.samplegame.SampleGameMain", "--validate-only", "--explain")
+    args("--game-main", "com.spindle.samplegame.SampleGameMain", "--validate-only", "--explain")
 
     ensureRuntimeWorkingDir()
 }
@@ -344,7 +344,7 @@ tasks.register<JavaExec>("minecraftDryRun") {
     dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -368,7 +368,7 @@ tasks.register<JavaExec>("minecraftServerDryRun") {
     dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -392,7 +392,7 @@ tasks.register<JavaExec>("macheReferenceScan") {
     dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     onlyIf {
         val macheDir = providers.gradleProperty("macheDir").orNull
@@ -434,7 +434,7 @@ tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
     dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftServerLaunchFixture)
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -467,7 +467,7 @@ tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
     description = "Launches a real local vanilla Minecraft server jar in managed dry-smoke mode when -PminecraftDir is provided."
     dependsOn(":loader-core:classes", ":loader-api:classes")
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     onlyIf {
         val minecraftDir = providers.gradleProperty("minecraftDir").orNull
@@ -512,7 +512,7 @@ tasks.register<JavaExec>("minecraftServerCacheInspect") {
     dependsOn(":loader-core:classes", ":loader-api:classes")
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -535,7 +535,7 @@ tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
     dependsOn(":loader-core:classes", ":loader-api:classes")
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -560,7 +560,7 @@ tasks.register<JavaExec>("minecraftServerCacheRepair") {
     dependsOn(":loader-core:classes", ":loader-api:classes")
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -586,7 +586,7 @@ tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
     dependsOn(":loader-core:classes", ":loader-api:classes")
 
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         "--game-main",
@@ -622,7 +622,7 @@ fun JavaExec.configureRealBaselineTask(
     group = "application"
     dependsOn(":loader-core:classes", ":loader-api:classes")
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
 
     doFirst {
@@ -727,7 +727,7 @@ fun JavaExec.configureMinecraftServerFixtureTask(taskMain: String, fixtureTask: 
     group = "application"
     dependsOn(":loader-core:classes", ":loader-api:classes", prepareMilestone0Mods, fixtureTask)
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
     args(
         listOf(
@@ -935,7 +935,7 @@ fun JavaExec.configureMinecraftMilestone8Task(taskMain: String, extraArgs: List<
     group = "application"
     dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftMilestone8Fixture)
     classpath = minecraftRuntimeClasspath()
-    mainClass.set("com.mcmodloader.core.LoaderMain")
+    mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime/milestone8").asFile
     args(
         listOf(
@@ -1017,19 +1017,19 @@ fun registerMilestone8FocusedTest(taskName: String, includePattern: String, desc
 
 registerMilestone8FocusedTest(
     "minecraftServerModCanarySmoke",
-    "com.mcmodloader.core.Milestone8MinecraftBootstrapExecutionTest.canary*",
+    "com.spindle.core.Milestone8MinecraftBootstrapExecutionTest.canary*",
     "Runs the Milestone 8 canary smoke proving preflight stays non-executing."
 )
 
 registerMilestone8FocusedTest(
     "minecraftServerBootstrapDriftSmoke",
-    "com.mcmodloader.core.Milestone8MinecraftBootstrapExecutionTest.*Drift*",
+    "com.spindle.core.Milestone8MinecraftBootstrapExecutionTest.*Drift*",
     "Runs the Milestone 8 plan drift smoke tests."
 )
 
 registerMilestone8FocusedTest(
     "minecraftServerBootstrapStrictSmoke",
-    "com.mcmodloader.core.Milestone8MinecraftBootstrapExecutionTest.strictExecutionFailsOnWarningsPromotedToFatal",
+    "com.spindle.core.Milestone8MinecraftBootstrapExecutionTest.strictExecutionFailsOnWarningsPromotedToFatal",
     "Runs the Milestone 8 strict execution smoke tests."
 )
 

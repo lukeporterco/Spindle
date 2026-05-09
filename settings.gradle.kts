@@ -14,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "mc-modloader"
+rootProject.name = "spindle"
 
 include("loader-api", "loader-core", "sample-game", "sample-mod", "sample-server-fixture", "sample-minecraft-mod")

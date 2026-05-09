@@ -5,7 +5,7 @@
   "side": "universal",
   "entrypoints": {
     "main": [
-      "com.mcmodloader.samplemod.SampleMod"
+      "com.spindle.samplemod.SampleMod"
     ]
   },
   "depends": {

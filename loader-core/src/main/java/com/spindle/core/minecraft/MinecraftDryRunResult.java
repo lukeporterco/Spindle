@@ -1,0 +1,34 @@
+package com.spindle.core.minecraft;
+
+import com.spindle.core.artifact.MinecraftArtifactResolver;
+import com.spindle.core.mache.MacheReferenceReport;
+import java.nio.file.Path;
+
+public record MinecraftDryRunResult(
+    MinecraftLaunchPlan launchPlan,
+    MacheReferenceReport macheReferenceReport,
+    Path serverJarPath,
+    String serverJarSource,
+    MinecraftArtifactResolver.Resolution artifactResolution,
+    MinecraftServerRuntimePlanner.PlannedRuntime plannedRuntime,
+    MinecraftRuntimeBoundary runtimeBoundary,
+    MinecraftModIntegrationPlan integrationPlan,
+    MinecraftModExecutionPlan executionPlan) {
+  public MinecraftDryRunResult(
+      MinecraftLaunchPlan launchPlan,
+      MacheReferenceReport macheReferenceReport,
+      Path serverJarPath,
+      String serverJarSource,
+      MinecraftArtifactResolver.Resolution artifactResolution) {
+    this(
+        launchPlan,
+        macheReferenceReport,
+        serverJarPath,
+        serverJarSource,
+        artifactResolution,
+        null,
+        null,
+        null,
+        null);
+  }
+}

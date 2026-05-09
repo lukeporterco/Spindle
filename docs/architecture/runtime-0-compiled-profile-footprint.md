@@ -2,7 +2,7 @@
 
 `Runtime-0: First Compiled Profile Footprint` adds a small deterministic runtime artifact at the post-planning seam introduced by Foundation-Caboose.
 
-The loader now writes `mcml.compiled-profile.json` in the working directory beside `loader.lock.json`, `modpack-state.json`, and `dependency-graph.json`.
+The loader now writes `spindle.profile.json` in the working directory beside `spindle.lock.json`, `spindle.report.json`, and `spindle.graph.json`.
 
 The profile is built from the existing `ModpackPlanningResult`. It currently records:
 
