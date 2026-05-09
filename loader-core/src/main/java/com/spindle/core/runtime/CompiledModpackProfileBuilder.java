@@ -19,6 +19,7 @@ public final class CompiledModpackProfileBuilder {
   private final RuntimeProtectedPackagePolicy protectedPackagePolicy =
       new RuntimeProtectedPackagePolicy();
   private final CompiledModpackProfileFingerprint fingerprint = new CompiledModpackProfileFingerprint();
+  private final RuntimePolicyFingerprint runtimePolicyFingerprint = new RuntimePolicyFingerprint();
 
   public CompiledModpackProfile build(
       LaunchContext context,
@@ -70,6 +71,7 @@ public final class CompiledModpackProfileBuilder {
     CompiledModpackProfile.Lockfile lockfile =
         new CompiledModpackProfile.Lockfile(
             "verify-or-write",
+            planningResult.lockfileAction(),
             DisplayPaths.displayPath(context, planningResult.lockfilePath()),
             CompiledModpackProfileFingerprint.fromFile(planningResult.lockfilePath()));
 
@@ -79,6 +81,7 @@ public final class CompiledModpackProfileBuilder {
             CompiledModpackProfile.PROFILE_KIND,
             "",
             inputFingerprint,
+            runtimePolicyFingerprint.compute(context),
             cache,
             new CompiledModpackProfile.Loader(
                 CompiledModpackProfile.LOADER_ID, context.loaderVersion()),
@@ -98,6 +101,7 @@ public final class CompiledModpackProfileBuilder {
                 new CompiledModpackProfile.Resources(
                     planningResult.resourceConflictIndex().conflicts().size())),
             lockfile,
+            new CompiledModpackProfile.Permissions(requestedPermissions(planningResult)),
             new CompiledModpackProfile.Lifecycle(
                 lifecyclePlan.phaseOrder(), lifecycleHandlers(lifecyclePlan)),
             new CompiledModpackProfile.Contexts(contextPlans),
@@ -136,6 +140,13 @@ public final class CompiledModpackProfileBuilder {
                     handler.interfaceName(),
                     handler.jarPath(),
                     handler.jarHash()))
+        .toList();
+  }
+
+  private List<CompiledModpackProfile.ModPermissions> requestedPermissions(
+      ModpackPlanningResult planningResult) {
+    return planningResult.resolvedMods().mods().stream()
+        .map(mod -> new CompiledModpackProfile.ModPermissions(mod.id(), mod.permissions()))
         .toList();
   }
 

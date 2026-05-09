@@ -30,8 +30,11 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 `spindle.profile.json` now writes schema version `2` and includes:
 
 - `inputFingerprint`
+- `runtimePolicyFingerprint`
 - cache status and cache reason
 - metadata schema summary
+- lockfile `mode` plus per-build `action` when available
+- recorded requested permissions per mod
 - lifecycle phase order and planned handlers
 - per-mod owned storage/context plans
 - runtime package policy summaries
@@ -49,7 +52,20 @@ The input fingerprint is derived from stable pre-classload inputs such as loader
 
 Equivalent repeated runs reuse the cached profile. Changed mod hashes, lockfile fingerprints, schema version changes, side changes, or runtime policy changes invalidate the cache.
 
-Diagnostics now record `runtime.compiled_profile.cache` with `cacheStatus`, `cacheReason`, and `inputFingerprint`.
+Cached profile reads validate schema version, profile kind, loader identity, game identity, input fingerprint, stored profile fingerprint, and runtime policy fingerprint before reuse.
+
+Diagnostics now record `runtime.compiled_profile.cache` with deterministic reasons such as:
+
+- `missing profile`
+- `unreadable profile`
+- `schema mismatch`
+- `profile kind mismatch`
+- `loader mismatch`
+- `game mismatch`
+- `input fingerprint mismatch`
+- `profile fingerprint mismatch`
+- `runtime policy fingerprint mismatch`
+- `cache hit`
 
 ## Standard Runtime Kernel
 
@@ -67,7 +83,7 @@ Schema `1` `main` entrypoints remain available as legacy `BOOTSTRAP` handlers th
 
 ## Package Policy and Reports
 
-Runtime-1 records runtime package policy in the compiled profile and rejects protected package definitions before classloading on the standard runtime path.
+Runtime-1 records runtime package policy in the compiled profile and rejects protected package definitions before classloading on the standard runtime path for schema `2` mods. Legacy schema `1` fixtures remain on the compatibility path.
 
 Protected package coverage now includes at least:
 
@@ -82,6 +98,10 @@ Runtime-1 also writes:
 - `spindle.quality-report.json`
 
 These reports are deterministic and summarize planned lifecycle handlers, executed handlers, cache state, owned storage directories, duplicate resources, split packages, protected package findings, metadata findings, and quality score.
+
+`duplicateClasses` may be empty in the compiled profile when duplicate-class situations fail earlier as fatal ownership/package policy violations before a profile is written.
+
+`spindle.lifecycle-report.json` can be planned-only before runtime execution or execution-complete after standard runtime execution, depending on where the run stops.
 
 ## Non-goals
 

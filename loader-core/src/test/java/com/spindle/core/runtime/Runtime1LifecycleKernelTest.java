@@ -75,6 +75,7 @@ class Runtime1LifecycleKernelTest {
     assertEquals(4, report.getAsJsonArray("attemptedHandlers").size());
     assertEquals(4, report.getAsJsonArray("successfulHandlers").size());
     assertEquals(0, report.getAsJsonArray("failedHandlers").size());
+    assertTrue(report.get("runtimePolicyFingerprint").getAsString().matches("[0-9a-f]{64}"));
     assertEquals("miss", readCompiledProfile().getAsJsonObject("cache").get("status").getAsString());
   }
 
@@ -142,6 +143,30 @@ class Runtime1LifecycleKernelTest {
         first.get("inputFingerprint").getAsString().equals(second.get("inputFingerprint").getAsString()));
   }
 
+  @Test
+  void requestedPermissionsAreRecordedInProfileWithoutRuntimeGranting() throws Exception {
+    createSchemaTwoModJar(
+        tempDirectory.resolve("mods/permitted.jar"),
+        "permittedmod",
+        Map.of("BOOTSTRAP", List.of(AlphaLifecycle.class.getName() + "::bootstrap")),
+        Map.of(resourceName(AlphaLifecycle.class), readClassBytes(AlphaLifecycle.class)),
+        true,
+        List.of("filesystem.write", "network.outbound"));
+
+    executeValidateOnly();
+
+    JsonObject profile = readCompiledProfile();
+    JsonObject permissions =
+        profile.getAsJsonObject("permissions").getAsJsonArray("mods").get(0).getAsJsonObject();
+    assertEquals("permittedmod", permissions.get("modId").getAsString());
+    assertEquals(
+        List.of("filesystem.write", "network.outbound"),
+        permissions.getAsJsonArray("requested").asList().stream()
+            .map(element -> element.getAsString())
+            .toList());
+    assertEquals("miss", profile.getAsJsonObject("cache").get("status").getAsString());
+  }
+
   private JsonObject readCompiledProfile() throws IOException {
     return JsonParser.parseString(
             Files.readString(tempDirectory.resolve("spindle.profile.json"), StandardCharsets.UTF_8))
@@ -181,7 +206,18 @@ class Runtime1LifecycleKernelTest {
       Map<String, byte[]> entries,
       boolean storageEnabled)
       throws IOException {
-    createModJar(jarPath, schemaTwoMetadata(modId, lifecycle, storageEnabled), entries);
+    createSchemaTwoModJar(jarPath, modId, lifecycle, entries, storageEnabled, List.of());
+  }
+
+  private void createSchemaTwoModJar(
+      Path jarPath,
+      String modId,
+      Map<String, List<String>> lifecycle,
+      Map<String, byte[]> entries,
+      boolean storageEnabled,
+      List<String> permissions)
+      throws IOException {
+    createModJar(jarPath, schemaTwoMetadata(modId, lifecycle, storageEnabled, permissions), entries);
   }
 
   private void createModJar(Path jarPath, String metadataJson, Map<String, byte[]> entries)
@@ -201,7 +237,10 @@ class Runtime1LifecycleKernelTest {
   }
 
   private String schemaTwoMetadata(
-      String modId, Map<String, List<String>> lifecycle, boolean storageEnabled) {
+      String modId,
+      Map<String, List<String>> lifecycle,
+      boolean storageEnabled,
+      List<String> permissions) {
     StringBuilder lifecycleJson = new StringBuilder();
     boolean firstPhase = true;
     for (Map.Entry<String, List<String>> entry :
@@ -242,7 +281,7 @@ class Runtime1LifecycleKernelTest {
           "lifecycle": {
 %s
           },
-          "permissions": [],
+          "permissions": %s,
           "storage": {
             "config": %s,
             "data": %s,
@@ -254,10 +293,15 @@ class Runtime1LifecycleKernelTest {
         .formatted(
             modId,
             lifecycleJson,
+            toJsonArray(permissions),
             Boolean.toString(storageEnabled),
             Boolean.toString(storageEnabled),
             Boolean.toString(storageEnabled),
             Boolean.toString(storageEnabled));
+  }
+
+  private String toJsonArray(List<String> values) {
+    return values.stream().map(value -> "\"" + value + "\"").collect(java.util.stream.Collectors.joining(", ", "[", "]"));
   }
 
   private String execute(boolean validateOnly) throws Exception {

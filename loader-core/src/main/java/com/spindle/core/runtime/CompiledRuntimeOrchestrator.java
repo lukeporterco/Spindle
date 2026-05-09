@@ -21,6 +21,7 @@ import java.nio.file.Path;
 public final class CompiledRuntimeOrchestrator {
   private final CompiledModpackProfileFingerprint fingerprint =
       new CompiledModpackProfileFingerprint();
+  private final RuntimePolicyFingerprint runtimePolicyFingerprint = new RuntimePolicyFingerprint();
   private final CompiledModpackProfileBuilder builder = new CompiledModpackProfileBuilder();
   private final CompiledModpackProfileWriter writer = new CompiledModpackProfileWriter();
   private final CompiledModpackProfileCache cache = new CompiledModpackProfileCache();
@@ -39,7 +40,14 @@ public final class CompiledRuntimeOrchestrator {
       DiagnosticSink diagnosticSink)
       throws LoaderException {
     String inputFingerprint = fingerprint.computeInputFingerprint(context, planningResult, gameSide);
-    CompiledModpackProfileCache.CacheLookup cacheLookup = cache.lookup(context, inputFingerprint);
+    String expectedRuntimePolicyFingerprint = runtimePolicyFingerprint.compute(context);
+    CompiledModpackProfileCache.CacheLookup cacheLookup =
+        cache.lookup(
+            context,
+            planningResult,
+            gameSide,
+            inputFingerprint,
+            expectedRuntimePolicyFingerprint);
     diagnosticSink.record(
         new DiagnosticEvent(
             "runtime.compiled_profile.cache",
@@ -53,7 +61,9 @@ public final class CompiledRuntimeOrchestrator {
                 "cacheReason",
                 cacheLookup.reason(),
                 "inputFingerprint",
-                inputFingerprint)));
+                inputFingerprint,
+                "runtimePolicyFingerprint",
+                expectedRuntimePolicyFingerprint)));
 
     LifecyclePlan lifecyclePlan =
         lifecyclePlanBuilder.build(planningResult.resolvedMods(), planningResult.classOwnershipIndex());
@@ -62,6 +72,12 @@ public final class CompiledRuntimeOrchestrator {
         cacheLookup.hit()
             ? cacheLookup
                 .profile()
+                .withLockfile(
+                    new CompiledModpackProfile.Lockfile(
+                        cacheLookup.profile().lockfile().mode(),
+                        planningResult.lockfileAction(),
+                        cacheLookup.profile().lockfile().path(),
+                        cacheLookup.profile().lockfile().fingerprint()))
                 .withCache(new CompiledModpackProfile.Cache("hit", cacheLookup.reason()))
             : builder.build(
                 context,

@@ -5,6 +5,7 @@ import java.util.List;
 public record LifecycleExecutionReport(
     String profileFingerprint,
     String inputFingerprint,
+    String runtimePolicyFingerprint,
     String cacheStatus,
     String cacheReason,
     List<String> phaseOrder,

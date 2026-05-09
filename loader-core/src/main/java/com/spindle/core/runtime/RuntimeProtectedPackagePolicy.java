@@ -3,6 +3,7 @@ package com.spindle.core.runtime;
 import java.util.List;
 
 public final class RuntimeProtectedPackagePolicy {
+  public static final int POLICY_VERSION = 1;
   private static final List<String> PROTECTED_PACKAGES =
       List.of(
           "java",
@@ -17,6 +18,10 @@ public final class RuntimeProtectedPackagePolicy {
 
   public List<String> protectedPackages() {
     return PROTECTED_PACKAGES;
+  }
+
+  public int policyVersion() {
+    return POLICY_VERSION;
   }
 
   public boolean isProtectedDefinitionPackage(String packageName) {

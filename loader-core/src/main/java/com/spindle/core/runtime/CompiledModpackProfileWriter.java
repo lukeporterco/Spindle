@@ -21,6 +21,7 @@ public final class CompiledModpackProfileWriter {
     root.addProperty("profileKind", profile.profileKind());
     root.addProperty("fingerprint", profile.fingerprint());
     root.addProperty("inputFingerprint", profile.inputFingerprint());
+    root.addProperty("runtimePolicyFingerprint", profile.runtimePolicyFingerprint());
 
     JsonObject cache = new JsonObject();
     cache.addProperty("status", profile.cache().status());
@@ -86,9 +87,27 @@ public final class CompiledModpackProfileWriter {
 
     JsonObject lockfile = new JsonObject();
     lockfile.addProperty("mode", profile.lockfile().mode());
+    if (profile.lockfile().action() != null) {
+      lockfile.addProperty("action", profile.lockfile().action());
+    }
     lockfile.addProperty("path", profile.lockfile().path());
     lockfile.addProperty("fingerprint", profile.lockfile().fingerprint());
     root.add("lockfile", lockfile);
+
+    JsonObject permissions = new JsonObject();
+    JsonArray permissionMods = new JsonArray();
+    for (CompiledModpackProfile.ModPermissions mod : profile.permissions().mods()) {
+      JsonObject modObject = new JsonObject();
+      modObject.addProperty("modId", mod.modId());
+      JsonArray requested = new JsonArray();
+      for (String permission : mod.requested()) {
+        requested.add(permission);
+      }
+      modObject.add("requested", requested);
+      permissionMods.add(modObject);
+    }
+    permissions.add("mods", permissionMods);
+    root.add("permissions", permissions);
 
     JsonObject lifecycle = new JsonObject();
     JsonArray phaseOrder = new JsonArray();

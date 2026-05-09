@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.spindle.core.LoaderMain;
 import com.spindle.core.app.LoaderApplication;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
@@ -21,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -62,6 +62,7 @@ class Runtime0CompiledProfileTest {
     assertEquals("sample", profile.getAsJsonObject("game").get("id").getAsString());
     assertEquals("universal", profile.getAsJsonObject("game").get("side").getAsString());
     assertEquals("verify-or-write", profile.getAsJsonObject("lockfile").get("mode").getAsString());
+    assertEquals("wrote", profile.getAsJsonObject("lockfile").get("action").getAsString());
     assertEquals("miss", profile.getAsJsonObject("cache").get("status").getAsString());
     assertEquals(
         List.of(1),
@@ -84,9 +85,11 @@ class Runtime0CompiledProfileTest {
 
     String fingerprint = profile.get("fingerprint").getAsString();
     String inputFingerprint = profile.get("inputFingerprint").getAsString();
+    String runtimePolicyFingerprint = profile.get("runtimePolicyFingerprint").getAsString();
     assertNotNull(fingerprint);
     assertTrue(fingerprint.matches("[0-9a-f]{64}"));
     assertTrue(inputFingerprint.matches("[0-9a-f]{64}"));
+    assertTrue(runtimePolicyFingerprint.matches("[0-9a-f]{64}"));
     assertEquals(
         profile.getAsJsonObject("lockfile").get("path").getAsString(), "spindle.lock.json");
   }
@@ -106,6 +109,94 @@ class Runtime0CompiledProfileTest {
         first.get("inputFingerprint").getAsString(), second.get("inputFingerprint").getAsString());
     assertEquals("miss", first.getAsJsonObject("cache").get("status").getAsString());
     assertEquals("hit", second.getAsJsonObject("cache").get("status").getAsString());
+    assertEquals("cache hit", second.getAsJsonObject("cache").get("reason").getAsString());
+  }
+
+  @Test
+  void unreadableCachedProfileRebuildsWithSpecificMissReason() throws Exception {
+    createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
+
+    executeValidateOnly();
+    JsonObject profile = readCompiledProfile();
+    Files.writeString(cachedProfilePath(profile), "{ nope", StandardCharsets.UTF_8);
+
+    executeValidateOnly();
+
+    assertEquals(
+        "unreadable profile",
+        readCompiledProfile().getAsJsonObject("cache").get("reason").getAsString());
+  }
+
+  @Test
+  void cachedProfileSchemaMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root -> root.addProperty("schemaVersion", 1), "schema mismatch");
+  }
+
+  @Test
+  void cachedProfileKindMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root -> root.addProperty("profileKind", "wrong-kind"), "profile kind mismatch");
+  }
+
+  @Test
+  void cachedProfileLoaderMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root -> root.getAsJsonObject("loader").addProperty("version", "0.0.0"),
+        "loader mismatch");
+  }
+
+  @Test
+  void cachedProfileGameMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root -> root.getAsJsonObject("game").addProperty("version", "0.0.0"), "game mismatch");
+  }
+
+  @Test
+  void cachedProfileInputFingerprintMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root ->
+            root.addProperty(
+                "inputFingerprint",
+                "0000000000000000000000000000000000000000000000000000000000000000"),
+        "input fingerprint mismatch");
+  }
+
+  @Test
+  void cachedProfileFingerprintMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root ->
+            root.addProperty(
+                "fingerprint",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+        "profile fingerprint mismatch");
+  }
+
+  @Test
+  void cachedProfileRuntimePolicyFingerprintMismatchRebuilds() throws Exception {
+    assertCacheMissReasonAfterMutation(
+        root ->
+            root.addProperty(
+                "runtimePolicyFingerprint",
+                "1111111111111111111111111111111111111111111111111111111111111111"),
+        "runtime policy fingerprint mismatch");
+  }
+
+  @Test
+  void compiledProfileDistinguishesLockfileModeAndAction() throws Exception {
+    createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
+
+    executeValidateOnly();
+    JsonObject first = readCompiledProfile();
+
+    deleteProfileCacheDirectory(first);
+    executeValidateOnly();
+    JsonObject second = readCompiledProfile();
+
+    assertEquals("verify-or-write", first.getAsJsonObject("lockfile").get("mode").getAsString());
+    assertEquals("wrote", first.getAsJsonObject("lockfile").get("action").getAsString());
+    assertEquals("verify-or-write", second.getAsJsonObject("lockfile").get("mode").getAsString());
+    assertEquals("verified", second.getAsJsonObject("lockfile").get("action").getAsString());
   }
 
   @Test
@@ -186,6 +277,47 @@ class Runtime0CompiledProfileTest {
     return JsonParser.parseString(
             Files.readString(tempDirectory.resolve("spindle.profile.json"), StandardCharsets.UTF_8))
         .getAsJsonObject();
+  }
+
+  private void assertCacheMissReasonAfterMutation(
+      Consumer<JsonObject> mutation, String expectedReason) throws Exception {
+    createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
+
+    executeValidateOnly();
+    JsonObject profile = readCompiledProfile();
+    Path cachePath = cachedProfilePath(profile);
+    JsonObject cachedProfile =
+        JsonParser.parseString(Files.readString(cachePath, StandardCharsets.UTF_8)).getAsJsonObject();
+    mutation.accept(cachedProfile);
+    Files.writeString(cachePath, cachedProfile.toString(), StandardCharsets.UTF_8);
+
+    executeValidateOnly();
+
+    JsonObject rebuilt = readCompiledProfile();
+    assertEquals("miss", rebuilt.getAsJsonObject("cache").get("status").getAsString());
+    assertEquals(expectedReason, rebuilt.getAsJsonObject("cache").get("reason").getAsString());
+  }
+
+  private Path cachedProfilePath(JsonObject profile) {
+    return tempDirectory
+        .resolve(".spindle")
+        .resolve("profile-cache")
+        .resolve(profile.get("inputFingerprint").getAsString())
+        .resolve("spindle.profile.json");
+  }
+
+  private void deleteProfileCacheDirectory(JsonObject profile) throws IOException {
+    try (var paths = Files.walk(cachedProfilePath(profile).getParent().getParent())) {
+      paths.sorted(java.util.Comparator.reverseOrder()).forEach(this::deleteUnchecked);
+    }
+  }
+
+  private void deleteUnchecked(Path path) {
+    try {
+      Files.delete(path);
+    } catch (IOException exception) {
+      throw new RuntimeException(exception);
+    }
   }
 
   private String executeValidateOnly() throws Exception {

@@ -17,6 +17,7 @@ public final class CompiledModpackProfileFingerprint {
     update(digest, "schemaVersion", Integer.toString(profile.schemaVersion()));
     update(digest, "profileKind", profile.profileKind());
     update(digest, "inputFingerprint", profile.inputFingerprint());
+    update(digest, "runtimePolicyFingerprint", profile.runtimePolicyFingerprint());
     update(digest, "loader.id", profile.loader().id());
     update(digest, "loader.version", profile.loader().version());
     update(digest, "game.id", profile.game().id());
@@ -55,6 +56,13 @@ public final class CompiledModpackProfileFingerprint {
     update(digest, "lockfile.mode", profile.lockfile().mode());
     update(digest, "lockfile.path", profile.lockfile().path());
     update(digest, "lockfile.fingerprint", profile.lockfile().fingerprint());
+
+    for (CompiledModpackProfile.ModPermissions permissions : profile.permissions().mods()) {
+      update(digest, "permissions.modId", permissions.modId());
+      for (String requested : permissions.requested()) {
+        update(digest, "permissions.requested", requested);
+      }
+    }
 
     for (String phase : profile.lifecycle().phaseOrder()) {
       update(digest, "lifecycle.phaseOrder", phase);
@@ -174,7 +182,7 @@ public final class CompiledModpackProfileFingerprint {
     }
   }
 
-  private static MessageDigest createDigest() throws LoaderException {
+  static MessageDigest createDigest() throws LoaderException {
     try {
       return MessageDigest.getInstance("SHA-256");
     } catch (NoSuchAlgorithmException exception) {

@@ -7,6 +7,7 @@ public record CompiledModpackProfile(
     String profileKind,
     String fingerprint,
     String inputFingerprint,
+    String runtimePolicyFingerprint,
     Cache cache,
     Loader loader,
     Game game,
@@ -16,6 +17,7 @@ public record CompiledModpackProfile(
     List<ClasspathEntry> classpath,
     Ownership ownership,
     Lockfile lockfile,
+    Permissions permissions,
     Lifecycle lifecycle,
     Contexts contexts,
     PackagePolicy packagePolicy,
@@ -37,6 +39,7 @@ public record CompiledModpackProfile(
         profileKind,
         nextFingerprint,
         inputFingerprint,
+        runtimePolicyFingerprint,
         cache,
         loader,
         game,
@@ -46,6 +49,7 @@ public record CompiledModpackProfile(
         classpath,
         ownership,
         lockfile,
+        permissions,
         lifecycle,
         contexts,
         packagePolicy,
@@ -58,6 +62,7 @@ public record CompiledModpackProfile(
         profileKind,
         fingerprint,
         inputFingerprint,
+        runtimePolicyFingerprint,
         nextCache,
         loader,
         game,
@@ -67,6 +72,30 @@ public record CompiledModpackProfile(
         classpath,
         ownership,
         lockfile,
+        permissions,
+        lifecycle,
+        contexts,
+        packagePolicy,
+        quality);
+  }
+
+  public CompiledModpackProfile withLockfile(Lockfile nextLockfile) {
+    return new CompiledModpackProfile(
+        schemaVersion,
+        profileKind,
+        fingerprint,
+        inputFingerprint,
+        runtimePolicyFingerprint,
+        cache,
+        loader,
+        game,
+        metadata,
+        mods,
+        resolvedOrder,
+        classpath,
+        ownership,
+        nextLockfile,
+        permissions,
         lifecycle,
         contexts,
         packagePolicy,
@@ -95,7 +124,19 @@ public record CompiledModpackProfile(
 
   public record Resources(int duplicates) {}
 
-  public record Lockfile(String mode, String path, String fingerprint) {}
+  public record Lockfile(String mode, String action, String path, String fingerprint) {}
+
+  public record Permissions(List<ModPermissions> mods) {
+    public Permissions {
+      mods = List.copyOf(mods);
+    }
+  }
+
+  public record ModPermissions(String modId, List<String> requested) {
+    public ModPermissions {
+      requested = List.copyOf(requested);
+    }
+  }
 
   public record Lifecycle(List<String> phaseOrder, List<LifecycleHandler> handlers) {
     public Lifecycle {

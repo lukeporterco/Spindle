@@ -22,6 +22,7 @@ public final class CompiledModpackProfileReader {
           requiredString(root, "profileKind"),
           requiredString(root, "fingerprint"),
           requiredString(root, "inputFingerprint"),
+          requiredString(root, "runtimePolicyFingerprint"),
           readCache(requiredObject(root, "cache")),
           readLoader(requiredObject(root, "loader")),
           readGame(requiredObject(root, "game")),
@@ -31,11 +32,12 @@ public final class CompiledModpackProfileReader {
           readClasspath(requiredArray(root, "classpath")),
           readOwnership(requiredObject(root, "ownership")),
           readLockfile(requiredObject(root, "lockfile")),
+          readPermissions(requiredObject(root, "permissions")),
           readLifecycle(requiredObject(root, "lifecycle")),
           readContexts(requiredObject(root, "contexts")),
           readPackagePolicy(requiredObject(root, "packagePolicy")),
           readQuality(requiredObject(root, "quality")));
-    } catch (IOException exception) {
+    } catch (IOException | RuntimeException exception) {
       throw new LoaderException(
           "Failed to read compiled modpack profile " + path.toString().replace('\\', '/'),
           exception);
@@ -111,8 +113,20 @@ public final class CompiledModpackProfileReader {
   private CompiledModpackProfile.Lockfile readLockfile(JsonObject object) {
     return new CompiledModpackProfile.Lockfile(
         requiredString(object, "mode"),
+        optionalString(object, "action"),
         requiredString(object, "path"),
         requiredString(object, "fingerprint"));
+  }
+
+  private CompiledModpackProfile.Permissions readPermissions(JsonObject object) {
+    List<CompiledModpackProfile.ModPermissions> mods = new ArrayList<>();
+    for (JsonElement element : requiredArray(object, "mods")) {
+      JsonObject mod = element.getAsJsonObject();
+      mods.add(
+          new CompiledModpackProfile.ModPermissions(
+              requiredString(mod, "modId"), readStringArray(requiredArray(mod, "requested"))));
+    }
+    return new CompiledModpackProfile.Permissions(mods);
   }
 
   private CompiledModpackProfile.Lifecycle readLifecycle(JsonObject object) {

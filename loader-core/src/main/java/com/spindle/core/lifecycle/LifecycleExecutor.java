@@ -85,6 +85,7 @@ public final class LifecycleExecutor {
     return new LifecycleExecutionReport(
         profile.fingerprint(),
         profile.inputFingerprint(),
+        profile.runtimePolicyFingerprint(),
         profile.cache().status(),
         profile.cache().reason(),
         profile.lifecycle().phaseOrder(),
@@ -99,6 +100,7 @@ public final class LifecycleExecutor {
     return new LifecycleExecutionReport(
         profile.fingerprint(),
         profile.inputFingerprint(),
+        profile.runtimePolicyFingerprint(),
         profile.cache().status(),
         profile.cache().reason(),
         profile.lifecycle().phaseOrder(),
