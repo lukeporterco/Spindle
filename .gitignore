@@ -9,18 +9,34 @@ runtime/
 # Local scratch space used during development
 .tools/
 
+# Java / JVM local artifacts
+*.class
+*.hprof
+*.jfr
+
 # IDE and editor files
 .idea/
 .vscode/
 *.iml
 *.ipr
 *.iws
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
 
 # OS-specific clutter
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Logs and crash dumps
 *.log
 hs_err_pid*
 replay_pid*
+
+# Temporary files
+*.tmp
+*.temp
