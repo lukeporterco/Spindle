@@ -4,6 +4,7 @@ import java.util.List;
 
 public record RuntimeQualityReport(
     int score,
+    String scoreKind,
     List<Finding> fatalFindings,
     List<Finding> warningFindings,
     List<DuplicateResource> duplicateResources,
@@ -49,4 +50,6 @@ public record RuntimeQualityReport(
       String modId, String phase, String declaration, String reason) {}
 
   public record MetadataFinding(String modId, String field, String message) {}
+
+  public static final String SCORE_KIND_EARLY_DETERMINISTIC_SIGNAL = "early-deterministic-signal";
 }

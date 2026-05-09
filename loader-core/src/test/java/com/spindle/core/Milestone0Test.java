@@ -151,6 +151,43 @@ class Milestone0Test {
   }
 
   @Test
+  void schemaOneLifecycleFieldFailsWithUpgradeGuidance() {
+    LoaderException exception =
+        assertThrows(
+            LoaderException.class,
+            () ->
+                metadataParser.parse(
+                    """
+                    {
+                      "schema": 1,
+                      "id": "samplemod",
+                      "version": "1.0.0",
+                      "side": "server",
+                      "entrypoints": {
+                        "main": [
+                          "com.example.SampleEntrypoint"
+                        ]
+                      },
+                      "depends": {
+                        "loader": ">=0.1.0",
+                        "java": ">=25",
+                        "minecraft": ">=26.1.2"
+                      },
+                      "lifecycle": {
+                        "BOOTSTRAP": [
+                          "com.example.SampleLifecycle::bootstrap"
+                        ]
+                      }
+                    }
+                    """,
+                    "schema-one-lifecycle"));
+
+    assertTrue(exception.getMessage().contains("samplemod"));
+    assertTrue(exception.getMessage().contains("schema `1`"));
+    assertTrue(exception.getMessage().contains("upgrade to schema `2`"));
+  }
+
+  @Test
   void invalidModIdFails() {
     String invalidMetadata = SAMPLE_METADATA.replace("\"samplemod\"", "\"BadId\"");
 

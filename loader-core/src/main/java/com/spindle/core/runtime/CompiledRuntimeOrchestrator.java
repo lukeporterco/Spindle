@@ -19,9 +19,10 @@ import com.spindle.core.report.DisplayPaths;
 import java.nio.file.Path;
 
 public final class CompiledRuntimeOrchestrator {
-  private final CompiledModpackProfileFingerprint fingerprint =
+  private final CompiledModpackProfileFingerprint inputFingerprintCalculator =
       new CompiledModpackProfileFingerprint();
-  private final RuntimePolicyFingerprint runtimePolicyFingerprint = new RuntimePolicyFingerprint();
+  private final RuntimePolicyFingerprint runtimePolicyFingerprintCalculator =
+      new RuntimePolicyFingerprint();
   private final CompiledModpackProfileBuilder builder = new CompiledModpackProfileBuilder();
   private final CompiledModpackProfileWriter writer = new CompiledModpackProfileWriter();
   private final CompiledModpackProfileCache cache = new CompiledModpackProfileCache();
@@ -39,15 +40,16 @@ public final class CompiledRuntimeOrchestrator {
       String gameSide,
       DiagnosticSink diagnosticSink)
       throws LoaderException {
-    String inputFingerprint = fingerprint.computeInputFingerprint(context, planningResult, gameSide);
-    String expectedRuntimePolicyFingerprint = runtimePolicyFingerprint.compute(context);
+    String inputFingerprint =
+        inputFingerprintCalculator.computeInputFingerprint(context, planningResult, gameSide);
+    String runtimePolicyFingerprint = runtimePolicyFingerprintCalculator.compute(context);
     CompiledModpackProfileCache.CacheLookup cacheLookup =
         cache.lookup(
             context,
             planningResult,
             gameSide,
             inputFingerprint,
-            expectedRuntimePolicyFingerprint);
+            runtimePolicyFingerprint);
     diagnosticSink.record(
         new DiagnosticEvent(
             "runtime.compiled_profile.cache",
@@ -63,7 +65,7 @@ public final class CompiledRuntimeOrchestrator {
                 "inputFingerprint",
                 inputFingerprint,
                 "runtimePolicyFingerprint",
-                expectedRuntimePolicyFingerprint)));
+                runtimePolicyFingerprint)));
 
     LifecyclePlan lifecyclePlan =
         lifecyclePlanBuilder.build(planningResult.resolvedMods(), planningResult.classOwnershipIndex());

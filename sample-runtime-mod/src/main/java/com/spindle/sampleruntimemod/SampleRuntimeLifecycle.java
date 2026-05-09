@@ -10,7 +10,7 @@ public final class SampleRuntimeLifecycle {
 
   public static void bootstrap(ModContext context) throws Exception {
     Files.writeString(
-        context.generatedDirectory().resolve("runtime-kernel.marker"),
+        context.generatedDirectory().resolve("sample-runtime.marker"),
         context.modId()
             + "|"
             + context.modVersion()
@@ -23,18 +23,17 @@ public final class SampleRuntimeLifecycle {
   }
 
   public static void configure(ModContext context) throws Exception {
-    Files.writeString(
-        context.dataDirectory().resolve("runtime-kernel.log"),
-        "CONFIGURE" + System.lineSeparator(),
-        StandardCharsets.UTF_8,
-        StandardOpenOption.CREATE,
-        StandardOpenOption.APPEND);
+    appendPhase(context, "CONFIGURE");
   }
 
   public static void preServerMain(ModContext context) throws Exception {
+    appendPhase(context, "PRE_SERVER_MAIN");
+  }
+
+  private static void appendPhase(ModContext context, String phase) throws Exception {
     Files.writeString(
-        context.dataDirectory().resolve("runtime-kernel.log"),
-        "PRE_SERVER_MAIN" + System.lineSeparator(),
+        context.dataDirectory().resolve("lifecycle.log"),
+        phase + System.lineSeparator(),
         StandardCharsets.UTF_8,
         StandardOpenOption.CREATE,
         StandardOpenOption.APPEND);

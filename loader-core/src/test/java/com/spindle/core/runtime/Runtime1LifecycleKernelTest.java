@@ -71,6 +71,7 @@ class Runtime1LifecycleKernelTest {
                 Files.readString(
                     tempDirectory.resolve("spindle.lifecycle-report.json"), StandardCharsets.UTF_8))
             .getAsJsonObject();
+    assertEquals("executed", report.get("state").getAsString());
     assertEquals(4, report.getAsJsonArray("plannedHandlers").size());
     assertEquals(4, report.getAsJsonArray("attemptedHandlers").size());
     assertEquals(4, report.getAsJsonArray("successfulHandlers").size());
@@ -92,13 +93,17 @@ class Runtime1LifecycleKernelTest {
 
     LoaderException exception = assertThrows(LoaderException.class, () -> execute(false));
 
-    assertTrue(exception.getMessage().contains("public static void method(com.spindle.api.ModContext)"));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains("public static void bootstrap(com.spindle.api.ModContext)"));
     assertFalse(Files.exists(tempDirectory.resolve("lifecycle.log")));
     JsonObject report =
         JsonParser.parseString(
                 Files.readString(
                     tempDirectory.resolve("spindle.lifecycle-report.json"), StandardCharsets.UTF_8))
             .getAsJsonObject();
+    assertEquals("planned", report.get("state").getAsString());
     assertEquals(1, report.getAsJsonArray("plannedHandlers").size());
     assertEquals(0, report.getAsJsonArray("attemptedHandlers").size());
   }
@@ -114,7 +119,8 @@ class Runtime1LifecycleKernelTest {
 
     LoaderException exception = assertThrows(LoaderException.class, this::executeValidateOnly);
 
-    assertTrue(exception.getMessage().contains("defines protected package"));
+    assertTrue(exception.getMessage().contains("protectedmod"));
+    assertTrue(exception.getMessage().contains("com.spindle.core"));
     assertFalse(Files.exists(tempDirectory.resolve("spindle.profile.json")));
   }
 
@@ -164,6 +170,12 @@ class Runtime1LifecycleKernelTest {
         permissions.getAsJsonArray("requested").asList().stream()
             .map(element -> element.getAsString())
             .toList());
+    JsonObject qualityReport =
+        JsonParser.parseString(
+                Files.readString(
+                    tempDirectory.resolve("spindle.quality-report.json"), StandardCharsets.UTF_8))
+            .getAsJsonObject();
+    assertEquals("early-deterministic-signal", qualityReport.get("scoreKind").getAsString());
     assertEquals("miss", profile.getAsJsonObject("cache").get("status").getAsString());
   }
 

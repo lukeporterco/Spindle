@@ -18,8 +18,10 @@ import java.util.TreeSet;
 public final class CompiledModpackProfileBuilder {
   private final RuntimeProtectedPackagePolicy protectedPackagePolicy =
       new RuntimeProtectedPackagePolicy();
-  private final CompiledModpackProfileFingerprint fingerprint = new CompiledModpackProfileFingerprint();
-  private final RuntimePolicyFingerprint runtimePolicyFingerprint = new RuntimePolicyFingerprint();
+  private final CompiledModpackProfileFingerprint profileFingerprintCalculator =
+      new CompiledModpackProfileFingerprint();
+  private final RuntimePolicyFingerprint runtimePolicyFingerprintCalculator =
+      new RuntimePolicyFingerprint();
 
   public CompiledModpackProfile build(
       LaunchContext context,
@@ -75,13 +77,13 @@ public final class CompiledModpackProfileBuilder {
             DisplayPaths.displayPath(context, planningResult.lockfilePath()),
             CompiledModpackProfileFingerprint.fromFile(planningResult.lockfilePath()));
 
-    CompiledModpackProfile profileWithoutFingerprint =
+    CompiledModpackProfile profileBeforeFingerprint =
         new CompiledModpackProfile(
             CompiledModpackProfile.SCHEMA_VERSION,
             CompiledModpackProfile.PROFILE_KIND,
             "",
             inputFingerprint,
-            runtimePolicyFingerprint.compute(context),
+            runtimePolicyFingerprintCalculator.compute(context),
             cache,
             new CompiledModpackProfile.Loader(
                 CompiledModpackProfile.LOADER_ID, context.loaderVersion()),
@@ -115,7 +117,8 @@ public final class CompiledModpackProfileBuilder {
                 qualityReport.score(),
                 qualityReport.fatalCount(),
                 qualityReport.warningCount()));
-    return profileWithoutFingerprint.withFingerprint(fingerprint.compute(profileWithoutFingerprint));
+    return profileBeforeFingerprint.withFingerprint(
+        profileFingerprintCalculator.compute(profileBeforeFingerprint));
   }
 
   private List<Integer> metadataSchemaVersions(ModpackPlanningResult planningResult) {

@@ -32,13 +32,17 @@ public final class LifecycleHandlerValidator {
       throw new LoaderException(
           "Lifecycle handler class not found for mod `"
               + declaration.modId()
-              + "`: "
-              + declaration.className()
-              + " (phase "
+              + "` in lifecycle phase `"
               + declaration.phase()
-              + ", expected owner "
+              + "`: class `"
+              + declaration.className()
+              + "` from declaration `"
+              + declaration.className()
+              + "::"
+              + declaration.methodName()
+              + "` could not be loaded; expected owner mod `"
               + declaration.ownerModId()
-              + ")",
+              + "`.",
           exception);
     }
   }
@@ -52,8 +56,9 @@ public final class LifecycleHandlerValidator {
               + declaration.className()
               + "` for mod `"
               + declaration.modId()
-              + "` does not implement "
-              + ModInitializer.class.getName());
+              + "` must implement `"
+              + ModInitializer.class.getName()
+              + "`.");
     }
     try {
       Constructor<? extends ModInitializer> constructor =
@@ -65,7 +70,7 @@ public final class LifecycleHandlerValidator {
               + declaration.className()
               + "` for mod `"
               + declaration.modId()
-              + "` must have a public no-arg constructor",
+              + "` must declare a public no-arg constructor.",
           exception);
     }
   }
@@ -96,9 +101,13 @@ public final class LifecycleHandlerValidator {
             + declaration.methodName()
             + "` for phase `"
             + declaration.phase()
-            + "`, but Runtime-1 requires `public static void method("
+            + "`, but Runtime-1 requires the declared method to be `public static void "
+            + declaration.methodName()
+            + "("
             + ModContext.class.getName()
-            + ")`.");
+            + ")` on class `"
+            + declaration.className()
+            + "`.");
   }
 
   public record ValidatedLifecycleHandler(

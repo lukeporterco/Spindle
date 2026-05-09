@@ -69,7 +69,12 @@ public final class ModMetadataParser {
 
     int schema = requiredInt(jsonObject, "schema", sourceName);
     if (schema != 1 && schema != 2) {
-      throw new LoaderException("Unsupported metadata schema in " + sourceName + ": " + schema);
+      throw new LoaderException(
+          "Unsupported metadata schema `"
+              + schema
+              + "` in "
+              + sourceName
+              + ". Spindle supports schema `1` and schema `2`.");
     }
 
     String id = requiredString(jsonObject, "id", sourceName).trim();
@@ -92,14 +97,22 @@ public final class ModMetadataParser {
     List<String> permissions =
         schema == 2 ? parsePermissions(jsonObject, id, sourceName) : List.of();
     ModMetadata.Storage storage =
-        schema == 2 ? parseStorage(jsonObject, sourceName) : ModMetadata.Storage.disabled();
+        schema == 2 ? parseStorage(jsonObject, id, sourceName) : ModMetadata.Storage.disabled();
     if (schema == 1 && jsonObject.has("lifecycle")) {
       throw new LoaderException(
-          "Metadata schema 1 does not support lifecycle declarations in " + sourceName);
+          "Mod `"
+              + id
+              + "` uses metadata schema `1`, which does not support the `lifecycle` field in "
+              + sourceName
+              + ". Use `entrypoints.main` or upgrade to schema `2`.");
     }
     if (schema == 2 && entrypoints.isEmpty() && lifecycle.isEmpty()) {
       throw new LoaderException(
-          "Schema 2 metadata must declare lifecycle handlers or entrypoints in " + sourceName);
+          "Mod `"
+              + id
+              + "` uses metadata schema `2` but declares neither `lifecycle` handlers nor compatibility `entrypoints` in "
+              + sourceName
+              + ".");
     }
     Map<String, String> depends = parseDepends(jsonObject, sourceName);
     Map<String, String> breaks = parseStringMap(jsonObject, "breaks", sourceName);
@@ -159,7 +172,8 @@ public final class ModMetadataParser {
       return Map.of();
     }
     if (!jsonObject.get("lifecycle").isJsonObject()) {
-      throw new LoaderException("lifecycle must be an object in " + sourceName);
+      throw new LoaderException(
+          "Mod `" + modId + "` must declare `lifecycle` as an object in " + sourceName + ".");
     }
 
     JsonObject lifecycleObject = jsonObject.getAsJsonObject("lifecycle");
@@ -179,18 +193,37 @@ public final class ModMetadataParser {
                 + String.join(", ", VALID_LIFECYCLE_PHASES));
       }
       if (!entry.getValue().isJsonArray()) {
-        throw new LoaderException("lifecycle." + phase + " must be an array in " + sourceName);
+        throw new LoaderException(
+            "Mod `"
+                + modId
+                + "` must declare `lifecycle."
+                + phase
+                + "` as an array in "
+                + sourceName
+                + ".");
       }
       JsonArray array = entry.getValue().getAsJsonArray();
       if (array.size() == 0) {
         throw new LoaderException(
-            "lifecycle." + phase + " must contain at least one handler in " + sourceName);
+            "Mod `"
+                + modId
+                + "` declares empty `lifecycle."
+                + phase
+                + "` in "
+                + sourceName
+                + "; declare at least one handler.");
       }
       List<String> declarations = new ArrayList<>();
       for (JsonElement element : array) {
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
           throw new LoaderException(
-              "lifecycle." + phase + " must contain handler declarations in " + sourceName);
+              "Mod `"
+                  + modId
+                  + "` must declare string handler values in `lifecycle."
+                  + phase
+                  + "` in "
+                  + sourceName
+                  + ".");
         }
         String declaration = element.getAsString().trim();
         if (!LIFECYCLE_DECLARATION_PATTERN.matcher(declaration).matches()) {
@@ -235,20 +268,21 @@ public final class ModMetadataParser {
     return permissions.stream().sorted().toList();
   }
 
-  private ModMetadata.Storage parseStorage(JsonObject jsonObject, String sourceName)
+  private ModMetadata.Storage parseStorage(JsonObject jsonObject, String modId, String sourceName)
       throws LoaderException {
     if (!jsonObject.has("storage") || jsonObject.get("storage").isJsonNull()) {
       return ModMetadata.Storage.disabled();
     }
     if (!jsonObject.get("storage").isJsonObject()) {
-      throw new LoaderException("storage must be an object in " + sourceName);
+      throw new LoaderException(
+          "Mod `" + modId + "` must declare `storage` as an object in " + sourceName + ".");
     }
     JsonObject storageObject = jsonObject.getAsJsonObject("storage");
     return new ModMetadata.Storage(
-        optionalBoolean(storageObject, "config", sourceName),
-        optionalBoolean(storageObject, "data", sourceName),
-        optionalBoolean(storageObject, "cache", sourceName),
-        optionalBoolean(storageObject, "generated", sourceName));
+        optionalBoolean(storageObject, "config", modId, "storage.config", sourceName),
+        optionalBoolean(storageObject, "data", modId, "storage.data", sourceName),
+        optionalBoolean(storageObject, "cache", modId, "storage.cache", sourceName),
+        optionalBoolean(storageObject, "generated", modId, "storage.generated", sourceName));
   }
 
   private Map<String, String> parseDepends(JsonObject jsonObject, String sourceName)
@@ -325,14 +359,22 @@ public final class ModMetadataParser {
     return Objects.requireNonNull(element.getAsString());
   }
 
-  private boolean optionalBoolean(JsonObject jsonObject, String key, String sourceName)
+  private boolean optionalBoolean(
+      JsonObject jsonObject, String key, String modId, String displayField, String sourceName)
       throws LoaderException {
     if (!jsonObject.has(key) || jsonObject.get(key).isJsonNull()) {
       return false;
     }
     JsonElement element = jsonObject.get(key);
     if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
-      throw new LoaderException(key + " must be a boolean in " + sourceName);
+      throw new LoaderException(
+          "Mod `"
+              + modId
+              + "` must declare `"
+              + displayField
+              + "` as a boolean in "
+              + sourceName
+              + ".");
     }
     return element.getAsBoolean();
   }

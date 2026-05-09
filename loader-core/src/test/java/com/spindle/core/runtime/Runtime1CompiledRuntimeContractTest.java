@@ -27,7 +27,7 @@ import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class Runtime0CompiledProfileTest {
+class Runtime1CompiledRuntimeContractTest {
   private static final Pattern ISO_TIMESTAMP_PATTERN =
       Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}");
 
@@ -92,6 +92,20 @@ class Runtime0CompiledProfileTest {
     assertTrue(runtimePolicyFingerprint.matches("[0-9a-f]{64}"));
     assertEquals(
         profile.getAsJsonObject("lockfile").get("path").getAsString(), "spindle.lock.json");
+
+    JsonObject lifecycleReport =
+        JsonParser.parseString(
+                Files.readString(
+                    tempDirectory.resolve("spindle.lifecycle-report.json"), StandardCharsets.UTF_8))
+            .getAsJsonObject();
+    assertEquals("planned", lifecycleReport.get("state").getAsString());
+
+    JsonObject qualityReport =
+        JsonParser.parseString(
+                Files.readString(
+                    tempDirectory.resolve("spindle.quality-report.json"), StandardCharsets.UTF_8))
+            .getAsJsonObject();
+    assertEquals("early-deterministic-signal", qualityReport.get("scoreKind").getAsString());
   }
 
   @Test
@@ -206,7 +220,8 @@ class Runtime0CompiledProfileTest {
     executeValidateOnly();
 
     String profile = Files.readString(tempDirectory.resolve("spindle.profile.json"));
-    String normalizedTempPath = tempDirectory.toAbsolutePath().normalize().toString().replace('\\', '/');
+    String normalizedTempPath =
+        tempDirectory.toAbsolutePath().normalize().toString().replace('\\', '/');
     assertFalse(profile.toLowerCase().contains("timestamp"));
     assertFalse(ISO_TIMESTAMP_PATTERN.matcher(profile).find());
     assertFalse(profile.contains(normalizedTempPath));
@@ -321,7 +336,8 @@ class Runtime0CompiledProfileTest {
   }
 
   private String executeValidateOnly() throws Exception {
-    JsonDiagnosticSink sink = new JsonDiagnosticSink(tempDirectory.resolve("diagnostics/startup-trace.json"));
+    JsonDiagnosticSink sink =
+        new JsonDiagnosticSink(tempDirectory.resolve("diagnostics/startup-trace.json"));
     try {
       return captureStdout(
           () ->

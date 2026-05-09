@@ -32,7 +32,11 @@ public final class RuntimePackagePolicyInspector {
             new ProtectedPackageViolation(
                 modId,
                 packageName,
-                "Mods may not define protected package `" + packageName + "`."));
+                "Mod `"
+                    + modId
+                    + "` may not define protected package `"
+                    + packageName
+                    + "`. Move classes out of the protected package."));
       }
     }
     return List.copyOf(violations);

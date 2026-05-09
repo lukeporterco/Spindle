@@ -3,6 +3,7 @@ package com.spindle.core.lifecycle;
 import java.util.List;
 
 public record LifecycleExecutionReport(
+    String state,
     String profileFingerprint,
     String inputFingerprint,
     String runtimePolicyFingerprint,
@@ -34,4 +35,7 @@ public record LifecycleExecutionReport(
       String dataDirectory,
       String cacheDirectory,
       String generatedDirectory) {}
+
+  public static final String STATE_PLANNED = "planned";
+  public static final String STATE_EXECUTED = "executed";
 }

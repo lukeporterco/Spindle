@@ -19,12 +19,21 @@ public final class ModContextFactory {
 
     Map<String, ModContext> contexts = new LinkedHashMap<>();
     for (CompiledModpackProfile.ModContextPlan plan : profile.contexts().mods()) {
-      Path configDirectory = resolveOwnedPath(context.workingDirectory(), plan.configDirectory());
-      Path dataDirectory = resolveOwnedPath(context.workingDirectory(), plan.dataDirectory());
-      Path cacheDirectory = resolveOwnedPath(context.workingDirectory(), plan.cacheDirectory());
+      Path configDirectory =
+          resolveOwnedPath(context.workingDirectory(), plan.modId(), "config", plan.configDirectory());
+      Path dataDirectory =
+          resolveOwnedPath(context.workingDirectory(), plan.modId(), "data", plan.dataDirectory());
+      Path cacheDirectory =
+          resolveOwnedPath(context.workingDirectory(), plan.modId(), "cache", plan.cacheDirectory());
       Path generatedDirectory =
-          resolveOwnedPath(context.workingDirectory(), plan.generatedDirectory());
-      createDirectories(configDirectory, dataDirectory, cacheDirectory, generatedDirectory);
+          resolveOwnedPath(
+              context.workingDirectory(), plan.modId(), "generated", plan.generatedDirectory());
+      createDirectories(
+          plan.modId(),
+          configDirectory,
+          dataDirectory,
+          cacheDirectory,
+          generatedDirectory);
       contexts.put(
           plan.modId(),
           new DefaultModContext(
@@ -43,22 +52,34 @@ public final class ModContextFactory {
     return Map.copyOf(contexts);
   }
 
-  private Path resolveOwnedPath(Path workingDirectory, String relativePath) throws LoaderException {
+  private Path resolveOwnedPath(
+      Path workingDirectory, String modId, String directoryKind, String relativePath)
+      throws LoaderException {
     Path resolved = workingDirectory.resolve(relativePath).normalize();
     if (!resolved.startsWith(workingDirectory)) {
       throw new LoaderException(
-          "Owned storage path escapes working directory: " + relativePath.replace('\\', '/'));
+          "Mod `"
+              + modId
+              + "` declares "
+              + directoryKind
+              + " storage path `"
+              + relativePath.replace('\\', '/')
+              + "`, but owned storage paths must stay within the working directory.");
     }
     return resolved;
   }
 
-  private void createDirectories(Path... directories) throws LoaderException {
+  private void createDirectories(String modId, Path... directories) throws LoaderException {
     for (Path directory : directories) {
       try {
         Files.createDirectories(directory);
       } catch (IOException exception) {
         throw new LoaderException(
-            "Failed to create owned storage directory " + directory.toString().replace('\\', '/'),
+            "Failed to create owned storage directory `"
+                + directory.toString().replace('\\', '/')
+                + "` for mod `"
+                + modId
+                + "`.",
             exception);
       }
     }

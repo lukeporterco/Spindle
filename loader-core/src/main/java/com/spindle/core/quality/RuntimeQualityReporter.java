@@ -85,6 +85,7 @@ public final class RuntimeQualityReporter {
     int score = Math.max(0, 100 - (fatalFindings.size() * 25) - (warningFindings.size() * 5));
     return new RuntimeQualityReport(
         score,
+        RuntimeQualityReport.SCORE_KIND_EARLY_DETERMINISTIC_SIGNAL,
         fatalFindings,
         warningFindings,
         duplicateResources,

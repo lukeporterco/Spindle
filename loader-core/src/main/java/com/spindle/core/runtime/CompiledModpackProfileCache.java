@@ -45,8 +45,8 @@ public final class CompiledModpackProfileCache {
       if (!runtimePolicyFingerprint.equals(profile.runtimePolicyFingerprint())) {
         return new CacheLookup(false, "runtime policy fingerprint mismatch", cachePath, null);
       }
-      String actualFingerprint = fingerprint.compute(profile);
-      if (!actualFingerprint.equals(profile.fingerprint())) {
+      String computedProfileFingerprint = fingerprint.compute(profile);
+      if (!computedProfileFingerprint.equals(profile.fingerprint())) {
         return new CacheLookup(false, "profile fingerprint mismatch", cachePath, null);
       }
       return new CacheLookup(true, "cache hit", cachePath, profile);

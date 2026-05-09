@@ -1,8 +1,8 @@
 # Runtime-1 Compiled Runtime Kernel
 
-`Runtime-1: Compiled Runtime Kernel` turns `spindle.profile.json` from a Runtime-0 footprint into a deterministic runtime contract for Spindle's standard platform path.
+`Runtime-1: Compiled Runtime Kernel` is the source of truth for Spindle's compiled standard-runtime contract. It turns `spindle.profile.json` from a Runtime-0 footprint into a deterministic runtime contract for the standard platform path.
 
-Runtime-1 keeps the Foundation and Milestone 8 Minecraft bootstrap tracks intact. It does not add bytecode injection, remapping, Mixin compatibility, client launch, rendering, gameplay APIs, broad compatibility layers, or real Minecraft hooks.
+Runtime-1 keeps the Foundation and Milestone 8 Minecraft bootstrap tracks intact. It does not add SteelHook, hooks, injection, bytecode transformation, remapping, Mixins, access wideners, client launch, rendering, gameplay APIs, broad compatibility layers, or real Minecraft hooks.
 
 ## Metadata
 
@@ -12,11 +12,13 @@ Schema `1` remains the compatibility path for:
 
 - `entrypoints.main` legacy `ModInitializer` startup
 - `entrypoints.minecraftServer` Milestone 8 Minecraft bootstrap planning/execution
+- protected-package compatibility fixtures that are still validated on older paths rather than the Runtime-1 schema-2 lifecycle path
 
 Schema `2` adds:
 
 - explicit lifecycle declarations using `ClassName::methodName`
 - deterministic storage declarations for config/data/cache/generated directories
+- `ModContext` delivery to lifecycle handlers
 - explicit permissions lists, currently recorded and reported but not granted
 
 Lifecycle declaration strings are validated before classloading. Runtime-1 also validates schema `2` handler signatures before any handler invocation. Supported phases are:
@@ -29,6 +31,7 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 
 `spindle.profile.json` now writes schema version `2` and includes:
 
+- `fingerprint`
 - `inputFingerprint`
 - `runtimePolicyFingerprint`
 - cache status and cache reason
@@ -40,7 +43,13 @@ Lifecycle declaration strings are validated before classloading. Runtime-1 also 
 - runtime package policy summaries
 - quality summary counts and score
 
-The profile fingerprint remains deterministic. It excludes timestamps, process ids, raw absolute machine paths, and cache hit/miss status.
+The fingerprint terms are intentionally distinct:
+
+- `fingerprint`: hash of the compiled profile contract itself
+- `inputFingerprint`: hash of stable pre-classload inputs used to decide cache reuse
+- `runtimePolicyFingerprint`: hash of the Runtime-1 policy surface such as protected-package policy, strict flags, and lifecycle phase set
+
+The profile fingerprint remains deterministic. It excludes timestamps, process ids, raw absolute machine paths, cache hit/miss status, and other per-run cache metadata.
 
 ## Profile Cache
 
@@ -48,11 +57,11 @@ Runtime-1 stores cached compiled profiles under:
 
 `<workingDirectory>/.spindle/profile-cache/<inputFingerprint>/spindle.profile.json`
 
-The input fingerprint is derived from stable pre-classload inputs such as loader version, Java major version, game provider identity, resolved mod ids/versions/paths/hashes, resolved order, classpath entries, lockfile fingerprint, strict runtime flags, and the compiled-profile schema version.
+The input fingerprint is derived from stable pre-classload inputs such as loader version, Java major version, game provider identity, resolved mod ids/versions/paths/hashes, resolved order, classpath entries, lockfile fingerprint, strict runtime flags, and the compiled-profile schema version. The cache directory key is the input fingerprint, not the full compiled profile fingerprint.
 
-Equivalent repeated runs reuse the cached profile. Changed mod hashes, lockfile fingerprints, schema version changes, side changes, or runtime policy changes invalidate the cache.
+Equivalent repeated runs reuse the cached profile. Changed mod hashes, lockfile fingerprints, schema version changes, side changes, loader identity changes, or runtime policy changes invalidate the cache.
 
-Cached profile reads validate schema version, profile kind, loader identity, game identity, input fingerprint, stored profile fingerprint, and runtime policy fingerprint before reuse.
+Cached profile reads validate schema version, profile kind, loader identity, game identity, input fingerprint, stored profile fingerprint, and runtime policy fingerprint before reuse. Cache outcomes are reported as deterministic `cache.status` and `cache.reason` values in the compiled profile and lifecycle report.
 
 Diagnostics now record `runtime.compiled_profile.cache` with deterministic reasons such as:
 
@@ -101,7 +110,12 @@ These reports are deterministic and summarize planned lifecycle handlers, execut
 
 `duplicateClasses` may be empty in the compiled profile when duplicate-class situations fail earlier as fatal ownership/package policy violations before a profile is written.
 
-`spindle.lifecycle-report.json` can be planned-only before runtime execution or execution-complete after standard runtime execution, depending on where the run stops.
+`spindle.lifecycle-report.json` now carries an explicit deterministic `state`:
+
+- `planned`: planning completed and a lifecycle plan was written, but standard runtime execution has not completed
+- `executed`: standard runtime lifecycle execution completed and attempted/successful/failed handler lists reflect that run
+
+`spindle.quality-report.json` is an early deterministic signal, not a certification system. Runtime-1 records the current score as a stable heuristic for duplicate resources, split packages, protected package violations, and metadata/runtime-surface concerns. It is intentionally narrow and should not be read as compatibility certification or long-term ecosystem scoring.
 
 ## Non-goals
 
@@ -116,4 +130,5 @@ Runtime-1 intentionally does not implement:
 - gameplay APIs
 - remapping
 - Mixin compatibility
+- access wideners
 - broad compatibility with existing mod ecosystems

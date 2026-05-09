@@ -82,33 +82,17 @@ public final class LifecycleExecutor {
       }
     }
 
-    return new LifecycleExecutionReport(
-        profile.fingerprint(),
-        profile.inputFingerprint(),
-        profile.runtimePolicyFingerprint(),
-        profile.cache().status(),
-        profile.cache().reason(),
-        profile.lifecycle().phaseOrder(),
-        toDeclarations(profile.lifecycle().handlers()),
+    return reportFor(
+        LifecycleExecutionReport.STATE_EXECUTED,
+        profile,
         attemptedHandlers,
         successfulHandlers,
-        failedHandlers,
-        contextDirectories(profile));
+        failedHandlers);
   }
 
   public LifecycleExecutionReport plannedOnly(CompiledModpackProfile profile) {
-    return new LifecycleExecutionReport(
-        profile.fingerprint(),
-        profile.inputFingerprint(),
-        profile.runtimePolicyFingerprint(),
-        profile.cache().status(),
-        profile.cache().reason(),
-        profile.lifecycle().phaseOrder(),
-        toDeclarations(profile.lifecycle().handlers()),
-        List.of(),
-        List.of(),
-        List.of(),
-        contextDirectories(profile));
+    return reportFor(
+        LifecycleExecutionReport.STATE_PLANNED, profile, List.of(), List.of(), List.of());
   }
 
   private List<LifecycleHandlerDeclaration> toDeclarations(
@@ -141,5 +125,26 @@ public final class LifecycleExecutor {
                     context.cacheDirectory(),
                     context.generatedDirectory()))
         .toList();
+  }
+
+  private LifecycleExecutionReport reportFor(
+      String state,
+      CompiledModpackProfile profile,
+      List<LifecycleExecutionReport.HandlerAttempt> attemptedHandlers,
+      List<LifecycleExecutionReport.HandlerAttempt> successfulHandlers,
+      List<LifecycleExecutionReport.FailedHandler> failedHandlers) {
+    return new LifecycleExecutionReport(
+        state,
+        profile.fingerprint(),
+        profile.inputFingerprint(),
+        profile.runtimePolicyFingerprint(),
+        profile.cache().status(),
+        profile.cache().reason(),
+        profile.lifecycle().phaseOrder(),
+        toDeclarations(profile.lifecycle().handlers()),
+        attemptedHandlers,
+        successfulHandlers,
+        failedHandlers,
+        contextDirectories(profile));
   }
 }
