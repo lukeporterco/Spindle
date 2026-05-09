@@ -867,3 +867,158 @@ tasks.register("minecraftMegaMilestone7Check") {
         ":loader-core:test"
     )
 }
+
+val prepareMinecraftMilestone8Fixture by tasks.registering {
+    dependsOn(":sample-server-fixture:jar", ":sample-minecraft-mod:jar")
+
+    doLast {
+        val runtimeDirectory = layout.projectDirectory.dir("runtime/milestone8").asFile
+        val versionDirectory = runtimeDirectory.resolve("minecraft/versions/26.1.2")
+        val modsDirectory = runtimeDirectory.resolve("mods")
+        versionDirectory.mkdirs()
+        modsDirectory.mkdirs()
+        versionDirectory.resolve("26.1.2.json").writeText(
+            """
+            {
+              "id": "26.1.2",
+              "type": "release",
+              "downloads": {
+                "server": {
+                  "url": "https://example.invalid/fake-server.jar",
+                  "sha1": "fake-server-sha1",
+                  "size": 123
+                }
+              },
+              "libraries": [],
+              "arguments": {
+                "game": [],
+                "jvm": []
+              }
+            }
+            """.trimIndent()
+        )
+        val serverJar = project(":sample-server-fixture").tasks.named<Jar>("jar").get().archiveFile.get().asFile
+        val modJar = project(":sample-minecraft-mod").tasks.named<Jar>("jar").get().archiveFile.get().asFile
+        serverJar.copyTo(versionDirectory.resolve("26.1.2-server.jar"), overwrite = true)
+        modJar.copyTo(modsDirectory.resolve("sample-minecraft-mod.jar"), overwrite = true)
+    }
+}
+
+fun JavaExec.configureMinecraftMilestone8Task(taskMain: String, extraArgs: List<String>) {
+    group = "application"
+    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftMilestone8Fixture)
+    classpath = minecraftRuntimeClasspath()
+    mainClass.set("com.mcmodloader.core.LoaderMain")
+    workingDir = layout.projectDirectory.dir("runtime/milestone8").asFile
+    args(
+        listOf(
+            "--game-main",
+            taskMain,
+            "--game-provider",
+            "minecraft",
+            "--minecraft-version",
+            "26.1.2",
+            "--minecraft-dir",
+            "minecraft",
+            "--minecraft-side",
+            "server",
+            "--minecraft-dry-run",
+            "--minecraft-verify-files",
+            "--minecraft-deny-loader-internals",
+            "--minecraft-verify-plan-fingerprints"
+        ) + extraArgs
+    )
+    ensureRuntimeWorkingDir()
+}
+
+tasks.register<JavaExec>("minecraftModExecutionPlan") {
+    description = "Writes the Milestone 8 deterministic Minecraft mod execution plan."
+    configureMinecraftMilestone8Task(
+        "unused.for.minecraft.Milestone8ExecutionPlan",
+        listOf("--minecraft-execution-plan")
+    )
+}
+
+tasks.register<JavaExec>("minecraftBootstrapClassloaderGraph") {
+    description = "Writes the Milestone 8 deterministic Minecraft bootstrap classloader graph."
+    configureMinecraftMilestone8Task(
+        "unused.for.minecraft.Milestone8ClassloaderGraph",
+        listOf("--minecraft-bootstrap-classloader-graph")
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerBootstrapFakeSmoke") {
+    description = "Runs the Milestone 8 fake Minecraft bootstrap smoke."
+    configureMinecraftMilestone8Task(
+        "unused.for.minecraft.Milestone8BootstrapFake",
+        listOf("--minecraft-bootstrap-server", "--minecraft-bootstrap-fake-server", "--minecraft-server-arg", "--bootstrap-marker", "--minecraft-server-arg", "fake-server-main.marker")
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerModExecutionFakeSmoke") {
+    description = "Runs the Milestone 8 approved Minecraft server mod execution smoke."
+    configureMinecraftMilestone8Task(
+        "unused.for.minecraft.Milestone8ModExecutionFake",
+        listOf("--minecraft-bootstrap-server", "--minecraft-bootstrap-fake-server", "--minecraft-server-arg", "--bootstrap-marker", "--minecraft-server-arg", "fake-server-main.marker")
+    )
+}
+
+tasks.register<JavaExec>("minecraftServerModExecutionOfflineReplay") {
+    description = "Runs the Milestone 8 offline bootstrap replay smoke."
+    configureMinecraftMilestone8Task(
+        "unused.for.minecraft.Milestone8OfflineReplay",
+        listOf("--minecraft-bootstrap-server", "--minecraft-bootstrap-offline", "--minecraft-bootstrap-fake-server", "--minecraft-server-arg", "--bootstrap-marker", "--minecraft-server-arg", "fake-server-main.marker")
+    )
+}
+
+fun registerMilestone8FocusedTest(taskName: String, includePattern: String, descriptionText: String) {
+    tasks.register<Test>(taskName) {
+        group = "verification"
+        description = descriptionText
+        dependsOn(":loader-core:testClasses")
+        testClassesDirs = project(":loader-core").the<SourceSetContainer>()["test"].output.classesDirs
+        classpath = project(":loader-core").the<SourceSetContainer>()["test"].runtimeClasspath
+        useJUnitPlatform()
+        binaryResultsDirectory.set(layout.buildDirectory.dir("milestone8-test-results/$taskName/binary"))
+        reports.html.outputLocation.set(layout.buildDirectory.dir("reports/$taskName"))
+        reports.junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/$taskName"))
+        filter {
+            includeTestsMatching(includePattern)
+        }
+    }
+}
+
+registerMilestone8FocusedTest(
+    "minecraftServerModCanarySmoke",
+    "com.mcmodloader.core.Milestone8MinecraftBootstrapExecutionTest.canary*",
+    "Runs the Milestone 8 canary smoke proving preflight stays non-executing."
+)
+
+registerMilestone8FocusedTest(
+    "minecraftServerBootstrapDriftSmoke",
+    "com.mcmodloader.core.Milestone8MinecraftBootstrapExecutionTest.*Drift*",
+    "Runs the Milestone 8 plan drift smoke tests."
+)
+
+registerMilestone8FocusedTest(
+    "minecraftServerBootstrapStrictSmoke",
+    "com.mcmodloader.core.Milestone8MinecraftBootstrapExecutionTest.strictExecutionFailsOnWarningsPromotedToFatal",
+    "Runs the Milestone 8 strict execution smoke tests."
+)
+
+tasks.register("minecraftMilestone8Check") {
+    group = "verification"
+    description = "Runs focused Milestone 8 execution planning, bootstrap, and bootstrap-guard checks."
+    dependsOn(
+        "minecraftModExecutionPlan",
+        "minecraftBootstrapClassloaderGraph",
+        "minecraftServerBootstrapFakeSmoke",
+        "minecraftServerModExecutionFakeSmoke",
+        "minecraftServerModExecutionOfflineReplay",
+        "minecraftServerModCanarySmoke",
+        "minecraftServerBootstrapDriftSmoke",
+        "minecraftServerBootstrapStrictSmoke",
+        "minecraftMegaMilestone7Check",
+        ":loader-core:test"
+    )
+}

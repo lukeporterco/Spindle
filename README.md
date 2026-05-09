@@ -3,7 +3,7 @@
 MC ModLoader currently provides a deterministic loader core with two provider paths:
 
 - `sample`: the existing fake-game provider used for Milestone 0-2 launches
-- `minecraft`: a Mega-Milestone 7 provider that runs deterministic dry-run planning, owns a server runtime capsule, writes pre-mod boundary reports, and, only when explicitly requested, can inspect, repair, cache, verify, baseline, replay, and launch a managed vanilla Minecraft server process
+- `minecraft`: a Mega-Milestone 7 plus Milestone 8 provider that runs deterministic dry-run planning, owns a server runtime capsule, writes pre-mod boundary reports, and now has a guarded child-JVM server bootstrap path for approved MC ModLoader Minecraft server entrypoints before the managed vanilla server main is invoked
 
 Minimum Java version: Java 25
 
@@ -12,6 +12,8 @@ First intended Minecraft target: 26.1.2
 Mega-Milestone 7 keeps `26.1.2` as the project target Minecraft version for loader metadata and dependency validation. Real vanilla server smoke tasks use a separate official baseline version selected from Mojang metadata, for example `latest-release` or an exact version such as `1.21.8`.
 
 Mega-Milestone 7 turns MC ModLoader into a deterministic Minecraft server runtime owner with a frozen, inspectable, replayable, and explainable pre-mod integration boundary. It still deliberately stops before real Minecraft mod loading: no Minecraft mod classes are loaded, no Minecraft entrypoints are invoked, no mod jars are placed on the real Minecraft runtime classpath, and no Mixin, remapping, bytecode transformation, patching, Fabric/Forge/NeoForge/Quilt/Paper/Bukkit/Sponge compatibility, or injection exists.
+
+Milestone 8 crosses that boundary in one narrow place only: approved server-side MC ModLoader mods may now execute a tiny `minecraftServer` bootstrap entrypoint through a loader-owned child JVM, under a hardened mod classloader, before the Minecraft server main class is invoked. Preflight, runtime planning, boundary reporting, integration planning, explain paths, and reproducibility checks remain non-executing. This is still not a gameplay modding layer: no Mixin, remapping, bytecode transformation, patching, access wideners, compatibility layer, client launch, or Minecraft API exposure exists.
 
 ## Tasks
 
@@ -394,3 +396,32 @@ The Mache scan is reference-only. It does not clone Mache, compile Mache, read s
 - broad gameplay APIs
 - older Java support
 - older Minecraft support
+Milestone 8 execution plan:
+
+```bash
+./gradlew minecraftModExecutionPlan
+```
+
+Milestone 8 bootstrap classloader graph:
+
+```bash
+./gradlew minecraftBootstrapClassloaderGraph
+```
+
+Milestone 8 fake server bootstrap smoke:
+
+```bash
+./gradlew minecraftServerBootstrapFakeSmoke
+```
+
+Milestone 8 offline bootstrap replay smoke:
+
+```bash
+./gradlew minecraftServerModExecutionOfflineReplay
+```
+
+Milestone 8 focused check:
+
+```bash
+./gradlew minecraftMilestone8Check
+```

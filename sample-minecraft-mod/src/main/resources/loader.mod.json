@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "sampleminecraftmod",
+  "version": "1.0.0",
+  "side": "server",
+  "entrypoints": {
+    "minecraftServer": [
+      "com.mcmodloader.sampleminecraftmod.SampleMinecraftServerMod"
+    ]
+  },
+  "depends": {
+    "loader": ">=0.1.0",
+    "java": ">=25",
+    "minecraft": ">=26.1.2"
+  }
+}

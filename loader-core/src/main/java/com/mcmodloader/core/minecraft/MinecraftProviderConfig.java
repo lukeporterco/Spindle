@@ -47,7 +47,15 @@ public record MinecraftProviderConfig(
     boolean explainBoundary,
     boolean explainRuntime,
     boolean explainMods,
-    boolean reproducibilityCheck
+    boolean reproducibilityCheck,
+    boolean executionPlan,
+    boolean bootstrapClassloaderGraph,
+    boolean bootstrapServer,
+    boolean strictExecution,
+    boolean denyLoaderInternals,
+    boolean verifyPlanFingerprints,
+    boolean bootstrapOffline,
+    boolean bootstrapFakeServer
 ) {
     public MinecraftProviderConfig {
         side = side == null ? MinecraftSide.CLIENT : side;
@@ -109,77 +117,48 @@ public record MinecraftProviderConfig(
             launchTimeoutSeconds,
             stopAfterReady,
             readyTimeoutSeconds,
-            false,
-            null,
+            false, // baselineServer
+            null, // baselineVersion
             Path.of("minecraft-server-baseline.json"),
-            false,
-            false,
-            false,
+            false, // offlineReplay
+            false, // requireReady
+            false, // realSmoke
             MinecraftMetadataResolver.DEFAULT_MANIFEST_URL,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
+            false, // runtimePlan
+            false, // planMods
+            false, // integrationPlan
+            false, // boundaryReport
+            false, // preflight
+            false, // offlinePreflight
+            false, // strictBoundary
+            false, // strictRuntimeConflicts
+            false, // strictSide
+            false, // strictClassVersions
+            false, // explainBoundary
+            false, // explainRuntime
+            false, // explainMods
+            false, // reproducibilityCheck
+            false, // executionPlan
+            false, // bootstrapClassloaderGraph
+            false, // bootstrapServer
+            false, // strictExecution
+            false, // denyLoaderInternals
+            false, // verifyPlanFingerprints
+            false, // bootstrapOffline
+            false // bootstrapFakeServer
         );
     }
 
     public MinecraftProviderConfig resolveAgainst(Path workingDirectory) {
-        return new MinecraftProviderConfig(
+        return copy(
             requestedVersion,
             resolvePath(workingDirectory, minecraftDirectory),
             resolveNullablePath(workingDirectory, explicitVersionJson),
             resolveNullablePath(workingDirectory, manifestJson),
-            side,
-            dryRun,
-            verifyFiles,
-            fetchMetadata,
-            downloadServer,
             resolvePath(workingDirectory, cacheDirectory == null ? Path.of("minecraft-cache") : cacheDirectory),
-            offline,
-            cacheInspect,
-            cacheRepair,
-            cacheStrict,
-            forceRedownload,
             resolvePath(workingDirectory, outputPlanPath),
-            launch,
             resolveNullablePath(workingDirectory, serverDirectory),
-            acceptEulaForTest,
-            serverJvmArgs,
-            serverArgs,
-            launchTimeoutSeconds,
-            stopAfterReady,
-            readyTimeoutSeconds,
-            baselineServer,
-            baselineVersion,
-            resolvePath(workingDirectory, baselineReportPath),
-            offlineReplay,
-            requireReady,
-            realSmoke,
-            manifestUrl,
-            runtimePlan,
-            planMods,
-            integrationPlan,
-            boundaryReport,
-            preflight,
-            offlinePreflight,
-            strictBoundary,
-            strictRuntimeConflicts,
-            strictSide,
-            strictClassVersions,
-            explainBoundary,
-            explainRuntime,
-            explainMods,
-            reproducibilityCheck
+            resolvePath(workingDirectory, baselineReportPath)
         );
     }
 
@@ -199,153 +178,15 @@ public record MinecraftProviderConfig(
     }
 
     public MinecraftProviderConfig withMinecraftDirectory(Path updatedMinecraftDirectory) {
-        return new MinecraftProviderConfig(
-            requestedVersion,
-            updatedMinecraftDirectory,
-            explicitVersionJson,
-            manifestJson,
-            side,
-            dryRun,
-            verifyFiles,
-            fetchMetadata,
-            downloadServer,
-            cacheDirectory,
-            offline,
-            cacheInspect,
-            cacheRepair,
-            cacheStrict,
-            forceRedownload,
-            outputPlanPath,
-            launch,
-            serverDirectory,
-            acceptEulaForTest,
-            serverJvmArgs,
-            serverArgs,
-            launchTimeoutSeconds,
-            stopAfterReady,
-            readyTimeoutSeconds,
-            baselineServer,
-            baselineVersion,
-            baselineReportPath,
-            offlineReplay,
-            requireReady,
-            realSmoke,
-            manifestUrl,
-            runtimePlan,
-            planMods,
-            integrationPlan,
-            boundaryReport,
-            preflight,
-            offlinePreflight,
-            strictBoundary,
-            strictRuntimeConflicts,
-            strictSide,
-            strictClassVersions,
-            explainBoundary,
-            explainRuntime,
-            explainMods,
-            reproducibilityCheck
-        );
+        return copy(requestedVersion, updatedMinecraftDirectory, explicitVersionJson, manifestJson, cacheDirectory, outputPlanPath, serverDirectory, baselineReportPath);
     }
 
     public MinecraftProviderConfig withRequestedVersion(String updatedRequestedVersion) {
-        return new MinecraftProviderConfig(
-            updatedRequestedVersion,
-            minecraftDirectory,
-            explicitVersionJson,
-            manifestJson,
-            side,
-            dryRun,
-            verifyFiles,
-            fetchMetadata,
-            downloadServer,
-            cacheDirectory,
-            offline,
-            cacheInspect,
-            cacheRepair,
-            cacheStrict,
-            forceRedownload,
-            outputPlanPath,
-            launch,
-            serverDirectory,
-            acceptEulaForTest,
-            serverJvmArgs,
-            serverArgs,
-            launchTimeoutSeconds,
-            stopAfterReady,
-            readyTimeoutSeconds,
-            baselineServer,
-            baselineVersion,
-            baselineReportPath,
-            offlineReplay,
-            requireReady,
-            realSmoke,
-            manifestUrl,
-            runtimePlan,
-            planMods,
-            integrationPlan,
-            boundaryReport,
-            preflight,
-            offlinePreflight,
-            strictBoundary,
-            strictRuntimeConflicts,
-            strictSide,
-            strictClassVersions,
-            explainBoundary,
-            explainRuntime,
-            explainMods,
-            reproducibilityCheck
-        );
+        return copy(updatedRequestedVersion, minecraftDirectory, explicitVersionJson, manifestJson, cacheDirectory, outputPlanPath, serverDirectory, baselineReportPath);
     }
 
     public MinecraftProviderConfig withServerDirectory(Path updatedServerDirectory) {
-        return new MinecraftProviderConfig(
-            requestedVersion,
-            minecraftDirectory,
-            explicitVersionJson,
-            manifestJson,
-            side,
-            dryRun,
-            verifyFiles,
-            fetchMetadata,
-            downloadServer,
-            cacheDirectory,
-            offline,
-            cacheInspect,
-            cacheRepair,
-            cacheStrict,
-            forceRedownload,
-            outputPlanPath,
-            launch,
-            updatedServerDirectory,
-            acceptEulaForTest,
-            serverJvmArgs,
-            serverArgs,
-            launchTimeoutSeconds,
-            stopAfterReady,
-            readyTimeoutSeconds,
-            baselineServer,
-            baselineVersion,
-            baselineReportPath,
-            offlineReplay,
-            requireReady,
-            realSmoke,
-            manifestUrl,
-            runtimePlan,
-            planMods,
-            integrationPlan,
-            boundaryReport,
-            preflight,
-            offlinePreflight,
-            strictBoundary,
-            strictRuntimeConflicts,
-            strictSide,
-            strictClassVersions,
-            explainBoundary,
-            explainRuntime,
-            explainMods,
-            reproducibilityCheck
-        );
+        return copy(requestedVersion, minecraftDirectory, explicitVersionJson, manifestJson, cacheDirectory, outputPlanPath, updatedServerDirectory, baselineReportPath);
     }
 
     public MinecraftProviderConfig withBaselineVersion(String updatedBaselineVersion) {
@@ -394,7 +235,82 @@ public record MinecraftProviderConfig(
             explainBoundary,
             explainRuntime,
             explainMods,
-            reproducibilityCheck
+            reproducibilityCheck,
+            executionPlan,
+            bootstrapClassloaderGraph,
+            bootstrapServer,
+            strictExecution,
+            denyLoaderInternals,
+            verifyPlanFingerprints,
+            bootstrapOffline,
+            bootstrapFakeServer
+        );
+    }
+
+    private MinecraftProviderConfig copy(
+        String updatedRequestedVersion,
+        Path updatedMinecraftDirectory,
+        Path updatedExplicitVersionJson,
+        Path updatedManifestJson,
+        Path updatedCacheDirectory,
+        Path updatedOutputPlanPath,
+        Path updatedServerDirectory,
+        Path updatedBaselineReportPath
+    ) {
+        return new MinecraftProviderConfig(
+            updatedRequestedVersion,
+            updatedMinecraftDirectory,
+            updatedExplicitVersionJson,
+            updatedManifestJson,
+            side,
+            dryRun,
+            verifyFiles,
+            fetchMetadata,
+            downloadServer,
+            updatedCacheDirectory,
+            offline,
+            cacheInspect,
+            cacheRepair,
+            cacheStrict,
+            forceRedownload,
+            updatedOutputPlanPath,
+            launch,
+            updatedServerDirectory,
+            acceptEulaForTest,
+            serverJvmArgs,
+            serverArgs,
+            launchTimeoutSeconds,
+            stopAfterReady,
+            readyTimeoutSeconds,
+            baselineServer,
+            baselineVersion,
+            updatedBaselineReportPath,
+            offlineReplay,
+            requireReady,
+            realSmoke,
+            manifestUrl,
+            runtimePlan,
+            planMods,
+            integrationPlan,
+            boundaryReport,
+            preflight,
+            offlinePreflight,
+            strictBoundary,
+            strictRuntimeConflicts,
+            strictSide,
+            strictClassVersions,
+            explainBoundary,
+            explainRuntime,
+            explainMods,
+            reproducibilityCheck,
+            executionPlan,
+            bootstrapClassloaderGraph,
+            bootstrapServer,
+            strictExecution,
+            denyLoaderInternals,
+            verifyPlanFingerprints,
+            bootstrapOffline,
+            bootstrapFakeServer
         );
     }
 

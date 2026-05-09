@@ -81,25 +81,31 @@ public final class ModMetadataParser {
 
     private Map<String, List<String>> parseEntrypoints(JsonObject jsonObject, String sourceName) throws LoaderException {
         JsonObject entrypointsObject = requiredObject(jsonObject, "entrypoints", sourceName);
-        JsonArray mainArray = requiredArray(entrypointsObject, "main", sourceName);
-        if (mainArray.size() == 0) {
-            throw new LoaderException("entrypoints.main must contain at least one class in " + sourceName);
-        }
-
-        List<String> mainEntrypoints = new ArrayList<>();
-        for (JsonElement element : mainArray) {
-            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
-                throw new LoaderException("entrypoints.main must contain class names in " + sourceName);
-            }
-            String className = element.getAsString().trim();
-            if (className.isEmpty()) {
-                throw new LoaderException("Entrypoint class name must be non-empty in " + sourceName);
-            }
-            mainEntrypoints.add(className);
-        }
-
         Map<String, List<String>> entrypoints = new LinkedHashMap<>();
-        entrypoints.put("main", List.copyOf(mainEntrypoints));
+        for (Map.Entry<String, JsonElement> entry : entrypointsObject.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            if (!entry.getValue().isJsonArray()) {
+                throw new LoaderException("entrypoints." + entry.getKey() + " must be an array in " + sourceName);
+            }
+            JsonArray array = entry.getValue().getAsJsonArray();
+            if (array.size() == 0) {
+                throw new LoaderException("entrypoints." + entry.getKey() + " must contain at least one class in " + sourceName);
+            }
+            List<String> entrypointClasses = new ArrayList<>();
+            for (JsonElement element : array) {
+                if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                    throw new LoaderException("entrypoints." + entry.getKey() + " must contain class names in " + sourceName);
+                }
+                String className = element.getAsString().trim();
+                if (className.isEmpty()) {
+                    throw new LoaderException("Entrypoint class name must be non-empty in " + sourceName);
+                }
+                entrypointClasses.add(className);
+            }
+            entrypoints.put(entry.getKey(), List.copyOf(entrypointClasses));
+        }
+        if (entrypoints.isEmpty()) {
+            throw new LoaderException("entrypoints must declare at least one entrypoint group in " + sourceName);
+        }
         return Map.copyOf(entrypoints);
     }
 

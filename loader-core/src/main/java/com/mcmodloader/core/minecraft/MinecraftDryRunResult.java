@@ -12,7 +12,8 @@ public record MinecraftDryRunResult(
     MinecraftArtifactResolver.Resolution artifactResolution,
     MinecraftServerRuntimePlanner.PlannedRuntime plannedRuntime,
     MinecraftRuntimeBoundary runtimeBoundary,
-    MinecraftModIntegrationPlan integrationPlan
+    MinecraftModIntegrationPlan integrationPlan,
+    MinecraftModExecutionPlan executionPlan
 ) {
     public MinecraftDryRunResult(
         MinecraftLaunchPlan launchPlan,
@@ -21,6 +22,6 @@ public record MinecraftDryRunResult(
         String serverJarSource,
         MinecraftArtifactResolver.Resolution artifactResolution
     ) {
-        this(launchPlan, macheReferenceReport, serverJarPath, serverJarSource, artifactResolution, null, null, null);
+        this(launchPlan, macheReferenceReport, serverJarPath, serverJarSource, artifactResolution, null, null, null, null);
     }
 }

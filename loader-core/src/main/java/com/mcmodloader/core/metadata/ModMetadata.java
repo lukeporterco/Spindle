@@ -24,6 +24,10 @@ public record ModMetadata(
     }
 
     public List<String> mainEntrypoints() {
-        return entrypoints.get("main");
+        return entrypoints.getOrDefault("main", List.of());
+    }
+
+    public List<String> minecraftServerEntrypoints() {
+        return entrypoints.getOrDefault("minecraftServer", List.of());
     }
 }

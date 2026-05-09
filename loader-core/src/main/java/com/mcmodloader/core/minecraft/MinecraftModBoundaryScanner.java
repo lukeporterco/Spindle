@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class MinecraftModBoundaryScanner {
+    private final MinecraftProtectedPackagePolicy protectedPackagePolicy = new MinecraftProtectedPackagePolicy();
+
     public List<MinecraftBoundaryViolation> scan(
         String modId,
         MinecraftJarScanResult modScan,
@@ -39,6 +41,20 @@ public final class MinecraftModBoundaryScanner {
                         true,
                         true,
                         "Mod must not define loader core or loader API packages."
+                    )
+                );
+            }
+            if (protectedPackagePolicy.isProtectedDefinitionPackage(packageName)) {
+                violations.add(
+                    new MinecraftBoundaryViolation(
+                        "mod-protected-package",
+                        MinecraftBoundarySeverity.FATAL,
+                        packageName,
+                        modId,
+                        "bootstrap-protected",
+                        true,
+                        true,
+                        "Mod must not define protected bootstrap, JVM, or loader packages."
                     )
                 );
             }

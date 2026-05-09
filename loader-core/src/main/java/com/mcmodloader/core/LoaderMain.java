@@ -39,11 +39,18 @@ import com.mcmodloader.core.minecraft.MinecraftLaunchPlan;
 import com.mcmodloader.core.minecraft.MinecraftLaunchPlanBuilder;
 import com.mcmodloader.core.minecraft.MinecraftLaunchPlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftLibrarySelector;
+import com.mcmodloader.core.minecraft.MinecraftBootstrapClassLoaderGraph;
+import com.mcmodloader.core.minecraft.MinecraftBootstrapClassLoaderGraphBuilder;
+import com.mcmodloader.core.minecraft.MinecraftBootstrapClassLoaderGraphWriter;
+import com.mcmodloader.core.minecraft.MinecraftModExecutionPlan;
+import com.mcmodloader.core.minecraft.MinecraftModExecutionPlanner;
+import com.mcmodloader.core.minecraft.MinecraftModExecutionPlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftMetadataResolver;
 import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlan;
 import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlanner;
 import com.mcmodloader.core.minecraft.MinecraftModIntegrationPlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftModRejection;
+import com.mcmodloader.core.minecraft.MinecraftPlanFingerprint;
 import com.mcmodloader.core.minecraft.MinecraftProviderConfig;
 import com.mcmodloader.core.minecraft.MinecraftPreflightResult;
 import com.mcmodloader.core.minecraft.MinecraftPreflightResultWriter;
@@ -63,6 +70,11 @@ import com.mcmodloader.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.mcmodloader.core.minecraft.MinecraftVersionSelection;
 import com.mcmodloader.core.minecraft.MinecraftVersionMetadata;
 import com.mcmodloader.core.minecraft.MinecraftVersionMetadataParser;
+import com.mcmodloader.core.minecraft.bootstrap.MinecraftBootstrapArguments;
+import com.mcmodloader.core.minecraft.bootstrap.MinecraftBootstrapExitCode;
+import com.mcmodloader.core.minecraft.bootstrap.MinecraftBootstrapResult;
+import com.mcmodloader.core.minecraft.bootstrap.MinecraftBootstrapResultWriter;
+import com.mcmodloader.core.minecraft.bootstrap.MinecraftServerBootstrapMain;
 import com.mcmodloader.core.ownership.ClassOwnershipIndex;
 import com.mcmodloader.core.ownership.PackageOwnershipIndex;
 import com.mcmodloader.core.profile.StartupProfile;
@@ -79,6 +91,7 @@ import com.mcmodloader.core.resolve.ResolvedModSet;
 import com.mcmodloader.core.state.ModpackState;
 import com.mcmodloader.core.state.ModpackStateWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
@@ -86,6 +99,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public final class LoaderMain {
@@ -224,6 +238,14 @@ public final class LoaderMain {
         boolean minecraftExplainRuntime = false;
         boolean minecraftExplainMods = false;
         boolean minecraftReproducibilityCheck = false;
+        boolean minecraftExecutionPlan = false;
+        boolean minecraftBootstrapClassloaderGraph = false;
+        boolean minecraftBootstrapServer = false;
+        boolean minecraftStrictExecution = false;
+        boolean minecraftDenyLoaderInternals = false;
+        boolean minecraftVerifyPlanFingerprints = false;
+        boolean minecraftBootstrapOffline = false;
+        boolean minecraftBootstrapFakeServer = false;
         Path macheDirectory = null;
         String macheVersion = null;
         boolean macheReferenceScan = false;
@@ -563,6 +585,67 @@ public final class LoaderMain {
                 continue;
             }
 
+            if ("--minecraft-execution-plan".equals(argument)) {
+                minecraftExecutionPlan = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-bootstrap-classloader-graph".equals(argument)) {
+                minecraftBootstrapClassloaderGraph = true;
+                minecraftExecutionPlan = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-bootstrap".equals(argument) || "--minecraft-bootstrap-server".equals(argument) || "--minecraft-execute-mods".equals(argument)) {
+                minecraftBootstrapServer = true;
+                minecraftExecutionPlan = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-strict-execution".equals(argument)) {
+                minecraftStrictExecution = true;
+                continue;
+            }
+
+            if ("--minecraft-deny-loader-internals".equals(argument)) {
+                minecraftDenyLoaderInternals = true;
+                continue;
+            }
+
+            if ("--minecraft-verify-plan-fingerprints".equals(argument)) {
+                minecraftVerifyPlanFingerprints = true;
+                continue;
+            }
+
+            if ("--minecraft-bootstrap-offline".equals(argument)) {
+                minecraftBootstrapOffline = true;
+                minecraftBootstrapServer = true;
+                minecraftExecutionPlan = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
+            if ("--minecraft-bootstrap-fake-server".equals(argument)) {
+                minecraftBootstrapFakeServer = true;
+                minecraftBootstrapServer = true;
+                minecraftExecutionPlan = true;
+                minecraftRuntimePlan = true;
+                minecraftBoundaryReport = true;
+                minecraftIntegrationPlan = true;
+                continue;
+            }
+
             launchArguments.add(argument);
         }
 
@@ -616,7 +699,15 @@ public final class LoaderMain {
                 minecraftExplainBoundary,
                 minecraftExplainRuntime,
                 minecraftExplainMods,
-                minecraftReproducibilityCheck
+                minecraftReproducibilityCheck,
+                minecraftExecutionPlan,
+                minecraftBootstrapClassloaderGraph,
+                minecraftBootstrapServer,
+                minecraftStrictExecution,
+                minecraftDenyLoaderInternals,
+                minecraftVerifyPlanFingerprints,
+                minecraftBootstrapOffline,
+                minecraftBootstrapFakeServer
             );
 
         return new LaunchArguments(
@@ -817,6 +908,16 @@ public final class LoaderMain {
                         ? "[loader] minecraft baseline offline replay complete"
                         : "[loader] minecraft server baseline complete"
                 );
+                return;
+            }
+            if (minecraftGameProvider.config().bootstrapServer()) {
+                MinecraftBootstrapResult bootstrapResult =
+                    launchMinecraftBootstrap(context, minecraftGameProvider.config(), dryRunResult, diagnosticSink);
+                if (bootstrapResult.exitCode() != MinecraftBootstrapExitCode.SUCCESS.code()) {
+                    throw new LoaderException("Minecraft bootstrap failed. See minecraft-server-bootstrap-result.json for details.");
+                }
+                writeStartupProfile(context, diagnosticSink, startupProfileWriter);
+                System.out.println("[loader] minecraft server bootstrap complete");
                 return;
             }
             if (minecraftGameProvider.config().launch()) {
@@ -1140,11 +1241,21 @@ public final class LoaderMain {
         MinecraftServerRuntimePlanner.PlannedRuntime plannedRuntime = null;
         MinecraftRuntimeBoundary runtimeBoundary = null;
         MinecraftModIntegrationPlan integrationPlan = null;
+        MinecraftModExecutionPlan executionPlan = null;
         List<String> megaMilestoneReports = new ArrayList<>();
         boolean needsRuntimePlanning =
             config.side() == MinecraftSide.SERVER &&
             artifactResolution.serverJarPath() != null &&
-            (config.runtimePlan() || config.planMods() || config.boundaryReport() || config.integrationPlan() || config.preflight() || config.reproducibilityCheck() || config.launch());
+            (config.runtimePlan()
+                || config.planMods()
+                || config.boundaryReport()
+                || config.integrationPlan()
+                || config.preflight()
+                || config.reproducibilityCheck()
+                || config.executionPlan()
+                || config.bootstrapClassloaderGraph()
+                || config.bootstrapServer()
+                || config.launch());
         if (needsRuntimePlanning) {
             MinecraftArtifactCache finalArtifactCache = artifactCache;
             plannedRuntime =
@@ -1234,7 +1345,7 @@ public final class LoaderMain {
                 }
             }
 
-            if ((config.integrationPlan() || config.planMods() || config.preflight() || config.reproducibilityCheck()) && runtimeBoundary != null) {
+            if ((config.integrationPlan() || config.planMods() || config.preflight() || config.reproducibilityCheck() || config.executionPlan() || config.bootstrapClassloaderGraph() || config.bootstrapServer()) && runtimeBoundary != null) {
                 MinecraftRuntimeBoundary finalRuntimeBoundary = runtimeBoundary;
                 integrationPlan =
                     measure(
@@ -1276,6 +1387,75 @@ public final class LoaderMain {
                 megaMilestoneReports.add("minecraft-mod-integration-plan.json");
                 if (config.explainMods()) {
                     printMinecraftModsExplain(finalIntegrationPlan);
+                }
+            }
+
+            if ((config.executionPlan() || config.bootstrapClassloaderGraph() || config.bootstrapServer() || config.reproducibilityCheck())
+                && runtimeBoundary != null
+                && integrationPlan != null
+                && plannedRuntime != null) {
+                MinecraftServerRuntimePlanner.PlannedRuntime finalPlannedRuntimeForExecution = plannedRuntime;
+                MinecraftRuntimeBoundary finalRuntimeBoundaryForExecution = runtimeBoundary;
+                MinecraftModIntegrationPlan finalIntegrationPlanForExecution = integrationPlan;
+                MinecraftPlanFingerprint runtimePlanFingerprint =
+                    MinecraftPlanFingerprint.fromFile("runtime-plan", context.workingDirectory().resolve("minecraft-server-runtime-plan.json"));
+                MinecraftPlanFingerprint boundaryFingerprint =
+                    MinecraftPlanFingerprint.fromFile("runtime-boundary", context.workingDirectory().resolve("minecraft-runtime-boundary.json"));
+                MinecraftPlanFingerprint integrationFingerprint =
+                    MinecraftPlanFingerprint.fromFile("integration-plan", context.workingDirectory().resolve("minecraft-mod-integration-plan.json"));
+                executionPlan =
+                    measure(
+                        diagnosticSink,
+                        "minecraft.mod_execution.plan",
+                        LaunchPhase.COMPLETE,
+                        () ->
+                            new MinecraftModExecutionPlanner()
+                                .plan(
+                                    context,
+                                    config,
+                                    parsedMods,
+                                    finalPlannedRuntimeForExecution.plan(),
+                                    finalRuntimeBoundaryForExecution,
+                                    finalIntegrationPlanForExecution,
+                                    runtimePlanFingerprint,
+                                    boundaryFingerprint,
+                                    integrationFingerprint
+                                ),
+                        plan -> details(
+                            "executableModCount",
+                            Integer.toString(plan.acceptedExecutableMods().size()),
+                            "entrypointCount",
+                            Integer.toString(plan.executableEntrypoints().size())
+                        )
+                    );
+                MinecraftModExecutionPlan finalExecutionPlan = executionPlan;
+                measure(
+                    diagnosticSink,
+                    "minecraft.mod_execution.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                        Path outputPath = context.workingDirectory().resolve("minecraft-mod-execution-plan.json");
+                        new MinecraftModExecutionPlanWriter().write(outputPath, finalExecutionPlan);
+                        return outputPath;
+                    },
+                    outputPath -> details("modExecutionPlanOutputPath", displayPath(context, outputPath))
+                );
+                megaMilestoneReports.add("minecraft-mod-execution-plan.json");
+
+                if (config.bootstrapClassloaderGraph()) {
+                    MinecraftBootstrapClassLoaderGraph graph = new MinecraftBootstrapClassLoaderGraphBuilder().build(finalExecutionPlan);
+                    measure(
+                        diagnosticSink,
+                        "minecraft.bootstrap_classloader_graph.write",
+                        LaunchPhase.COMPLETE,
+                        () -> {
+                            Path outputPath = context.workingDirectory().resolve("minecraft-bootstrap-classloader-graph.json");
+                            new MinecraftBootstrapClassLoaderGraphWriter().write(outputPath, graph);
+                            return outputPath;
+                        },
+                        outputPath -> details("bootstrapClassloaderGraphOutputPath", displayPath(context, outputPath))
+                    );
+                    megaMilestoneReports.add("minecraft-bootstrap-classloader-graph.json");
                 }
             }
 
@@ -1364,6 +1544,7 @@ public final class LoaderMain {
                         finalPlannedRuntime.plan(),
                         runtimeBoundary,
                         integrationPlan,
+                        executionPlan,
                         megaMilestoneReports
                     );
                 measure(
@@ -1427,7 +1608,8 @@ public final class LoaderMain {
             artifactResolution,
             plannedRuntime,
             runtimeBoundary,
-            integrationPlan
+            integrationPlan,
+            executionPlan
         );
     }
 
@@ -1574,6 +1756,18 @@ public final class LoaderMain {
                     "--minecraft-force-redownload requires --minecraft-fetch-metadata, --minecraft-download-server, or --minecraft-cache-repair"
                 );
             }
+            if (resolvedMinecraftProviderConfig.bootstrapServer() && resolvedMinecraftProviderConfig.launch()) {
+                throw new LoaderException("--minecraft-bootstrap-server cannot be combined with --minecraft-launch");
+            }
+            if (resolvedMinecraftProviderConfig.bootstrapServer() && resolvedMinecraftProviderConfig.side() != MinecraftSide.SERVER) {
+                throw new LoaderException("--minecraft-bootstrap-server requires --minecraft-side server");
+            }
+            if (resolvedMinecraftProviderConfig.bootstrapServer() && !resolvedMinecraftProviderConfig.dryRun()) {
+                throw new LoaderException("--minecraft-bootstrap-server requires --minecraft-dry-run");
+            }
+            if (resolvedMinecraftProviderConfig.bootstrapServer() && !resolvedMinecraftProviderConfig.verifyFiles()) {
+                throw new LoaderException("--minecraft-bootstrap-server requires --minecraft-verify-files");
+            }
         }
 
         return launchArguments.withMinecraftProviderConfig(resolvedMinecraftProviderConfig).withMacheDirectory(
@@ -1697,6 +1891,123 @@ public final class LoaderMain {
             )
         );
         return result;
+    }
+
+    private static MinecraftBootstrapResult launchMinecraftBootstrap(
+        LaunchContext context,
+        MinecraftProviderConfig config,
+        MinecraftDryRunResult dryRunResult,
+        DiagnosticSink diagnosticSink
+    ) throws LoaderException {
+        if (dryRunResult.executionPlan() == null) {
+            throw new LoaderException("Minecraft bootstrap requires a generated minecraft-mod-execution-plan.json");
+        }
+        Path runtimePlanPath = context.workingDirectory().resolve("minecraft-server-runtime-plan.json");
+        Path boundaryPlanPath = context.workingDirectory().resolve("minecraft-runtime-boundary.json");
+        Path integrationPlanPath = context.workingDirectory().resolve("minecraft-mod-integration-plan.json");
+        Path executionPlanPath = context.workingDirectory().resolve("minecraft-mod-execution-plan.json");
+        MinecraftPlanFingerprint runtimeFingerprint = MinecraftPlanFingerprint.fromFile("runtime-plan", runtimePlanPath);
+        MinecraftPlanFingerprint boundaryFingerprint = MinecraftPlanFingerprint.fromFile("boundary-plan", boundaryPlanPath);
+        MinecraftPlanFingerprint integrationFingerprint = MinecraftPlanFingerprint.fromFile("integration-plan", integrationPlanPath);
+        MinecraftPlanFingerprint executionFingerprint = MinecraftPlanFingerprint.fromFile("execution-plan", executionPlanPath);
+
+        List<String> command = new ArrayList<>();
+        Path javaExecutable = new JavaExecutableResolver().resolve();
+        command.add(javaExecutable.toString());
+        command.add("-cp");
+        command.add(System.getProperty("java.class.path", ""));
+        command.add(MinecraftServerBootstrapMain.class.getName());
+        command.add("--working-directory");
+        command.add(context.workingDirectory().toString());
+        command.add("--runtime-plan");
+        command.add("minecraft-server-runtime-plan.json");
+        command.add("--boundary-plan");
+        command.add("minecraft-runtime-boundary.json");
+        command.add("--integration-plan");
+        command.add("minecraft-mod-integration-plan.json");
+        command.add("--execution-plan");
+        command.add("minecraft-mod-execution-plan.json");
+        command.add("--expected-runtime-fingerprint");
+        command.add(runtimeFingerprint.sha256());
+        command.add("--expected-boundary-fingerprint");
+        command.add(boundaryFingerprint.sha256());
+        command.add("--expected-integration-fingerprint");
+        command.add(integrationFingerprint.sha256());
+        command.add("--expected-execution-fingerprint");
+        command.add(executionFingerprint.sha256());
+        if (config.verifyPlanFingerprints()) {
+            command.add("--verify-plan-fingerprints");
+        }
+        if (config.strictExecution()) {
+            command.add("--strict-execution");
+        }
+        if (config.bootstrapOffline()) {
+            command.add("--offline-bootstrap");
+        }
+
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.bootstrap.start",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                "ok",
+                "Minecraft bootstrap child JVM starting",
+                details(
+                    "javaExecutable",
+                    displayPath(context, javaExecutable),
+                    "executionPlanOutputPath",
+                    displayPath(context, executionPlanPath)
+                )
+            )
+        );
+        Process process;
+        try {
+            process = new ProcessBuilder(command).directory(context.workingDirectory().toFile()).start();
+        } catch (IOException exception) {
+            throw new LoaderException("Failed to start Minecraft bootstrap JVM", exception);
+        }
+
+        String stdout = readProcessStream(process.getInputStream());
+        String stderr = readProcessStream(process.getErrorStream());
+        int exitCode;
+        try {
+            if (!process.waitFor(120, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                throw new LoaderException("Minecraft bootstrap child JVM timed out");
+            }
+            exitCode = process.exitValue();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            process.destroyForcibly();
+            throw new LoaderException("Interrupted while waiting for Minecraft bootstrap JVM", exception);
+        }
+        if (exitCode != 0 && !stderr.isBlank()) {
+            System.err.print(stderr);
+        }
+        Path bootstrapResultPath = context.workingDirectory().resolve("minecraft-server-bootstrap-result.json");
+        if (!Files.isRegularFile(bootstrapResultPath)) {
+            throw new LoaderException("Minecraft bootstrap child JVM did not write minecraft-server-bootstrap-result.json");
+        }
+        diagnosticSink.record(
+            new DiagnosticEvent(
+                "minecraft.bootstrap.complete",
+                LaunchPhase.COMPLETE.name(),
+                0L,
+                exitCode == 0 ? "ok" : "error",
+                "Minecraft bootstrap child JVM finished",
+                details(
+                    "exitCode",
+                    Integer.toString(exitCode),
+                    "stdoutBytes",
+                    Integer.toString(stdout.getBytes(java.nio.charset.StandardCharsets.UTF_8).length),
+                    "stderrBytes",
+                    Integer.toString(stderr.getBytes(java.nio.charset.StandardCharsets.UTF_8).length),
+                    "bootstrapResultOutputPath",
+                    displayPath(context, bootstrapResultPath)
+                )
+            )
+        );
+        return new com.google.gson.Gson().fromJson(readFile(bootstrapResultPath), MinecraftBootstrapResult.class);
     }
 
     private static List<ModCandidate> parseMetadata(List<ModCandidate> discoveredMods, ModMetadataParser metadataParser)
@@ -2077,6 +2388,7 @@ public final class LoaderMain {
         MinecraftServerRuntimePlan firstRuntimePlan,
         MinecraftRuntimeBoundary firstRuntimeBoundary,
         MinecraftModIntegrationPlan firstIntegrationPlan,
+        MinecraftModExecutionPlan firstExecutionPlan,
         List<String> reportsWritten
     ) throws LoaderException {
         Path snapshotDirectory = context.workingDirectory().resolve(".minecraft-reproducibility").resolve("second-run");
@@ -2131,6 +2443,31 @@ public final class LoaderMain {
             new MinecraftModIntegrationPlanWriter().write(secondIntegrationPlanPath, secondIntegrationPlan);
         }
 
+        MinecraftModExecutionPlan secondExecutionPlan = null;
+        Path secondExecutionPlanPath = snapshotDirectory.resolve("minecraft-mod-execution-plan.json");
+        Path secondGraphPath = snapshotDirectory.resolve("minecraft-bootstrap-classloader-graph.json");
+        if (firstExecutionPlan != null && secondBoundary != null && secondIntegrationPlan != null) {
+            MinecraftPlanFingerprint secondRuntimeFingerprint = MinecraftPlanFingerprint.fromFile("runtime-plan", secondRuntimePlanPath);
+            MinecraftPlanFingerprint secondBoundaryFingerprint = MinecraftPlanFingerprint.fromFile("runtime-boundary", secondBoundaryPath);
+            MinecraftPlanFingerprint secondIntegrationFingerprint = MinecraftPlanFingerprint.fromFile("integration-plan", secondIntegrationPlanPath);
+            secondExecutionPlan =
+                new MinecraftModExecutionPlanner()
+                    .plan(
+                        context,
+                        config,
+                        parsedMods,
+                        secondRuntime.plan(),
+                        secondBoundary,
+                        secondIntegrationPlan,
+                        secondRuntimeFingerprint,
+                        secondBoundaryFingerprint,
+                        secondIntegrationFingerprint
+                    );
+            new MinecraftModExecutionPlanWriter().write(secondExecutionPlanPath, secondExecutionPlan);
+            MinecraftBootstrapClassLoaderGraph secondGraph = new MinecraftBootstrapClassLoaderGraphBuilder().build(secondExecutionPlan);
+            new MinecraftBootstrapClassLoaderGraphWriter().write(secondGraphPath, secondGraph);
+        }
+
         Path secondPreflightPath = snapshotDirectory.resolve("minecraft-preflight-result.json");
         if (config.preflight() && secondBoundary != null) {
             MinecraftPreflightResult secondPreflight = buildPreflightResult(resolvedMinecraftVersion, reportsWritten, secondBoundary, secondIntegrationPlan);
@@ -2162,6 +2499,24 @@ public final class LoaderMain {
                     secondIntegrationPlanPath
                 )
             );
+        }
+        if (firstExecutionPlan != null) {
+            pairs.add(
+                new MinecraftReproducibilityChecker.ReportPair(
+                    "minecraft-mod-execution-plan.json",
+                    context.workingDirectory().resolve("minecraft-mod-execution-plan.json"),
+                    secondExecutionPlanPath
+                )
+            );
+            if (Files.isRegularFile(context.workingDirectory().resolve("minecraft-bootstrap-classloader-graph.json"))) {
+                pairs.add(
+                    new MinecraftReproducibilityChecker.ReportPair(
+                        "minecraft-bootstrap-classloader-graph.json",
+                        context.workingDirectory().resolve("minecraft-bootstrap-classloader-graph.json"),
+                        secondGraphPath
+                    )
+                );
+            }
         }
         if (config.preflight() && Files.isRegularFile(context.workingDirectory().resolve("minecraft-preflight-result.json"))) {
             pairs.add(
@@ -2365,6 +2720,22 @@ public final class LoaderMain {
             return parsed;
         } catch (NumberFormatException exception) {
             throw new LoaderException(argumentName + " requires a positive integer", exception);
+        }
+    }
+
+    private static String readProcessStream(InputStream inputStream) throws LoaderException {
+        try (inputStream) {
+            return new String(inputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw new LoaderException("Failed to read child process stream", exception);
+        }
+    }
+
+    private static String readFile(Path path) throws LoaderException {
+        try {
+            return Files.readString(path);
+        } catch (IOException exception) {
+            throw new LoaderException("Failed to read " + path.toString().replace('\\', '/'), exception);
         }
     }
 
