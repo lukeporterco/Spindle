@@ -16,4 +16,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "spindle"
 
-include("loader-api", "loader-core", "sample-game", "sample-mod", "sample-server-fixture", "sample-minecraft-mod")
+include(
+    "loader-api",
+    "loader-core",
+    "sample-game",
+    "sample-mod",
+    "sample-runtime-mod",
+    "sample-server-fixture",
+    "sample-minecraft-mod")

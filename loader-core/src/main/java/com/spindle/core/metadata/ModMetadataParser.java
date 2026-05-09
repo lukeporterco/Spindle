@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.spindle.api.lifecycle.LifecyclePhase;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.discovery.ModCandidate;
 import java.io.IOException;
@@ -25,7 +26,15 @@ import java.util.zip.ZipEntry;
 
 public final class ModMetadataParser {
   private static final Pattern MOD_ID_PATTERN = Pattern.compile("[a-z][a-z0-9_-]{1,63}");
+  private static final Pattern LIFECYCLE_DECLARATION_PATTERN =
+      Pattern.compile(
+          "[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)+::[A-Za-z_$][A-Za-z0-9_$]*");
   private static final Set<String> VALID_SIDES = Set.of("universal", "client", "server");
+  private static final Set<String> VALID_LIFECYCLE_PHASES =
+      Set.of(
+          LifecyclePhase.BOOTSTRAP.name(),
+          LifecyclePhase.CONFIGURE.name(),
+          LifecyclePhase.PRE_SERVER_MAIN.name());
 
   public ModMetadata parse(ModCandidate candidate) throws LoaderException {
     Path jarPath = candidate.jarPath();
@@ -59,7 +68,7 @@ public final class ModMetadataParser {
     }
 
     int schema = requiredInt(jsonObject, "schema", sourceName);
-    if (schema != 1) {
+    if (schema != 1 && schema != 2) {
       throw new LoaderException("Unsupported metadata schema in " + sourceName + ": " + schema);
     }
 
@@ -77,15 +86,40 @@ public final class ModMetadataParser {
     if (!VALID_SIDES.contains(side)) {
       throw new LoaderException("Invalid mod side in " + sourceName + ": " + side);
     }
-    Map<String, List<String>> entrypoints = parseEntrypoints(jsonObject, sourceName);
+    Map<String, List<String>> entrypoints = parseEntrypoints(jsonObject, sourceName, schema == 1);
+    Map<String, List<String>> lifecycle =
+        schema == 2 ? parseLifecycle(jsonObject, id, sourceName) : Map.of();
+    List<String> permissions =
+        schema == 2 ? parsePermissions(jsonObject, id, sourceName) : List.of();
+    ModMetadata.Storage storage =
+        schema == 2 ? parseStorage(jsonObject, sourceName) : ModMetadata.Storage.disabled();
+    if (schema == 1 && jsonObject.has("lifecycle")) {
+      throw new LoaderException(
+          "Metadata schema 1 does not support lifecycle declarations in " + sourceName);
+    }
+    if (schema == 2 && entrypoints.isEmpty() && lifecycle.isEmpty()) {
+      throw new LoaderException(
+          "Schema 2 metadata must declare lifecycle handlers or entrypoints in " + sourceName);
+    }
     Map<String, String> depends = parseDepends(jsonObject, sourceName);
     Map<String, String> breaks = parseStringMap(jsonObject, "breaks", sourceName);
-    return new ModMetadata(schema, id, version, side, entrypoints, depends, breaks);
+    return new ModMetadata(
+        schema, id, version, side, entrypoints, depends, breaks, lifecycle, permissions, storage);
   }
 
-  private Map<String, List<String>> parseEntrypoints(JsonObject jsonObject, String sourceName)
-      throws LoaderException {
-    JsonObject entrypointsObject = requiredObject(jsonObject, "entrypoints", sourceName);
+  private Map<String, List<String>> parseEntrypoints(
+      JsonObject jsonObject, String sourceName, boolean required) throws LoaderException {
+    JsonObject entrypointsObject;
+    if (!jsonObject.has("entrypoints") || jsonObject.get("entrypoints").isJsonNull()) {
+      if (required) {
+        throw new LoaderException("Missing object field entrypoints in " + sourceName);
+      }
+      return Map.of();
+    }
+    if (!jsonObject.get("entrypoints").isJsonObject()) {
+      throw new LoaderException("entrypoints must be an object in " + sourceName);
+    }
+    entrypointsObject = jsonObject.getAsJsonObject("entrypoints");
     Map<String, List<String>> entrypoints = new LinkedHashMap<>();
     for (Map.Entry<String, JsonElement> entry :
         entrypointsObject.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
@@ -112,11 +146,109 @@ public final class ModMetadataParser {
       }
       entrypoints.put(entry.getKey(), List.copyOf(entrypointClasses));
     }
-    if (entrypoints.isEmpty()) {
+    if (required && entrypoints.isEmpty()) {
       throw new LoaderException(
           "entrypoints must declare at least one entrypoint group in " + sourceName);
     }
     return Map.copyOf(entrypoints);
+  }
+
+  private Map<String, List<String>> parseLifecycle(
+      JsonObject jsonObject, String modId, String sourceName) throws LoaderException {
+    if (!jsonObject.has("lifecycle") || jsonObject.get("lifecycle").isJsonNull()) {
+      return Map.of();
+    }
+    if (!jsonObject.get("lifecycle").isJsonObject()) {
+      throw new LoaderException("lifecycle must be an object in " + sourceName);
+    }
+
+    JsonObject lifecycleObject = jsonObject.getAsJsonObject("lifecycle");
+    Map<String, List<String>> lifecycle = new TreeMap<>();
+    for (Map.Entry<String, JsonElement> entry :
+        lifecycleObject.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+      String phase = entry.getKey().trim();
+      if (!VALID_LIFECYCLE_PHASES.contains(phase)) {
+        throw new LoaderException(
+            "Mod `"
+                + modId
+                + "` declares unsupported lifecycle phase `"
+                + phase
+                + "` in "
+                + sourceName
+                + ". Expected one of "
+                + String.join(", ", VALID_LIFECYCLE_PHASES));
+      }
+      if (!entry.getValue().isJsonArray()) {
+        throw new LoaderException("lifecycle." + phase + " must be an array in " + sourceName);
+      }
+      JsonArray array = entry.getValue().getAsJsonArray();
+      if (array.size() == 0) {
+        throw new LoaderException(
+            "lifecycle." + phase + " must contain at least one handler in " + sourceName);
+      }
+      List<String> declarations = new ArrayList<>();
+      for (JsonElement element : array) {
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+          throw new LoaderException(
+              "lifecycle." + phase + " must contain handler declarations in " + sourceName);
+        }
+        String declaration = element.getAsString().trim();
+        if (!LIFECYCLE_DECLARATION_PATTERN.matcher(declaration).matches()) {
+          throw new LoaderException(
+              "Mod `"
+                  + modId
+                  + "` declares lifecycle handler `"
+                  + declaration
+                  + "` for phase `"
+                  + phase
+                  + "`, but expected `ClassName::methodName` in "
+                  + sourceName);
+        }
+        declarations.add(declaration);
+      }
+      lifecycle.put(phase, List.copyOf(declarations));
+    }
+    return Map.copyOf(lifecycle);
+  }
+
+  private List<String> parsePermissions(JsonObject jsonObject, String modId, String sourceName)
+      throws LoaderException {
+    if (!jsonObject.has("permissions") || jsonObject.get("permissions").isJsonNull()) {
+      return List.of();
+    }
+    if (!jsonObject.get("permissions").isJsonArray()) {
+      throw new LoaderException("permissions must be an array in " + sourceName);
+    }
+    List<String> permissions = new ArrayList<>();
+    for (JsonElement element : jsonObject.getAsJsonArray("permissions")) {
+      if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+        throw new LoaderException(
+            "permissions must contain strings for mod `" + modId + "` in " + sourceName);
+      }
+      String permission = element.getAsString().trim();
+      if (permission.isEmpty()) {
+        throw new LoaderException(
+            "permissions must not contain empty values for mod `" + modId + "` in " + sourceName);
+      }
+      permissions.add(permission);
+    }
+    return permissions.stream().sorted().toList();
+  }
+
+  private ModMetadata.Storage parseStorage(JsonObject jsonObject, String sourceName)
+      throws LoaderException {
+    if (!jsonObject.has("storage") || jsonObject.get("storage").isJsonNull()) {
+      return ModMetadata.Storage.disabled();
+    }
+    if (!jsonObject.get("storage").isJsonObject()) {
+      throw new LoaderException("storage must be an object in " + sourceName);
+    }
+    JsonObject storageObject = jsonObject.getAsJsonObject("storage");
+    return new ModMetadata.Storage(
+        optionalBoolean(storageObject, "config", sourceName),
+        optionalBoolean(storageObject, "data", sourceName),
+        optionalBoolean(storageObject, "cache", sourceName),
+        optionalBoolean(storageObject, "generated", sourceName));
   }
 
   private Map<String, String> parseDepends(JsonObject jsonObject, String sourceName)
@@ -191,5 +323,17 @@ public final class ModMetadataParser {
       throw new LoaderException("Missing string field " + key + " in " + sourceName);
     }
     return Objects.requireNonNull(element.getAsString());
+  }
+
+  private boolean optionalBoolean(JsonObject jsonObject, String key, String sourceName)
+      throws LoaderException {
+    if (!jsonObject.has(key) || jsonObject.get(key).isJsonNull()) {
+      return false;
+    }
+    JsonElement element = jsonObject.get(key);
+    if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
+      throw new LoaderException(key + " must be a boolean in " + sourceName);
+    }
+    return element.getAsBoolean();
   }
 }

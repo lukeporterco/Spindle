@@ -14,18 +14,15 @@ import com.spindle.core.minecraft.flow.MinecraftFlowRunner;
 import com.spindle.core.pipeline.ModpackPlanningPipeline;
 import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.report.DiagnosticMeasurements;
-import com.spindle.core.report.DisplayPaths;
-import com.spindle.core.runtime.CompiledModpackProfileBuilder;
-import com.spindle.core.runtime.CompiledModpackProfileWriter;
+import com.spindle.core.runtime.CompiledRuntimeOrchestrator;
+import com.spindle.core.runtime.CompiledRuntimeResult;
 import java.nio.file.Path;
 
 public final class LoaderApplication {
   private final GameProviderResolver gameProviderResolver = new GameProviderResolver();
   private final ModpackPlanningPipeline modpackPlanningPipeline = new ModpackPlanningPipeline();
-  private final CompiledModpackProfileBuilder compiledModpackProfileBuilder =
-      new CompiledModpackProfileBuilder();
-  private final CompiledModpackProfileWriter compiledModpackProfileWriter =
-      new CompiledModpackProfileWriter();
+  private final CompiledRuntimeOrchestrator compiledRuntimeOrchestrator =
+      new CompiledRuntimeOrchestrator();
   private final StandardGameLaunchExecutor standardGameLaunchExecutor =
       new StandardGameLaunchExecutor();
   private final MinecraftFlowRunner minecraftFlowRunner = new MinecraftFlowRunner();
@@ -51,14 +48,24 @@ public final class LoaderApplication {
 
     ModpackPlanningResult planningResult =
         modpackPlanningPipeline.plan(context, gameProvider, diagnosticSink);
-    writeCompiledProfile(context, launchArguments, planningResult, diagnosticSink);
+    CompiledRuntimeResult compiledRuntimeResult =
+        compiledRuntimeOrchestrator.compile(
+            context, planningResult, resolveGameSide(launchArguments), diagnosticSink);
     if (gameProvider instanceof MinecraftGameProvider minecraftGameProvider) {
       minecraftFlowRunner.run(
           context, launchArguments, minecraftGameProvider, planningResult, diagnosticSink);
       return;
     }
 
-    standardGameLaunchExecutor.execute(context, gameProvider, planningResult, diagnosticSink);
+    standardGameLaunchExecutor.execute(
+        context, gameProvider, planningResult, compiledRuntimeResult.profile(), diagnosticSink);
+  }
+
+  private static String resolveGameSide(LaunchArguments launchArguments) {
+    if ("minecraft".equals(launchArguments.gameProviderId())) {
+      return launchArguments.minecraftProviderConfig().side().id();
+    }
+    return "universal";
   }
 
   private static LaunchContext createLaunchContext(
@@ -76,38 +83,5 @@ public final class LoaderApplication {
         LoaderMain.LOADER_VERSION,
         Runtime.version().feature(),
         LoaderMain.TARGET_MINECRAFT_VERSION);
-  }
-
-  private void writeCompiledProfile(
-      LaunchContext context,
-      LaunchArguments launchArguments,
-      ModpackPlanningResult planningResult,
-      DiagnosticSink diagnosticSink)
-      throws LoaderException {
-    Path outputPath = context.workingDirectory().resolve("spindle.profile.json");
-    DiagnosticMeasurements.measure(
-        diagnosticSink,
-        "runtime.compiled_profile.write",
-        LaunchPhase.COMPLETE,
-        () ->
-            compiledModpackProfileWriter.write(
-                outputPath,
-                compiledModpackProfileBuilder.build(
-                    context, planningResult, resolveGameSide(launchArguments))),
-        result ->
-            DiagnosticMeasurements.details(
-                "compiledProfileOutputPath",
-                DisplayPaths.displayPath(context, result.outputPath()),
-                "compiledProfileSchemaVersion",
-                Integer.toString(result.schemaVersion()),
-                "compiledProfileFingerprint",
-                result.fingerprint()));
-  }
-
-  private static String resolveGameSide(LaunchArguments launchArguments) {
-    if ("minecraft".equals(launchArguments.gameProviderId())) {
-      return launchArguments.minecraftProviderConfig().side().id();
-    }
-    return "universal";
   }
 }

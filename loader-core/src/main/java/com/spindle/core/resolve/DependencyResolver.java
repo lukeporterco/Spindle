@@ -45,7 +45,11 @@ public final class DependencyResolver {
               candidate.sha256(),
               metadata.entrypoints(),
               metadata.depends(),
-              metadata.breaks()));
+              metadata.breaks(),
+              metadata.schema(),
+              metadata.lifecycle(),
+              metadata.permissions(),
+              metadata.storage()));
     }
 
     resolvedMods.sort(Comparator.comparing(ResolvedModSet.ResolvedMod::id));

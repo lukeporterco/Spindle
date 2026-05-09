@@ -1,6 +1,7 @@
 package com.spindle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +69,85 @@ class Milestone0Test {
     assertEquals("universal", metadata.side());
     assertEquals(">=25", metadata.depends().get("java"));
     assertEquals(">=26.1.2", metadata.depends().get("minecraft"));
+  }
+
+  @Test
+  void schemaTwoMetadataParsesLifecycleAndStorage() throws LoaderException {
+    ModMetadata metadata =
+        metadataParser.parse(
+            """
+            {
+              "schema": 2,
+              "id": "samplemod",
+              "version": "1.0.0",
+              "side": "server",
+              "depends": {
+                "loader": ">=0.1.0",
+                "java": ">=25",
+                "minecraft": ">=26.1.2"
+              },
+              "breaks": {},
+              "lifecycle": {
+                "BOOTSTRAP": [
+                  "com.example.SampleLifecycle::bootstrap"
+                ],
+                "CONFIGURE": [
+                  "com.example.SampleLifecycle::configure"
+                ]
+              },
+              "permissions": [],
+              "storage": {
+                "config": true,
+                "data": true,
+                "cache": false,
+                "generated": true
+              }
+            }
+            """,
+            "schema-two");
+
+    assertEquals(2, metadata.schema());
+    assertEquals(
+        List.of("com.example.SampleLifecycle::bootstrap"), metadata.lifecycle().get("BOOTSTRAP"));
+    assertEquals(
+        List.of("com.example.SampleLifecycle::configure"), metadata.lifecycle().get("CONFIGURE"));
+    assertTrue(metadata.entrypoints().isEmpty());
+    assertTrue(metadata.storage().config());
+    assertTrue(metadata.storage().data());
+    assertFalse(metadata.storage().cache());
+    assertTrue(metadata.storage().generated());
+  }
+
+  @Test
+  void invalidLifecycleDeclarationFailsDuringParse() {
+    LoaderException exception =
+        assertThrows(
+            LoaderException.class,
+            () ->
+                metadataParser.parse(
+                    """
+                    {
+                      "schema": 2,
+                      "id": "samplemod",
+                      "version": "1.0.0",
+                      "side": "server",
+                      "depends": {
+                        "loader": ">=0.1.0",
+                        "java": ">=25",
+                        "minecraft": ">=26.1.2"
+                      },
+                      "lifecycle": {
+                        "BOOTSTRAP": [
+                          "com.example.SampleLifecycle.bootstrap"
+                        ]
+                      }
+                    }
+                    """,
+                    "invalid-lifecycle"));
+
+    assertTrue(exception.getMessage().contains("samplemod"));
+    assertTrue(exception.getMessage().contains("BOOTSTRAP"));
+    assertTrue(exception.getMessage().contains("ClassName::methodName"));
   }
 
   @Test

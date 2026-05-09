@@ -20,7 +20,35 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
       String sha256,
       Map<String, List<String>> entrypoints,
       Map<String, String> depends,
-      Map<String, String> breaks) {
+      Map<String, String> breaks,
+      int metadataSchema,
+      Map<String, List<String>> lifecycle,
+      List<String> permissions,
+      com.spindle.core.metadata.ModMetadata.Storage storage) {
+    public ResolvedMod(
+        String id,
+        String version,
+        Path relativePath,
+        Path jarPath,
+        String sha256,
+        Map<String, List<String>> entrypoints,
+        Map<String, String> depends,
+        Map<String, String> breaks) {
+      this(
+          id,
+          version,
+          relativePath,
+          jarPath,
+          sha256,
+          entrypoints,
+          depends,
+          breaks,
+          1,
+          Map.of(),
+          List.of(),
+          com.spindle.core.metadata.ModMetadata.Storage.disabled());
+    }
+
     public ResolvedMod {
       entrypoints =
           Collections.unmodifiableMap(
@@ -31,8 +59,20 @@ public record ResolvedModSet(List<ResolvedMod> mods) {
                           entry -> List.copyOf(entry.getValue()),
                           (left, right) -> left,
                           TreeMap::new)));
+      lifecycle =
+          Collections.unmodifiableMap(
+              lifecycle.entrySet().stream()
+                  .collect(
+                      Collectors.toMap(
+                          Map.Entry::getKey,
+                          entry -> List.copyOf(entry.getValue()),
+                          (left, right) -> left,
+                          TreeMap::new)));
       depends = Collections.unmodifiableMap(new TreeMap<>(depends));
       breaks = Collections.unmodifiableMap(new TreeMap<>(breaks));
+      permissions = List.copyOf(permissions);
+      storage =
+          storage == null ? com.spindle.core.metadata.ModMetadata.Storage.disabled() : storage;
     }
 
     public String normalizedRelativePath() {

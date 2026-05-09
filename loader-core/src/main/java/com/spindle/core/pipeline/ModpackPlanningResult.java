@@ -7,6 +7,7 @@ import com.spindle.core.ownership.ClassOwnershipIndex;
 import com.spindle.core.ownership.PackageOwnershipIndex;
 import com.spindle.core.resolve.ResolvedModSet;
 import com.spindle.core.resource.ResourceConflictIndex;
+import com.spindle.core.runtime.ProtectedPackageViolation;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -19,6 +20,7 @@ public record ModpackPlanningResult(
     RuntimeClasspathPlan classpathPlan,
     ClassOwnershipIndex classOwnershipIndex,
     PackageOwnershipIndex packageOwnershipIndex,
+    List<ProtectedPackageViolation> protectedPackageViolations,
     ResourceConflictIndex resourceConflictIndex,
     FrozenModGraph frozenModGraph,
     Path modpackStatePath,

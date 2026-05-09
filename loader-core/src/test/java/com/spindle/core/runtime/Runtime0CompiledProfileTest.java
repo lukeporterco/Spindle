@@ -41,43 +41,71 @@ class Runtime0CompiledProfileTest {
 
     Path compiledProfilePath = tempDirectory.resolve("spindle.profile.json");
     assertTrue(Files.exists(compiledProfilePath));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.lifecycle-report.json")));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.quality-report.json")));
 
     String diagnostics = Files.readString(tempDirectory.resolve("diagnostics/startup-trace.json"));
     assertTrue(diagnostics.contains("\"name\": \"runtime.compiled_profile.write\""));
+    assertTrue(diagnostics.contains("\"name\": \"runtime.compiled_profile.cache\""));
   }
 
   @Test
-  void compiledProfileUsesSchemaVersionOneAndStableFingerprintShape() throws Exception {
+  void compiledProfileUsesSchemaVersionTwoAndRuntimeContractSections() throws Exception {
     createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
 
     executeValidateOnly();
 
     JsonObject profile = readCompiledProfile();
-    assertEquals(1, profile.get("schemaVersion").getAsInt());
+    assertEquals(2, profile.get("schemaVersion").getAsInt());
     assertEquals("compiled-modpack", profile.get("profileKind").getAsString());
     assertEquals("spindle", profile.getAsJsonObject("loader").get("id").getAsString());
     assertEquals("sample", profile.getAsJsonObject("game").get("id").getAsString());
     assertEquals("universal", profile.getAsJsonObject("game").get("side").getAsString());
     assertEquals("verify-or-write", profile.getAsJsonObject("lockfile").get("mode").getAsString());
+    assertEquals("miss", profile.getAsJsonObject("cache").get("status").getAsString());
+    assertEquals(
+        List.of(1),
+        profile.getAsJsonObject("metadata").getAsJsonArray("schemaVersions").asList().stream()
+            .map(element -> element.getAsInt())
+            .toList());
+    assertEquals(
+        List.of("BOOTSTRAP", "CONFIGURE", "PRE_SERVER_MAIN"),
+        toStringList(profile.getAsJsonObject("lifecycle").getAsJsonArray("phaseOrder")));
+    assertEquals(
+        "config/samplemod",
+        profile
+            .getAsJsonObject("contexts")
+            .getAsJsonArray("mods")
+            .get(0)
+            .getAsJsonObject()
+            .get("configDirectory")
+            .getAsString());
+    assertEquals(100, profile.getAsJsonObject("quality").get("score").getAsInt());
 
     String fingerprint = profile.get("fingerprint").getAsString();
+    String inputFingerprint = profile.get("inputFingerprint").getAsString();
     assertNotNull(fingerprint);
     assertTrue(fingerprint.matches("[0-9a-f]{64}"));
+    assertTrue(inputFingerprint.matches("[0-9a-f]{64}"));
     assertEquals(
         profile.getAsJsonObject("lockfile").get("path").getAsString(), "spindle.lock.json");
   }
 
   @Test
-  void compiledProfileIsDeterministicAcrossEquivalentRuns() throws Exception {
+  void compiledProfileReusesCacheOnEquivalentSecondRun() throws Exception {
     createStandardModJar(tempDirectory.resolve("mods/sample-mod.jar"), "samplemod");
 
     executeValidateOnly();
-    String first = Files.readString(tempDirectory.resolve("spindle.profile.json"));
+    JsonObject first = readCompiledProfile();
 
     executeValidateOnly();
-    String second = Files.readString(tempDirectory.resolve("spindle.profile.json"));
+    JsonObject second = readCompiledProfile();
 
-    assertEquals(first, second);
+    assertEquals(first.get("fingerprint").getAsString(), second.get("fingerprint").getAsString());
+    assertEquals(
+        first.get("inputFingerprint").getAsString(), second.get("inputFingerprint").getAsString());
+    assertEquals("miss", first.getAsJsonObject("cache").get("status").getAsString());
+    assertEquals("hit", second.getAsJsonObject("cache").get("status").getAsString());
   }
 
   @Test
@@ -147,9 +175,11 @@ class Runtime0CompiledProfileTest {
     String diagnostics = Files.readString(tempDirectory.resolve("diagnostics/startup-trace.json"));
 
     assertTrue(output.contains("[spindle] validation complete"));
-    assertFalse(diagnostics.contains("\"name\": \"entrypoint.invoke\""));
+    assertFalse(diagnostics.contains("\"name\": \"lifecycle.execute\""));
     assertFalse(diagnostics.contains("\"name\": \"game.launch\""));
     assertTrue(Files.exists(tempDirectory.resolve("spindle.profile.json")));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.lifecycle-report.json")));
+    assertTrue(Files.exists(tempDirectory.resolve("spindle.quality-report.json")));
   }
 
   private JsonObject readCompiledProfile() throws IOException {

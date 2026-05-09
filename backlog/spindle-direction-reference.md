@@ -32,24 +32,24 @@ The Foundation Arc proved that the loader can own planning, reports, cache behav
 
 ### Runtime Arc
 
-Status: next major direction.
+Status: Runtime-1 implemented; further Runtime passes remain.
 
-This arc should turn Spindle into a deterministic modpack runtime compiler.
+This arc turns Spindle into a deterministic modpack runtime compiler.
 
-The loader should compile mod metadata into a reusable runtime profile before classloading or execution. This profile should include the dependency graph, classpath plan, package ownership, lifecycle plan, service registry, config schema plan, resource overlay plan, permissions, startup budget, owned storage directories, and all relevant fingerprints.
+The loader now compiles mod metadata into a reusable runtime profile before standard runtime execution. The current profile includes dependency graph inputs, classpath ownership, lifecycle plans, owned storage directories, package policy summaries, quality summaries, and stable fingerprints. Service registries, config schemas, and resource overlay planning remain future Runtime or Platform work.
 
-Suggested first pass:
+Completed first pass:
 
-`Runtime-1: Compiled Modpack Runtime`
+`Runtime-1: Compiled Runtime Kernel`
 
-Primary goal:
+Delivered:
 
-Spindle compiles a modpack into a deterministic profile and uses that profile to control lifecycle execution, mod context creation, package ownership, storage ownership, and diagnostics.
+Spindle compiles a deterministic runtime contract and uses it for standard-runtime lifecycle execution, mod context creation, storage ownership, package policy reporting, lifecycle/quality reports, and deterministic profile cache reuse while preserving schema 1 and Milestone 8 behavior.
 
 Included:
 
-- `loader.mod.json` schema v2 draft
-- `spindle.profile.json`
+- `loader.mod.json` schema v2
+- `spindle.profile.json` schema v2
 - deterministic lifecycle declarations
 - deterministic lifecycle execution ordering
 - generated or precomputed mod context objects
@@ -499,29 +499,20 @@ Benefit:
 
 Name:
 
-`Runtime-1: Compiled Modpack Runtime`
+`Runtime-2: Services, Config, and Resource Overlay Planning`
 
 Goal:
 
-Spindle compiles mod metadata into a reusable, deterministic runtime profile before classloading or execution.
+Extend the Runtime-1 compiled profile with service registry plans, config schema validation, and resource overlay planning without expanding into Minecraft hooks or compatibility-layer behavior.
 
 Primary deliverables:
 
-- `loader.mod.json` schema v2 draft
-- `spindle.profile.json`
-- deterministic lifecycle declaration model
-- lifecycle execution plan
-- generated or precomputed `ModContext`
-- owned config, data, cache, and generated-output directories
-- package ownership validation
-- stronger classloader firewall checks
-- profile cache reuse
-- profile invalidation on changed inputs
-- startup profiling categories
-- lifecycle execution report
-- modpack quality report
-- updated sample approved server mod
-- tests for determinism, invalidation, rejection, lifecycle ordering, and report stability
+- service declaration and consumption model
+- config schema declaration and validation
+- resource ownership and overlay planning
+- compiled service/resource/config sections in `spindle.profile.json`
+- stronger quality findings around unsupported permissions and service/resource conflicts
+- focused tests for deterministic service/config/resource compilation
 
 Non-goals:
 

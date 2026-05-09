@@ -24,6 +24,8 @@ import com.spindle.core.resolve.DependencyResolver;
 import com.spindle.core.resolve.ResolvedModSet;
 import com.spindle.core.resource.ResourceConflict;
 import com.spindle.core.resource.ResourceConflictIndex;
+import com.spindle.core.runtime.ProtectedPackageViolation;
+import com.spindle.core.runtime.RuntimePackagePolicyInspector;
 import com.spindle.core.state.ModpackState;
 import com.spindle.core.state.ModpackStateWriter;
 import java.nio.file.Path;
@@ -43,6 +45,8 @@ public final class ModpackPlanningPipeline {
     FrozenModGraphBuilder frozenModGraphBuilder = new FrozenModGraphBuilder();
     ModpackStateWriter modpackStateWriter = new ModpackStateWriter();
     DependencyGraphWriter dependencyGraphWriter = new DependencyGraphWriter();
+    RuntimePackagePolicyInspector runtimePackagePolicyInspector =
+        new RuntimePackagePolicyInspector();
 
     List<ModCandidate> discoveredMods =
         DiagnosticMeasurements.measure(
@@ -130,6 +134,11 @@ public final class ModpackPlanningPipeline {
                     "splitPackageCount", Integer.toString(index.splitPackages().size())));
     recordSplitPackageDiagnostics(diagnosticSink, packageOwnershipIndex);
     enforceStrictPackages(context, packageOwnershipIndex);
+    List<ProtectedPackageViolation> protectedPackageViolations =
+        runtimePackagePolicyInspector.findProtectedPackageViolations(
+            resolvedMods, packageOwnershipIndex);
+    recordProtectedPackageDiagnostics(diagnosticSink, protectedPackageViolations);
+    enforceProtectedPackages(gameProvider, protectedPackageViolations);
 
     ResourceConflictIndex resourceConflictIndex =
         DiagnosticMeasurements.measure(
@@ -219,6 +228,7 @@ public final class ModpackPlanningPipeline {
         classpathPlan,
         classOwnershipIndex,
         packageOwnershipIndex,
+        protectedPackageViolations,
         resourceConflictIndex,
         frozenModGraph,
         modpackStatePath,
@@ -301,6 +311,22 @@ public final class ModpackPlanningPipeline {
     return count == 1 ? "mod" : "mods";
   }
 
+  private static void enforceProtectedPackages(
+      GameProvider gameProvider, List<ProtectedPackageViolation> protectedPackageViolations)
+      throws LoaderException {
+    if ("minecraft".equals(gameProvider.id()) || protectedPackageViolations.isEmpty()) {
+      return;
+    }
+    ProtectedPackageViolation violation = protectedPackageViolations.getFirst();
+    throw new LoaderException(
+        "Mod `"
+            + violation.modId()
+            + "` defines protected package `"
+            + violation.packageName()
+            + "`. "
+            + violation.reason());
+  }
+
   private static void recordResourceDiagnostics(
       DiagnosticSink diagnosticSink, ResourceConflictIndex resourceConflictIndex) {
     for (ResourceConflict conflict : resourceConflictIndex.conflicts()) {
@@ -334,6 +360,21 @@ public final class ModpackPlanningPipeline {
                   splitPackage.packageName(),
                   "mods",
                   String.join(",", splitPackage.modIds()))));
+    }
+  }
+
+  private static void recordProtectedPackageDiagnostics(
+      DiagnosticSink diagnosticSink, List<ProtectedPackageViolation> protectedPackageViolations) {
+    for (ProtectedPackageViolation violation : protectedPackageViolations) {
+      diagnosticSink.record(
+          new DiagnosticEvent(
+              "package.protected",
+              LaunchPhase.CLASSPATH_PLAN.name(),
+              0L,
+              "ok",
+              "Protected package definition detected",
+              DiagnosticMeasurements.details(
+                  "modId", violation.modId(), "package", violation.packageName())));
     }
   }
 

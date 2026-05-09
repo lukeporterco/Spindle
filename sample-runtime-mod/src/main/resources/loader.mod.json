@@ -1,0 +1,30 @@
+{
+  "schema": 2,
+  "id": "sampleruntimemod",
+  "version": "1.0.0",
+  "side": "universal",
+  "depends": {
+    "loader": ">=0.1.0",
+    "java": ">=25",
+    "minecraft": ">=26.1.2"
+  },
+  "breaks": {},
+  "lifecycle": {
+    "BOOTSTRAP": [
+      "com.spindle.sampleruntimemod.SampleRuntimeLifecycle::bootstrap"
+    ],
+    "CONFIGURE": [
+      "com.spindle.sampleruntimemod.SampleRuntimeLifecycle::configure"
+    ],
+    "PRE_SERVER_MAIN": [
+      "com.spindle.sampleruntimemod.SampleRuntimeLifecycle::preServerMain"
+    ]
+  },
+  "permissions": [],
+  "storage": {
+    "config": true,
+    "data": true,
+    "cache": true,
+    "generated": true
+  }
+}
