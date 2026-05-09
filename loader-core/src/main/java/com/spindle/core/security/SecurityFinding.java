@@ -3,7 +3,7 @@ package com.spindle.core.security;
 import java.util.Comparator;
 
 public record SecurityFinding(
-    SecurityRuleId ruleId,
+    RuleId ruleId,
     SecuritySeverity severity,
     String modId,
     SecurityLocation location,

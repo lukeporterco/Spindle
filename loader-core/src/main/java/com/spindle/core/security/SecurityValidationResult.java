@@ -1,5 +1,7 @@
 package com.spindle.core.security;
 
+import com.spindle.core.security.risk.StaticRiskSignal;
+import com.spindle.core.security.risk.StaticRiskSummary;
 import com.spindle.core.security.trust.ArtifactTrustEntry;
 import com.spindle.core.security.trust.ArtifactTrustSummary;
 import java.util.List;
@@ -9,10 +11,17 @@ public record SecurityValidationResult(
     List<String> validatedSurfaces,
     List<ArtifactTrustEntry> artifactTrustEntries,
     ArtifactTrustSummary artifactTrustSummary,
+    StaticRiskSummary staticRiskSummary,
+    List<StaticRiskSignal> staticRiskSignals,
     List<SecurityFinding> findings) {
   public SecurityValidationResult {
     validatedSurfaces = List.copyOf(validatedSurfaces);
     artifactTrustEntries = List.copyOf(artifactTrustEntries);
+    staticRiskSummary = staticRiskSummary == null ? StaticRiskSummary.EMPTY : staticRiskSummary;
+    staticRiskSignals =
+        staticRiskSignals == null
+            ? List.of()
+            : staticRiskSignals.stream().sorted(StaticRiskSignal.ORDER).toList();
     findings = findings.stream().sorted(SecurityFinding.ORDER).toList();
   }
 

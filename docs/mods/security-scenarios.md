@@ -1,6 +1,23 @@
 # Security Scenarios
 
-These examples show how Runtime-1 trust-boundary validation and Security-1 artifact trust behave today.
+These examples show how Runtime-1 trust-boundary validation, artifact trust, and Security-2 static risk signals behave today.
+
+## Clean Lifecycle-Only Mod
+
+A schema `2` mod declares lifecycle handlers, uses only `ModContext` storage, and does not reference the current static risk rules.
+
+Result:
+
+- `spindle.security-report.json` is written
+- `state` is `validated`
+- `riskSignals.summary.signalCount` is `0`
+- standard lifecycle execution proceeds
+
+Interpretation:
+
+- the mod still runs as unrestricted in-process Java code
+- Spindle is not claiming sandboxing or safety
+- the current static scanner did not find warning signals
 
 ## Ada Builds A Local Unsigned Development Jar
 
@@ -71,6 +88,51 @@ Result:
 Important:
 
 - Spindle is not granting or enforcing those permissions yet
+
+## Networked Mod Uses HTTP Intentionally
+
+A mod checks a remote update feed or downloads pack metadata and therefore references `java.net` or `java.net.http`.
+
+Result:
+
+- Spindle writes warning `RISK-NETWORK-001`
+- the detailed `riskSignals.signals[*]` entry points at the class entry and evidence string
+- execution still proceeds if no fatal findings exist
+
+Likely follow-up:
+
+- document which endpoints the mod contacts
+- remove unused networking code if the dependency is accidental
+
+## Utility Mod Uses Reflection For Serialization
+
+A utility mod uses reflection for JSON binding or serialization glue.
+
+Result:
+
+- Spindle writes warning `RISK-REFLECTION-001`
+- the warning does not claim the mod is malicious
+- execution still proceeds if no fatal findings exist
+
+Likely follow-up:
+
+- document why reflection is needed
+- remove unused reflective helpers if they are no longer required
+
+## Mod Bundles A Native Library
+
+A mod ships `.dll`, `.so`, `.dylib`, or `.jnilib` files, or it references `System.load` or `System.loadLibrary`.
+
+Result:
+
+- Spindle writes warning `RISK-NATIVE-001`
+- the report treats this as a stronger warning because native code sits outside the normal Java boundary
+- execution still proceeds if no fatal findings exist
+
+Likely follow-up:
+
+- avoid native bundling when possible
+- document supported platforms and why native code is required
 
 ## Ben Ships A Signed Release
 
@@ -150,3 +212,20 @@ Interpretation:
 - the mod passed Spindle boundary validation
 - the mod is not declared safe
 - the mod is still unrestricted in-process Java code
+
+## Suspicious-Looking Mod Uses `ProcessBuilder` And Bundles A Nested Jar
+
+A mod references `ProcessBuilder` and also ships `libs/payload.jar` inside its jar.
+
+Result:
+
+- Spindle writes warning `RISK-PROCESS-001`
+- Spindle writes warning `RISK-EMBEDDED-JAR-001`
+- the report makes both signals visible in `riskSignals.signals`
+- execution still proceeds if no fatal findings exist
+
+Important:
+
+- multiple warnings can look concerning
+- Spindle still does not claim that these warnings prove malware
+- users and pack builders should review and document why the mod needs those behaviors

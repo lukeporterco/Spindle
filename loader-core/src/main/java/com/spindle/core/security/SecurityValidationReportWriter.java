@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.security.risk.StaticRiskSignal;
 import com.spindle.core.security.trust.ArtifactTrustEntry;
 import java.io.IOException;
 import java.io.Writer;
@@ -79,6 +80,38 @@ public final class SecurityValidationReportWriter {
         "invalidSignatureCount", report.artifactTrustSummary().invalidSignatureCount());
     artifactTrust.add("summary", artifactTrustSummary);
     root.add("artifactTrust", artifactTrust);
+
+    JsonObject riskSignals = new JsonObject();
+    JsonObject riskSignalSummary = new JsonObject();
+    riskSignalSummary.addProperty("signalCount", report.staticRiskSummary().signalCount());
+    riskSignalSummary.addProperty(
+        "modCountWithSignals", report.staticRiskSummary().modCountWithSignals());
+    riskSignals.add("summary", riskSignalSummary);
+    JsonArray signalEntries = new JsonArray();
+    for (StaticRiskSignal signal : report.staticRiskSignals()) {
+      JsonObject signalObject = new JsonObject();
+      signalObject.addProperty("ruleId", signal.ruleId().id());
+      signalObject.addProperty("severity", signal.severity().id());
+      if (signal.modId() != null) {
+        signalObject.addProperty("modId", signal.modId());
+      }
+      if (signal.location() != null) {
+        JsonObject location = new JsonObject();
+        if (signal.location().kind() != null) {
+          location.addProperty("kind", signal.location().kind());
+        }
+        if (signal.location().value() != null) {
+          location.addProperty("value", signal.location().value());
+        }
+        signalObject.add("location", location);
+      }
+      signalObject.addProperty("evidence", signal.evidence());
+      signalObject.addProperty("message", signal.message());
+      signalObject.addProperty("fix", signal.fix());
+      signalEntries.add(signalObject);
+    }
+    riskSignals.add("signals", signalEntries);
+    root.add("riskSignals", riskSignals);
 
     JsonArray findings = new JsonArray();
     for (SecurityFinding finding : report.findings()) {

@@ -273,6 +273,8 @@ class Security0TrustBoundaryValidationTest {
             "fatal|SEC-CLASS-001|alphamod|class|com.spindle.api.ModContext",
             "fatal|SEC-PACKAGE-001|alphamod|package|com.spindle.api",
             "fatal|SEC-PACKAGE-002|betamod|package|net.minecraft",
+            "warning|RISK-CLASSFILE-001|alphamod|artifact|mods/alpha-shadow.jar",
+            "warning|RISK-CLASSFILE-001|betamod|artifact|mods/beta-protected.jar",
             "warning|SEC-PERM-001|betamod|permission|filesystem.write",
             "warning|SEC-TRUST-005|alphamod|artifact|mods/alpha-shadow.jar",
             "warning|SEC-TRUST-005|betamod|artifact|mods/beta-protected.jar",

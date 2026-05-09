@@ -1,6 +1,6 @@
 package com.spindle.core.security;
 
-public enum SecurityRuleId {
+public enum SecurityRuleId implements RuleId {
   SEC_PACKAGE_001("SEC-PACKAGE-001"),
   SEC_PACKAGE_002("SEC-PACKAGE-002"),
   SEC_CLASS_001("SEC-CLASS-001"),
@@ -26,6 +26,7 @@ public enum SecurityRuleId {
     this.id = id;
   }
 
+  @Override
   public String id() {
     return id;
   }

@@ -24,7 +24,7 @@ public record SecurityPolicy(
 
   public static SecurityPolicy standard() {
     return new SecurityPolicy(
-        2,
+        3,
         1,
         1,
         1,
@@ -46,7 +46,8 @@ public record SecurityPolicy(
             "mod-context-paths",
             "package-ownership",
             "permission-declarations",
-            "runtime-policy-fingerprint"));
+            "runtime-policy-fingerprint",
+            "static-risk-signals"));
   }
 
   public boolean isLoaderOwnedPackage(String packageName) {

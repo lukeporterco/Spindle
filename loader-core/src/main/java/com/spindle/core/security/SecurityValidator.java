@@ -8,6 +8,7 @@ import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.runtime.CompiledModpackProfileFingerprint;
 import com.spindle.core.runtime.ProtectedPackageViolation;
 import com.spindle.core.runtime.RuntimeProtectedPackagePolicy;
+import com.spindle.core.security.risk.StaticRiskAnalyzer;
 import com.spindle.core.security.trust.ArtifactTrustEvaluation;
 import com.spindle.core.security.trust.ArtifactTrustEvaluator;
 import java.nio.file.InvalidPathException;
@@ -24,6 +25,7 @@ public final class SecurityValidator {
   private final CompiledModpackProfileFingerprint profileFingerprintCalculator =
       new CompiledModpackProfileFingerprint();
   private final ArtifactTrustEvaluator artifactTrustEvaluator = new ArtifactTrustEvaluator();
+  private final StaticRiskAnalyzer staticRiskAnalyzer = new StaticRiskAnalyzer();
 
   public SecurityValidationResult validate(SecurityValidationContext context)
       throws LoaderException {
@@ -36,6 +38,8 @@ public final class SecurityValidator {
         artifactTrustEvaluator.evaluate(
             context.planningResult().resolvedMods().mods(),
             context.planningResult().lockfileAction());
+    StaticRiskAnalyzer.Analysis staticRiskAnalysis =
+        staticRiskAnalyzer.analyze(context.planningResult().resolvedMods().mods());
 
     validateLoaderOwnedPackages(context.planningResult(), resolvedModsById, findings);
     validateProtectedPackages(context.planningResult(), findings);
@@ -45,12 +49,15 @@ public final class SecurityValidator {
     validateRequestedPermissions(context.compiledProfile(), findings);
     validateRuntimeIdentity(context, findings);
     findings.addAll(artifactTrustEvaluation.findings());
+    findings.addAll(staticRiskAnalysis.findings());
 
     return new SecurityValidationResult(
         securityPolicyFingerprint,
         policy.validatedSurfaces(),
         artifactTrustEvaluation.entries(),
         artifactTrustEvaluation.summary(),
+        staticRiskAnalysis.summary(),
+        staticRiskAnalysis.signals(),
         findings);
   }
 
@@ -75,6 +82,8 @@ public final class SecurityValidator {
         validationResult.validatedSurfaces(),
         validationResult.artifactTrustEntries(),
         validationResult.artifactTrustSummary(),
+        validationResult.staticRiskSummary(),
+        validationResult.staticRiskSignals(),
         validationResult.findings());
   }
 
