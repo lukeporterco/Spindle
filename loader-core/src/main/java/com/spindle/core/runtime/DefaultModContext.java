@@ -2,10 +2,14 @@ package com.spindle.core.runtime;
 
 import com.spindle.api.ModContext;
 import com.spindle.api.config.ModConfig;
+import com.spindle.api.exception.CapabilityDeniedException;
 import com.spindle.api.service.ServiceRegistry;
 import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public record DefaultModContext(
     String modId,
@@ -24,14 +28,15 @@ public record DefaultModContext(
     Path generatedDirectory)
     implements ModContext {
   public DefaultModContext {
-    grantedCapabilities = Set.copyOf(grantedCapabilities);
+    TreeSet<String> sortedCapabilities = new TreeSet<>(grantedCapabilities);
+    grantedCapabilities = Collections.unmodifiableSet(new LinkedHashSet<>(sortedCapabilities));
     config = config == null ? ModConfig.empty() : config;
     services = services == null ? ServiceRegistry.empty() : services;
   }
 
   @Override
   public Path configDirectory() {
-    return requireCapability(
+    return requireStorageCapability(
         "configDirectory()",
         RuntimeCapabilityCatalog.STORAGE_CONFIG,
         "storage.config",
@@ -40,7 +45,7 @@ public record DefaultModContext(
 
   @Override
   public Path dataDirectory() {
-    return requireCapability(
+    return requireStorageCapability(
         "dataDirectory()",
         RuntimeCapabilityCatalog.STORAGE_DATA,
         "storage.data",
@@ -49,7 +54,7 @@ public record DefaultModContext(
 
   @Override
   public Path cacheDirectory() {
-    return requireCapability(
+    return requireStorageCapability(
         "cacheDirectory()",
         RuntimeCapabilityCatalog.STORAGE_CACHE,
         "storage.cache",
@@ -58,19 +63,22 @@ public record DefaultModContext(
 
   @Override
   public Path generatedDirectory() {
-    return requireCapability(
+    return requireStorageCapability(
         "generatedDirectory()",
         RuntimeCapabilityCatalog.STORAGE_GENERATED,
         "storage.generated",
         generatedDirectory);
   }
 
-  private Path requireCapability(
+  private Path requireStorageCapability(
       String methodName, String capability, String storageFlag, Path directory) {
     if (hasCapability(capability)) {
       return directory;
     }
-    throw new IllegalStateException(
+    throw new CapabilityDeniedException(
+        modId,
+        capability,
+        methodName,
         "Mod `"
             + modId
             + "` cannot access "

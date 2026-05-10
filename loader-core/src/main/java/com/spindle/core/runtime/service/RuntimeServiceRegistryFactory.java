@@ -1,5 +1,6 @@
 package com.spindle.core.runtime.service;
 
+import com.spindle.api.exception.ServiceAccessException;
 import com.spindle.api.service.ServiceRegistry;
 import com.spindle.core.classpath.ModClassLoader;
 import java.lang.reflect.InvocationTargetException;
@@ -69,7 +70,9 @@ public final class RuntimeServiceRegistryFactory {
       singletonInstances.put(singletonKey, instance);
     }
     if (!requestedType.isInstance(instance)) {
-      throw new IllegalStateException(
+      throw new ServiceAccessException(
+          consumerModId,
+          binding.id(),
           "Service `"
               + binding.id()
               + "` for consumer mod `"
@@ -98,7 +101,9 @@ public final class RuntimeServiceRegistryFactory {
       Class<?> declaredType = classLoader.loadClass(declaredTypeName);
       Class<?> implementationClass = classLoader.loadClass(implementationClassName);
       if (!declaredType.isAssignableFrom(implementationClass)) {
-        throw new IllegalStateException(
+        throw new ServiceAccessException(
+            consumerModId,
+            serviceId,
             "Service `"
                 + serviceId
                 + "` for consumer mod `"
@@ -113,7 +118,9 @@ public final class RuntimeServiceRegistryFactory {
       }
       return implementationClass.getConstructor().newInstance();
     } catch (ClassNotFoundException exception) {
-      throw new IllegalStateException(
+      throw new ServiceAccessException(
+          consumerModId,
+          serviceId,
           "Service `"
               + serviceId
               + "` for consumer mod `"
@@ -127,7 +134,9 @@ public final class RuntimeServiceRegistryFactory {
               + "`.",
           exception);
     } catch (NoSuchMethodException exception) {
-      throw new IllegalStateException(
+      throw new ServiceAccessException(
+          consumerModId,
+          serviceId,
           "Service `"
               + serviceId
               + "` for consumer mod `"
@@ -140,8 +149,12 @@ public final class RuntimeServiceRegistryFactory {
               + declaredTypeName
               + "`.",
           exception);
+    } catch (ServiceAccessException exception) {
+      throw exception;
     } catch (InstantiationException | IllegalAccessException | InvocationTargetException exception) {
-      throw new IllegalStateException(
+      throw new ServiceAccessException(
+          consumerModId,
+          serviceId,
           "Service `"
               + serviceId
               + "` for consumer mod `"

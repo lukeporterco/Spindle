@@ -145,6 +145,25 @@ class Security0TrustBoundaryValidationTest {
   }
 
   @Test
+  void shadowedLoaderApiMetadataClassProducesSecClass001() throws Exception {
+    createSchemaTwoModJar(
+        tempDirectory.resolve("mods/shadowed-loaderapi.jar"),
+        "shadowloaderapi",
+        Map.of("BOOTSTRAP", List.of(AlphaLifecycle.class.getName() + "::bootstrap")),
+        Map.of(
+            resourceName(AlphaLifecycle.class),
+            readClassBytes(AlphaLifecycle.class),
+            "com/spindle/api/LoaderApi.class",
+            new byte[] {1, 2, 3}),
+        true,
+        List.of());
+
+    execute(true);
+
+    assertTrue(ruleIds(readSecurityReport()).contains(SecurityRuleId.SEC_CLASS_001.id()));
+  }
+
+  @Test
   void invalidLifecycleMethodSignatureIncludesSecLifecycle002() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/invalid-signature.jar"),
@@ -393,7 +412,9 @@ class Security0TrustBoundaryValidationTest {
             profile.ownership(),
             profile.lockfile(),
             profile.permissions(),
+            profile.config(),
             profile.services(),
+            profile.runtimeClosure(),
             profile.lifecycle(),
             new CompiledModpackProfile.Contexts(
                 List.of(

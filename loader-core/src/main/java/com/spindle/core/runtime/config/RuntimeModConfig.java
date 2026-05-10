@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.spindle.api.config.ModConfig;
+import com.spindle.api.exception.ConfigAccessException;
 import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
 import java.io.IOException;
 import java.io.Writer;
@@ -12,9 +13,12 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 final class RuntimeModConfig implements ModConfig {
   private final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
@@ -70,7 +74,7 @@ final class RuntimeModConfig implements ModConfig {
 
   @Override
   public Set<String> keys() {
-    return Set.copyOf(entriesByKey.keySet());
+    return Collections.unmodifiableSet(new LinkedHashSet<>(new TreeSet<>(entriesByKey.keySet())));
   }
 
   @Override
@@ -101,7 +105,9 @@ final class RuntimeModConfig implements ModConfig {
   private String requireTypedKey(String key, String expectedType) {
     RuntimeConfigEntryPlan entry = requireDeclaredKey(key);
     if (!expectedType.equals(entry.type())) {
-      throw new IllegalStateException(
+      throw new ConfigAccessException(
+          modId,
+          key,
           "Mod `"
               + modId
               + "` declared config key `"
@@ -119,7 +125,9 @@ final class RuntimeModConfig implements ModConfig {
     requireWritable(key);
     RuntimeConfigEntryPlan entry = requireDeclaredKey(key);
     if (!expectedType.equals(entry.type())) {
-      throw new IllegalStateException(
+      throw new ConfigAccessException(
+          modId,
+          key,
           "Mod `"
               + modId
               + "` declared config key `"
@@ -140,7 +148,9 @@ final class RuntimeModConfig implements ModConfig {
     if (entry != null) {
       return entry;
     }
-    throw new IllegalStateException(
+    throw new ConfigAccessException(
+        modId,
+        key,
         "Mod `"
             + modId
             + "` cannot access config key `"
@@ -151,7 +161,9 @@ final class RuntimeModConfig implements ModConfig {
   private void requireWritable(String key) {
     if (writeGranted) {
       if (!runtimeWrites) {
-        throw new IllegalStateException(
+        throw new ConfigAccessException(
+            modId,
+            key,
             "Mod `"
                 + modId
                 + "` cannot write config key `"
@@ -160,7 +172,9 @@ final class RuntimeModConfig implements ModConfig {
       }
       return;
     }
-    throw new IllegalStateException(
+    throw new ConfigAccessException(
+        modId,
+        key,
         "Mod `"
             + modId
             + "` cannot write config key `"
@@ -174,14 +188,19 @@ final class RuntimeModConfig implements ModConfig {
     switch (entry.type()) {
       case "boolean" -> {
         if (!"true".equals(value) && !"false".equals(value)) {
-          throw new IllegalStateException("Config key `" + entry.key() + "` requires a boolean value.");
+          throw new ConfigAccessException(
+              modId,
+              entry.key(),
+              "Config key `" + entry.key() + "` requires a boolean value.");
         }
       }
       case "integer" -> validateNumber(entry, new BigDecimal(value), true);
       case "number" -> validateNumber(entry, new BigDecimal(value), false);
       case "string" -> {
         if (!entry.allowed().isEmpty() && !entry.allowed().contains(value)) {
-          throw new IllegalStateException(
+          throw new ConfigAccessException(
+              modId,
+              entry.key(),
               "Config key `"
                   + entry.key()
                   + "` must be one of "
@@ -194,16 +213,24 @@ final class RuntimeModConfig implements ModConfig {
   }
 
   private void validateNumber(RuntimeConfigEntryPlan entry, BigDecimal value, boolean integer) {
-    if (integer) {
-      value.toBigIntegerExact();
+    try {
+      if (integer) {
+        value.toBigIntegerExact();
+      }
+    } catch (ArithmeticException exception) {
+      throw new ConfigAccessException(
+          modId,
+          entry.key(),
+          "Config key `" + entry.key() + "` requires an integer value.",
+          exception);
     }
     if (entry.min() != null && value.compareTo(new BigDecimal(entry.min())) < 0) {
-      throw new IllegalStateException(
-          "Config key `" + entry.key() + "` must be >= " + entry.min() + ".");
+      throw new ConfigAccessException(
+          modId, entry.key(), "Config key `" + entry.key() + "` must be >= " + entry.min() + ".");
     }
     if (entry.max() != null && value.compareTo(new BigDecimal(entry.max())) > 0) {
-      throw new IllegalStateException(
-          "Config key `" + entry.key() + "` must be <= " + entry.max() + ".");
+      throw new ConfigAccessException(
+          modId, entry.key(), "Config key `" + entry.key() + "` must be <= " + entry.max() + ".");
     }
   }
 
@@ -221,7 +248,9 @@ final class RuntimeModConfig implements ModConfig {
         gson.toJson(root, writer);
       }
     } catch (IOException exception) {
-      throw new IllegalStateException(
+      throw new ConfigAccessException(
+          modId,
+          "<persist>",
           "Failed to persist config file `" + configPath.toString().replace('\\', '/') + "`.",
           exception);
     }

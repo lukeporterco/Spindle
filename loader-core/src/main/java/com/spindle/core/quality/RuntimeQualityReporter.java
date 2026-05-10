@@ -246,13 +246,13 @@ public final class RuntimeQualityReporter {
     return switch (grant.state()) {
       case "denied" -> deniedCapabilityMessage(requestedCapability);
       case "unavailable" ->
-          "Runtime-3 marks requested capability `"
+          "Runtime-5 marks requested capability `"
               + requestedCapability
               + "` as unavailable; the corresponding Spindle API surface is not implemented yet.";
       case "unknown" ->
-          "Runtime-3 does not recognize requested capability `" + requestedCapability + "`.";
+          "Runtime-5 does not recognize requested capability `" + requestedCapability + "`.";
       case "visibility-only" ->
-          "Runtime-3 records requested capability `"
+          "Runtime-5 records requested capability `"
               + requestedCapability
               + "` as visibility-only; runtime Java behavior remains in-process unrestricted Java.";
       default ->
@@ -362,19 +362,19 @@ public final class RuntimeQualityReporter {
   private String deniedCapabilityMessage(String requestedCapability) {
     return switch (requestedCapability) {
       case "service.provide" ->
-          "Runtime-3 denied requested capability `service.provide` because `services.provides`"
+          "Runtime-5 denied requested capability `service.provide` because `services.provides`"
               + " does not declare any service providers in loader.mod.json.";
       case "service.consume" ->
-          "Runtime-3 denied requested capability `service.consume` because `services.consumes`"
+          "Runtime-5 denied requested capability `service.consume` because `services.consumes`"
               + " does not declare any service consumers in loader.mod.json.";
       case "config.read" ->
-          "Runtime-4 denied requested capability `config.read` because config.entries are not declared"
+          "Runtime-5 denied requested capability `config.read` because config.entries are not declared"
               + " with storage.config enabled in loader.mod.json.";
       case "config.write" ->
-          "Runtime-4 denied requested capability `config.write` because config.entries, storage.config,"
+          "Runtime-5 denied requested capability `config.write` because config.entries, storage.config,"
               + " and config.runtimeWrites are not all enabled in loader.mod.json.";
       default ->
-          "Runtime-3 denied requested capability `"
+          "Runtime-5 denied requested capability `"
               + requestedCapability
               + "` because the matching storage flag is not enabled in loader.mod.json.";
     };

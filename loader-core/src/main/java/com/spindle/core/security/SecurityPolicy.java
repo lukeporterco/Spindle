@@ -24,18 +24,23 @@ public record SecurityPolicy(
 
   public static SecurityPolicy standard() {
     return new SecurityPolicy(
-        6,
+        8,
         1,
         1,
-        4,
+        5,
         1,
         1,
         1,
         List.of("com.spindle.api", "com.spindle.api.internal", "com.spindle.core"),
         List.of(
+            "com.spindle.api.LoaderApi",
             "com.spindle.api.ModContext",
             "com.spindle.api.ModInitializer",
             "com.spindle.api.config.ModConfig",
+            "com.spindle.api.exception.CapabilityDeniedException",
+            "com.spindle.api.exception.ConfigAccessException",
+            "com.spindle.api.exception.ServiceAccessException",
+            "com.spindle.api.exception.SpindleApiException",
             "com.spindle.api.lifecycle.LifecyclePhase",
             "com.spindle.api.service.ServiceRegistry"),
         List.of(
@@ -45,11 +50,15 @@ public record SecurityPolicy(
             "cache-profile-validation",
             "class-ownership",
             "config-schema-capability-grants",
+            "loader-api-0-public-boundary",
+            "loader-api-boundary-inventory",
             "lifecycle-declarations",
             "lifecycle-signatures",
             "mod-context-paths",
             "package-ownership",
             "permission-declarations",
+            "resource-capabilities-explicitly-unavailable",
+            "runtime-contract-closure",
             "runtime-policy-fingerprint",
             "service-registry-capability-grants",
             "static-risk-signals"));

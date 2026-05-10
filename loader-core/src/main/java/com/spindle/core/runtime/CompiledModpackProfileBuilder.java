@@ -9,6 +9,7 @@ import com.spindle.core.quality.RuntimeQualityReport;
 import com.spindle.core.report.DisplayPaths;
 import com.spindle.core.resolve.ResolvedModSet;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlanner;
+import com.spindle.core.runtime.closure.RuntimeClosureContract;
 import com.spindle.core.runtime.config.RuntimeConfigContract;
 import com.spindle.core.runtime.service.RuntimeServiceContract;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ public final class CompiledModpackProfileBuilder {
       LifecyclePlan lifecyclePlan,
       RuntimeConfigContract configContract,
       RuntimeServiceContract services,
+      RuntimeClosureContract runtimeClosure,
       RuntimeQualityReport qualityReport)
       throws LoaderException {
     List<CompiledModpackProfile.Mod> mods =
@@ -112,6 +114,7 @@ public final class CompiledModpackProfileBuilder {
             runtimeCapabilityPlanner.plan(planningResult.resolvedMods()),
             configContract,
             services,
+            runtimeClosure,
             new CompiledModpackProfile.Lifecycle(
                 lifecyclePlan.phaseOrder(), lifecycleHandlers(lifecyclePlan)),
             new CompiledModpackProfile.Contexts(contextPlans),

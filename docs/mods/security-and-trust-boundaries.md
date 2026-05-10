@@ -38,13 +38,14 @@ Spindle does not currently claim:
 Runtime-2 capability grants control Spindle-owned APIs only. They do not sandbox arbitrary Java.
 Runtime-3 service registry access also controls Spindle-owned APIs only. It does not sandbox arbitrary Java.
 Runtime-4 config access also controls Spindle-owned APIs only. It does not sandbox arbitrary Java.
+Runtime-5 runtime closure also records Spindle-owned contract boundaries only. It does not sandbox arbitrary Java.
 
 Requested capabilities can now produce four practical outcomes:
 
 - granted for supported Spindle API surfaces such as enabled `ModContext` storage
-- denied for supported Runtime-4 config or service surfaces whose metadata contract is incomplete
+- denied for supported Runtime-5 config or service surfaces whose metadata contract is incomplete
 - unavailable for planned but unimplemented Spindle surfaces
-- unknown for strings outside the Runtime-3 catalog
+- unknown for strings outside the Runtime-5 catalog
 - visibility-only for broad Java behavior disclosures that Spindle does not enforce
 
 Runtime-4 adds deterministic config planning:
@@ -114,8 +115,8 @@ Warnings:
 - lockfile-hash identity without publisher identity
 - provenance not present
 - cache rebuilds after cached-profile validation failure
-- requested capabilities that Runtime-4 does not grant
-- invalid Runtime-4 config files or missing `storage.config` for declared entries
+- requested capabilities that Runtime-5 does not grant
+- invalid Runtime-5 config files or missing `storage.config` for declared entries
 - duplicate service providers, missing implementations, provider ownership violations, required unbound consumers, or service type mismatches
 - static risk signals for suspicious APIs, native files, service-provider files, nested jars, or malformed class entries
 

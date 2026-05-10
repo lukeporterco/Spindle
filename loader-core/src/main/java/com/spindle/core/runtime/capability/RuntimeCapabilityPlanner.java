@@ -50,7 +50,7 @@ public final class RuntimeCapabilityPlanner {
                 requestedCapability,
                 RuntimeCapabilityState.UNAVAILABLE,
                 List.of("metadata.permissions"),
-                "Runtime-3 recognizes "
+                "Runtime-5 recognizes "
                     + requestedCapability
                     + " but the corresponding Spindle API surface is not implemented yet.",
                 "No Spindle API surface is granted in this runtime version.",
@@ -64,7 +64,7 @@ public final class RuntimeCapabilityPlanner {
                 requestedCapability,
                 RuntimeCapabilityState.VISIBILITY_ONLY,
                 List.of("metadata.permissions"),
-                "Runtime-3 records "
+                "Runtime-5 records "
                     + requestedCapability
                     + " for review but does not enforce this broad Java behavior.",
                 "No Java sandbox or process restriction is applied.",
@@ -77,9 +77,9 @@ public final class RuntimeCapabilityPlanner {
               requestedCapability,
               RuntimeCapabilityState.UNKNOWN,
               List.of("metadata.permissions"),
-              "Runtime-3 does not recognize requested capability `" + requestedCapability + "`.",
+              "Runtime-5 does not recognize requested capability `" + requestedCapability + "`.",
               "No Spindle API surface is granted for unknown capabilities.",
-              "Rename the capability to a Runtime-3 catalog entry or keep it as documentation only."));
+              "Rename the capability to a Runtime-5 catalog entry or keep it as documentation only."));
     }
     List<RuntimeCapabilityGrant> compiledGrants =
         grants.values().stream().map(GrantBuilder::build).toList();
@@ -123,7 +123,7 @@ public final class RuntimeCapabilityPlanner {
             capability,
             RuntimeCapabilityState.DENIED,
             List.of("metadata.permissions"),
-            "Runtime-3 recognizes "
+            "Runtime-5 recognizes "
                 + capability
                 + " but "
                 + RuntimeCapabilityCatalog.storageFlag(capability)
@@ -185,9 +185,9 @@ public final class RuntimeCapabilityPlanner {
             List.of("metadata.permissions"),
             switch (capability) {
               case RuntimeCapabilityCatalog.CONFIG_READ ->
-                  "Runtime-4 recognizes config.read but the mod does not declare readable config entries with storage.config enabled.";
+                  "Runtime-5 recognizes config.read but the mod does not declare readable config entries with storage.config enabled.";
               case RuntimeCapabilityCatalog.CONFIG_WRITE ->
-                  "Runtime-4 recognizes config.write but the mod does not declare writable config entries with storage.config enabled.";
+                  "Runtime-5 recognizes config.write but the mod does not declare writable config entries with storage.config enabled.";
               default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
             },
             switch (capability) {
@@ -224,7 +224,7 @@ public final class RuntimeCapabilityPlanner {
             capability,
             RuntimeCapabilityState.DENIED,
             List.of("metadata.permissions"),
-            "Runtime-3 recognizes "
+            "Runtime-5 recognizes "
                 + capability
                 + " but matching service declarations are missing in loader.mod.json.",
             switch (capability) {
@@ -307,7 +307,7 @@ public final class RuntimeCapabilityPlanner {
           case RuntimeCapabilityCatalog.CONFIG_READ ->
               "Spindle ModContext config() access is limited to declared config entries only.";
           case RuntimeCapabilityCatalog.CONFIG_WRITE ->
-              "Spindle persists only declared Runtime-4 config entries to the owned config file.";
+              "Spindle persists only declared Runtime-5 config entries to the owned config file.";
           default -> throw new IllegalArgumentException("Unsupported config capability " + capability);
         },
         null);

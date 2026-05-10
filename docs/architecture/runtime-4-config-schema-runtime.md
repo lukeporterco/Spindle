@@ -73,3 +73,5 @@ Runtime-4 does not change runtime honesty:
 
 - execution remains `in-process-unrestricted-java`
 - arbitrary runtime Java is still not sandboxed
+
+Runtime-4 introduced the config contract, but the current compiled profile schema is now schema `6` because Runtime-5 adds the `runtimeClosure` section while preserving the Runtime-4 config semantics.

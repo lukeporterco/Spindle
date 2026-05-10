@@ -1,5 +1,6 @@
 package com.spindle.core.runtime.service;
 
+import com.spindle.api.exception.ServiceAccessException;
 import com.spindle.api.service.ServiceRegistry;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -39,7 +40,7 @@ public final class RuntimeServiceRegistry implements ServiceRegistry {
     if (RuntimeServiceStates.BOUND.equals(consumer.state())) {
       return providerResolver.resolve(modId, binding(serviceId), type);
     }
-    throw new IllegalStateException(unavailableMessage(serviceId, consumer));
+    throw new ServiceAccessException(modId, serviceId, unavailableMessage(serviceId, consumer));
   }
 
   @Override
@@ -51,7 +52,7 @@ public final class RuntimeServiceRegistry implements ServiceRegistry {
     if (RuntimeServiceStates.OPTIONAL_UNBOUND.equals(consumer.state())) {
       return Optional.empty();
     }
-    throw new IllegalStateException(unavailableMessage(serviceId, consumer));
+    throw new ServiceAccessException(modId, serviceId, unavailableMessage(serviceId, consumer));
   }
 
   @Override
@@ -70,7 +71,9 @@ public final class RuntimeServiceRegistry implements ServiceRegistry {
     if (consumer != null) {
       return consumer;
     }
-    throw new IllegalStateException(
+    throw new ServiceAccessException(
+        modId,
+        serviceId,
         "Mod `"
             + modId
             + "` cannot access service `"
@@ -81,7 +84,9 @@ public final class RuntimeServiceRegistry implements ServiceRegistry {
   private RuntimeServiceBinding binding(String serviceId) {
     RuntimeServiceBinding binding = bindingsById.get(serviceId);
     if (binding == null) {
-      throw new IllegalStateException(
+      throw new ServiceAccessException(
+          modId,
+          serviceId,
           "Missing runtime service binding for mod `"
               + modId
               + "` and service `"

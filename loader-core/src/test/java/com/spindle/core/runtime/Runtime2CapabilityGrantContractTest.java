@@ -3,12 +3,13 @@ package com.spindle.core.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.spindle.api.exception.CapabilityDeniedException;
 import com.spindle.core.app.LoaderApplication;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
@@ -54,8 +55,8 @@ class Runtime2CapabilityGrantContractTest {
 
     JsonObject profile = readCompiledProfile();
     JsonObject permissions = profile.getAsJsonObject("permissions");
-    assertEquals(5, profile.get("schemaVersion").getAsInt());
-    assertEquals(1, permissions.get("catalogVersion").getAsInt());
+    assertEquals(6, profile.get("schemaVersion").getAsInt());
+    assertEquals(2, permissions.get("catalogVersion").getAsInt());
     assertEquals("spindle-api-only", permissions.get("scope").getAsString());
     assertEquals(
         "in-process-unrestricted-java",
@@ -188,7 +189,11 @@ class Runtime2CapabilityGrantContractTest {
 
     assertTrue(exception.getMessage().contains("Lifecycle handler failed for mod `disabledstorage`"));
     LoaderException lifecycleFailure = assertInstanceOf(LoaderException.class, exception.getCause());
-    Throwable cause = assertInstanceOf(IllegalStateException.class, lifecycleFailure.getCause());
+    CapabilityDeniedException cause =
+        assertInstanceOf(CapabilityDeniedException.class, lifecycleFailure.getCause());
+    assertEquals("disabledstorage", cause.modId());
+    assertEquals("storage.data", cause.capability());
+    assertEquals("dataDirectory()", cause.methodName());
     assertTrue(cause.getMessage().contains("dataDirectory()"));
     assertTrue(cause.getMessage().contains("storage.data"));
     assertTrue(cause.getMessage().contains("Enable storage.data in loader.mod.json."));
@@ -196,7 +201,7 @@ class Runtime2CapabilityGrantContractTest {
   }
 
   @Test
-  void schemaThreeCacheInvalidatesCleanlyAgainstSchemaFiveReader() throws Exception {
+  void schemaThreeCacheInvalidatesCleanlyAgainstSchemaSixReader() throws Exception {
     createSchemaTwoModJar(
         tempDirectory.resolve("mods/cache-schema.jar"),
         "cachemod",

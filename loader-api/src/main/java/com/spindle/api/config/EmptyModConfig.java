@@ -1,5 +1,6 @@
 package com.spindle.api.config;
 
+import com.spindle.api.exception.ConfigAccessException;
 import java.util.Set;
 
 enum EmptyModConfig implements ModConfig {
@@ -60,10 +61,12 @@ enum EmptyModConfig implements ModConfig {
     throw missingConfig(key);
   }
 
-  private IllegalStateException missingConfig(String key) {
-    return new IllegalStateException(
+  private ConfigAccessException missingConfig(String key) {
+    return new ConfigAccessException(
+        "unavailable",
+        key,
         "Mod config is unavailable for key `"
             + key
-            + "` because no Runtime-4 config contract was provided.");
+            + "` because this context does not provide a runtime config view.");
   }
 }

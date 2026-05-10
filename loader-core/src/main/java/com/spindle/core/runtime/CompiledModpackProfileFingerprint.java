@@ -7,6 +7,9 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.closure.RuntimeClosureContract;
+import com.spindle.core.runtime.closure.RuntimeClosureGate;
+import com.spindle.core.runtime.closure.RuntimeClosureSurface;
 import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
 import com.spindle.core.runtime.config.RuntimeConfigModPlan;
 import com.spindle.core.runtime.config.RuntimeConfigSummary;
@@ -151,6 +154,78 @@ public final class CompiledModpackProfileFingerprint {
     }
     updateServiceSummary(digest, "services.summary", profile.services().summary());
 
+    RuntimeClosureContract runtimeClosure = profile.runtimeClosure();
+    update(
+        digest, "runtimeClosure.contractVersion", Integer.toString(runtimeClosure.contractVersion()));
+    update(digest, "runtimeClosure.arcStatus", runtimeClosure.arcStatus());
+    update(digest, "runtimeClosure.scope", runtimeClosure.scope());
+    update(digest, "runtimeClosure.targetModel", runtimeClosure.targetModel());
+    update(
+        digest,
+        "runtimeClosure.runtimeExecutionIsolationMode",
+        runtimeClosure.runtimeExecutionIsolationMode());
+    update(digest, "runtimeClosure.sandboxed", Boolean.toString(runtimeClosure.sandboxed()));
+    update(digest, "runtimeClosure.sandboxClaim", runtimeClosure.sandboxClaim());
+    for (RuntimeClosureSurface surface : runtimeClosure.surfaces()) {
+      update(digest, "runtimeClosure.surface.id", surface.id());
+      update(digest, "runtimeClosure.surface.state", surface.state());
+      update(digest, "runtimeClosure.surface.owner", surface.owner());
+      update(digest, "runtimeClosure.surface.capability", surface.capability());
+      update(digest, "runtimeClosure.surface.apiClass", surface.apiClass());
+      update(digest, "runtimeClosure.surface.profileSection", surface.profileSection());
+      update(digest, "runtimeClosure.surface.note", surface.note());
+    }
+    for (RuntimeClosureGate gate : runtimeClosure.gates()) {
+      update(digest, "runtimeClosure.gate.order", Integer.toString(gate.order()));
+      update(digest, "runtimeClosure.gate.id", gate.id());
+      update(digest, "runtimeClosure.gate.phase", gate.phase());
+      update(
+          digest,
+          "runtimeClosure.gate.beforeClassloading",
+          Boolean.toString(gate.beforeClassloading()));
+      update(digest, "runtimeClosure.gate.fatalCondition", gate.fatalCondition());
+      update(digest, "runtimeClosure.gate.note", gate.note());
+    }
+    update(
+        digest,
+        "runtimeClosure.loaderApiBoundary.status",
+        runtimeClosure.loaderApiBoundary().status());
+    update(
+        digest,
+        "runtimeClosure.loaderApiBoundary.nextArc",
+        runtimeClosure.loaderApiBoundary().nextArc());
+    for (String candidate : runtimeClosure.loaderApiBoundary().stableCandidates()) {
+      update(digest, "runtimeClosure.loaderApiBoundary.stableCandidate", candidate);
+    }
+    for (String deferred : runtimeClosure.loaderApiBoundary().deferredReview()) {
+      update(digest, "runtimeClosure.loaderApiBoundary.deferredReview", deferred);
+    }
+    for (String excluded : runtimeClosure.loaderApiBoundary().internalPackagesExcluded()) {
+      update(digest, "runtimeClosure.loaderApiBoundary.internalPackagesExcluded", excluded);
+    }
+    update(
+        digest,
+        "runtimeClosure.summary.implemented",
+        Integer.toString(runtimeClosure.summary().implemented()));
+    update(
+        digest,
+        "runtimeClosure.summary.unavailable",
+        Integer.toString(runtimeClosure.summary().unavailable()));
+    update(
+        digest,
+        "runtimeClosure.summary.visibilityOnly",
+        Integer.toString(runtimeClosure.summary().visibilityOnly()));
+    update(
+        digest, "runtimeClosure.summary.gates", Integer.toString(runtimeClosure.summary().gates()));
+    update(
+        digest,
+        "runtimeClosure.summary.stableApiCandidates",
+        Integer.toString(runtimeClosure.summary().stableApiCandidates()));
+    update(
+        digest,
+        "runtimeClosure.summary.deferredApiReview",
+        Integer.toString(runtimeClosure.summary().deferredApiReview()));
+
     for (String phase : profile.lifecycle().phaseOrder()) {
       update(digest, "lifecycle.phaseOrder", phase);
     }
@@ -235,6 +310,10 @@ public final class CompiledModpackProfileFingerprint {
         digest,
         "runtimeConfigContractVersion",
         Integer.toString(com.spindle.core.runtime.config.RuntimeConfigContract.CONTRACT_VERSION));
+    update(
+        digest,
+        "runtimeClosureContractVersion",
+        Integer.toString(com.spindle.core.runtime.closure.RuntimeClosureContract.CONTRACT_VERSION));
 
     for (var mod : planningResult.resolvedMods().mods()) {
       update(digest, "mod.id", mod.id());

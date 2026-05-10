@@ -153,6 +153,17 @@ public final class RuntimeLifecycleFixtures {
     }
   }
 
+  public static final class ConfigKeysLifecycle {
+    public static void bootstrap(ModContext context) throws IOException {
+      Files.writeString(
+          context.generatedDirectory().resolve("config-keys.marker"),
+          String.join("|", context.config().keys()) + System.lineSeparator(),
+          StandardCharsets.UTF_8,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+    }
+  }
+
   public static final class ConfigWriterLifecycle {
     public static void bootstrap(ModContext context) {
       context.config().setString("mode", "fast");

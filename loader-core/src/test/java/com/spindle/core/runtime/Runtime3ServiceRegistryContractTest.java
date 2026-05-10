@@ -2,12 +2,14 @@ package com.spindle.core.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.spindle.api.exception.ServiceAccessException;
 import com.spindle.core.app.LoaderApplication;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
@@ -59,7 +61,7 @@ class Runtime3ServiceRegistryContractTest {
     execute(true);
 
     JsonObject profile = readCompiledProfile();
-    assertEquals(5, profile.get("schemaVersion").getAsInt());
+    assertEquals(6, profile.get("schemaVersion").getAsInt());
 
     JsonObject services = profile.getAsJsonObject("services");
     assertEquals(1, services.get("contractVersion").getAsInt());
@@ -314,6 +316,7 @@ class Runtime3ServiceRegistryContractTest {
     LoaderException exception = assertThrows(LoaderException.class, () -> execute(false));
     assertTrue(exception.getMessage().contains("Lifecycle handler failed for mod `consumer`"));
     assertTrue(exception.getCause() instanceof LoaderException);
+    assertInstanceOf(ServiceAccessException.class, exception.getCause().getCause());
     assertTrue(
         exception
             .getCause()

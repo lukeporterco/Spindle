@@ -1,6 +1,7 @@
 package com.spindle.core.runtime;
 
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
+import com.spindle.core.runtime.closure.RuntimeClosureContract;
 import com.spindle.core.runtime.config.RuntimeConfigContract;
 import com.spindle.core.runtime.service.RuntimeServiceContract;
 import java.util.List;
@@ -23,13 +24,61 @@ public record CompiledModpackProfile(
     RuntimeCapabilityPlan permissions,
     RuntimeConfigContract config,
     RuntimeServiceContract services,
+    RuntimeClosureContract runtimeClosure,
     Lifecycle lifecycle,
     Contexts contexts,
     PackagePolicy packagePolicy,
     Quality quality) {
-  public static final int SCHEMA_VERSION = 5;
+  public static final int SCHEMA_VERSION = 6;
   public static final String PROFILE_KIND = "compiled-modpack";
   public static final String LOADER_ID = "spindle";
+
+  public CompiledModpackProfile(
+      int schemaVersion,
+      String profileKind,
+      String fingerprint,
+      String inputFingerprint,
+      String runtimePolicyFingerprint,
+      Cache cache,
+      Loader loader,
+      Game game,
+      Metadata metadata,
+      List<Mod> mods,
+      List<String> resolvedOrder,
+      List<ClasspathEntry> classpath,
+      Ownership ownership,
+      Lockfile lockfile,
+      RuntimeCapabilityPlan permissions,
+      RuntimeServiceContract services,
+      RuntimeClosureContract runtimeClosure,
+      Lifecycle lifecycle,
+      Contexts contexts,
+      PackagePolicy packagePolicy,
+      Quality quality) {
+    this(
+        schemaVersion,
+        profileKind,
+        fingerprint,
+        inputFingerprint,
+        runtimePolicyFingerprint,
+        cache,
+        loader,
+        game,
+        metadata,
+        mods,
+        resolvedOrder,
+        classpath,
+        ownership,
+        lockfile,
+        permissions,
+        RuntimeConfigContract.empty(),
+        services,
+        runtimeClosure,
+        lifecycle,
+        contexts,
+        packagePolicy,
+        quality);
+  }
 
   public CompiledModpackProfile(
       int schemaVersion,
@@ -70,6 +119,54 @@ public record CompiledModpackProfile(
         permissions,
         RuntimeConfigContract.empty(),
         services,
+        RuntimeClosureContract.empty(),
+        lifecycle,
+        contexts,
+        packagePolicy,
+        quality);
+  }
+
+  public CompiledModpackProfile(
+      int schemaVersion,
+      String profileKind,
+      String fingerprint,
+      String inputFingerprint,
+      String runtimePolicyFingerprint,
+      Cache cache,
+      Loader loader,
+      Game game,
+      Metadata metadata,
+      List<Mod> mods,
+      List<String> resolvedOrder,
+      List<ClasspathEntry> classpath,
+      Ownership ownership,
+      Lockfile lockfile,
+      RuntimeCapabilityPlan permissions,
+      RuntimeConfigContract config,
+      RuntimeServiceContract services,
+      Lifecycle lifecycle,
+      Contexts contexts,
+      PackagePolicy packagePolicy,
+      Quality quality) {
+    this(
+        schemaVersion,
+        profileKind,
+        fingerprint,
+        inputFingerprint,
+        runtimePolicyFingerprint,
+        cache,
+        loader,
+        game,
+        metadata,
+        mods,
+        resolvedOrder,
+        classpath,
+        ownership,
+        lockfile,
+        permissions,
+        config,
+        services,
+        RuntimeClosureContract.empty(),
         lifecycle,
         contexts,
         packagePolicy,
@@ -83,6 +180,7 @@ public record CompiledModpackProfile(
     classpath = List.copyOf(classpath);
     config = config == null ? RuntimeConfigContract.empty() : config;
     services = services == null ? RuntimeServiceContract.empty() : services;
+    runtimeClosure = runtimeClosure == null ? RuntimeClosureContract.empty() : runtimeClosure;
   }
 
   public CompiledModpackProfile withFingerprint(String nextFingerprint) {
@@ -104,6 +202,7 @@ public record CompiledModpackProfile(
         permissions,
         config,
         services,
+        runtimeClosure,
         lifecycle,
         contexts,
         packagePolicy,
@@ -129,6 +228,7 @@ public record CompiledModpackProfile(
         permissions,
         config,
         services,
+        runtimeClosure,
         lifecycle,
         contexts,
         packagePolicy,
@@ -154,6 +254,7 @@ public record CompiledModpackProfile(
         permissions,
         config,
         services,
+        runtimeClosure,
         lifecycle,
         contexts,
         packagePolicy,

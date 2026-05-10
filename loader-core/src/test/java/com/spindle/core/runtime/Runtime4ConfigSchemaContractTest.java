@@ -2,17 +2,20 @@ package com.spindle.core.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.spindle.api.exception.ConfigAccessException;
 import com.spindle.core.app.LoaderApplication;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.security.SecurityRuleId;
+import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.ConfigKeysLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.ConfigReaderLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.ConfigWriterLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.SecurityReportAwareLifecycle;
@@ -56,7 +59,7 @@ class Runtime4ConfigSchemaContractTest {
     execute(true);
 
     JsonObject profile = readCompiledProfile();
-    assertEquals(5, profile.get("schemaVersion").getAsInt());
+    assertEquals(6, profile.get("schemaVersion").getAsInt());
     JsonObject config = profile.getAsJsonObject("config");
     assertEquals(1, config.get("contractVersion").getAsInt());
     assertEquals("defaulted", config.getAsJsonArray("mods").get(0).getAsJsonObject().get("state").getAsString());
@@ -90,6 +93,35 @@ class Runtime4ConfigSchemaContractTest {
     assertEquals(
         "true|8|1.0|balanced",
         Files.readString(tempDirectory.resolve("generated/configreader/config.marker"), StandardCharsets.UTF_8).trim());
+  }
+
+  @Test
+  void runtimeConfigKeysAreDeterministic() throws Exception {
+    createModJar(
+        tempDirectory.resolve("mods/configkeys.jar"),
+        "configkeys",
+        Map.of("BOOTSTRAP", List.of(ConfigKeysLifecycle.class.getName() + "::bootstrap")),
+        List.of("config.read", "storage.config", "storage.generated"),
+        true,
+        false,
+        false,
+        true,
+        false,
+        List.of(
+            configEntry("mode", "string", "\"balanced\"", null, null, "[\"balanced\", \"fast\"]"),
+            configEntry("enabled", "boolean", "true", null, null, null),
+            configEntry("scale", "number", "1.0", "0.1", "10.0", null),
+            configEntry("maxcount", "integer", "8", "0", "64", null)),
+        Map.of(resourceName(ConfigKeysLifecycle.class), readClassBytes(ConfigKeysLifecycle.class)));
+
+    execute(false);
+
+    assertEquals(
+        "enabled|maxcount|mode|scale",
+        Files.readString(
+                tempDirectory.resolve("generated/configkeys/config-keys.marker"),
+                StandardCharsets.UTF_8)
+            .trim());
   }
 
   @Test
@@ -260,6 +292,7 @@ class Runtime4ConfigSchemaContractTest {
 
     LoaderException exception = assertThrows(LoaderException.class, () -> execute(false));
     assertTrue(exception.getMessage().contains("Lifecycle handler failed for mod `undeclared`"));
+    assertInstanceOf(ConfigAccessException.class, exception.getCause().getCause());
     assertTrue(
         exception
             .getCause()
@@ -269,7 +302,7 @@ class Runtime4ConfigSchemaContractTest {
   }
 
   @Test
-  void schemaFourCacheInvalidatesCleanlyAgainstSchemaFiveReader() throws Exception {
+  void schemaFourCacheInvalidatesCleanlyAgainstSchemaSixReader() throws Exception {
     createModJar(
         tempDirectory.resolve("mods/cachemod.jar"),
         "cachemod",

@@ -9,6 +9,11 @@ import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.closure.RuntimeClosureContract;
+import com.spindle.core.runtime.closure.RuntimeClosureGate;
+import com.spindle.core.runtime.closure.RuntimeClosureLoaderApiBoundary;
+import com.spindle.core.runtime.closure.RuntimeClosureSummary;
+import com.spindle.core.runtime.closure.RuntimeClosureSurface;
 import com.spindle.core.runtime.config.RuntimeConfigContract;
 import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
 import com.spindle.core.runtime.config.RuntimeConfigModPlan;
@@ -213,6 +218,8 @@ public final class CompiledModpackProfileWriter {
     services.add("summary", serviceSummary(profile.services().summary()));
     root.add("services", services);
 
+    root.add("runtimeClosure", runtimeClosure(profile.runtimeClosure()));
+
     JsonObject lifecycle = new JsonObject();
     JsonArray phaseOrder = new JsonArray();
     for (String phase : profile.lifecycle().phaseOrder()) {
@@ -363,6 +370,96 @@ public final class CompiledModpackProfileWriter {
     config.add("mods", mods);
     config.add("summary", configSummary(contract.summary()));
     return config;
+  }
+
+  private JsonObject runtimeClosure(RuntimeClosureContract contract) {
+    JsonObject runtimeClosure = new JsonObject();
+    runtimeClosure.addProperty("contractVersion", contract.contractVersion());
+    runtimeClosure.addProperty("arcStatus", contract.arcStatus());
+    runtimeClosure.addProperty("scope", contract.scope());
+    runtimeClosure.addProperty("targetModel", contract.targetModel());
+    runtimeClosure.addProperty(
+        "runtimeExecutionIsolationMode", contract.runtimeExecutionIsolationMode());
+    runtimeClosure.addProperty("sandboxed", contract.sandboxed());
+    runtimeClosure.addProperty("sandboxClaim", contract.sandboxClaim());
+
+    JsonArray surfaces = new JsonArray();
+    for (RuntimeClosureSurface surface : contract.surfaces()) {
+      JsonObject surfaceObject = new JsonObject();
+      surfaceObject.addProperty("id", surface.id());
+      surfaceObject.addProperty("state", surface.state());
+      if (surface.owner() == null) {
+        surfaceObject.add("owner", JsonNull.INSTANCE);
+      } else {
+        surfaceObject.addProperty("owner", surface.owner());
+      }
+      if (surface.capability() == null) {
+        surfaceObject.add("capability", JsonNull.INSTANCE);
+      } else {
+        surfaceObject.addProperty("capability", surface.capability());
+      }
+      if (surface.apiClass() == null) {
+        surfaceObject.add("apiClass", JsonNull.INSTANCE);
+      } else {
+        surfaceObject.addProperty("apiClass", surface.apiClass());
+      }
+      if (surface.profileSection() == null) {
+        surfaceObject.add("profileSection", JsonNull.INSTANCE);
+      } else {
+        surfaceObject.addProperty("profileSection", surface.profileSection());
+      }
+      if (surface.note() == null) {
+        surfaceObject.add("note", JsonNull.INSTANCE);
+      } else {
+        surfaceObject.addProperty("note", surface.note());
+      }
+      surfaces.add(surfaceObject);
+    }
+    runtimeClosure.add("surfaces", surfaces);
+
+    JsonArray gates = new JsonArray();
+    for (RuntimeClosureGate gate : contract.gates()) {
+      JsonObject gateObject = new JsonObject();
+      gateObject.addProperty("order", gate.order());
+      gateObject.addProperty("id", gate.id());
+      gateObject.addProperty("phase", gate.phase());
+      gateObject.addProperty("beforeClassloading", gate.beforeClassloading());
+      gateObject.addProperty("fatalCondition", gate.fatalCondition());
+      gateObject.addProperty("note", gate.note());
+      gates.add(gateObject);
+    }
+    runtimeClosure.add("gates", gates);
+
+    RuntimeClosureLoaderApiBoundary loaderApiBoundary = contract.loaderApiBoundary();
+    JsonObject boundary = new JsonObject();
+    boundary.addProperty("status", loaderApiBoundary.status());
+    boundary.addProperty("nextArc", loaderApiBoundary.nextArc());
+    boundary.add("stableCandidates", stringArray(loaderApiBoundary.stableCandidates()));
+    boundary.add("deferredReview", stringArray(loaderApiBoundary.deferredReview()));
+    boundary.add(
+        "internalPackagesExcluded", stringArray(loaderApiBoundary.internalPackagesExcluded()));
+    runtimeClosure.add("loaderApiBoundary", boundary);
+    runtimeClosure.add("summary", runtimeClosureSummary(contract.summary()));
+    return runtimeClosure;
+  }
+
+  private JsonObject runtimeClosureSummary(RuntimeClosureSummary summary) {
+    JsonObject object = new JsonObject();
+    object.addProperty("implemented", summary.implemented());
+    object.addProperty("unavailable", summary.unavailable());
+    object.addProperty("visibilityOnly", summary.visibilityOnly());
+    object.addProperty("gates", summary.gates());
+    object.addProperty("stableApiCandidates", summary.stableApiCandidates());
+    object.addProperty("deferredApiReview", summary.deferredApiReview());
+    return object;
+  }
+
+  private JsonArray stringArray(Iterable<String> values) {
+    JsonArray array = new JsonArray();
+    for (String value : values) {
+      array.add(value);
+    }
+    return array;
   }
 
   private JsonObject capabilitySummary(RuntimeCapabilitySummary summary) {

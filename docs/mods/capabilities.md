@@ -1,6 +1,6 @@
 # Capabilities
 
-Runtime-4 capabilities describe Spindle-owned API surfaces, not process-level Java permissions.
+Runtime-5 capabilities describe Spindle-owned API surfaces, not process-level Java permissions.
 
 Important:
 
@@ -8,11 +8,12 @@ Important:
 - denied means Spindle recognized the request but metadata did not satisfy the contract
 - unavailable means the surface is planned but not implemented yet
 - visibility-only means Spindle records the declaration but does not enforce it
-- Runtime-4 does not sandbox arbitrary Java
+- Runtime-5 does not sandbox arbitrary Java
+- denied runtime-facing API access throws `CapabilityDeniedException`
 
 ## Current Grantable Capabilities
 
-Runtime-4 can grant:
+Runtime-5 can grant:
 
 - `storage.config`
 - `storage.data`
@@ -61,14 +62,14 @@ For config:
 
 ## Current Unavailable Capabilities
 
-Runtime-4 still reserves these future surfaces:
+Runtime-5 still reserves these future surfaces:
 
 - `resource.declare`
 - `resource.overlay`
 
 ## Current Visibility-Only Capabilities
 
-Runtime-4 records these declarations for review only:
+Runtime-5 records these declarations for review only:
 
 - `filesystem.read`
 - `filesystem.write`
@@ -80,3 +81,9 @@ Runtime-4 records these declarations for review only:
 - `unsafe.access`
 
 These strings do not activate sandboxing or enforcement.
+
+Loader API-0 does not change the runtime honesty model:
+
+- Java execution remains `in-process-unrestricted-java`
+- `sandboxed` remains `false`
+- `sandboxClaim` remains `not-sandboxed`

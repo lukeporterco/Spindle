@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 public final class RuntimeCapabilityCatalog {
-  public static final int CATALOG_VERSION = 1;
+  public static final int CATALOG_VERSION = 2;
   public static final String SCOPE = "spindle-api-only";
   public static final String RUNTIME_EXECUTION_ISOLATION_MODE = "in-process-unrestricted-java";
   public static final boolean SANDBOXED = false;
@@ -52,6 +52,14 @@ public final class RuntimeCapabilityCatalog {
 
   public static List<String> storageCapabilities() {
     return List.of(STORAGE_CACHE, STORAGE_CONFIG, STORAGE_DATA, STORAGE_GENERATED);
+  }
+
+  public static List<String> unavailableCapabilities() {
+    return UNAVAILABLE.stream().sorted().toList();
+  }
+
+  public static List<String> visibilityOnlyCapabilities() {
+    return VISIBILITY_ONLY.stream().sorted().toList();
   }
 
   public static String storageSource(String capability) {

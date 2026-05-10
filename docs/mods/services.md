@@ -48,10 +48,12 @@ GreetingService service =
 
 Behavior:
 
-- `require(...)` returns the bound singleton or throws if the service is unavailable.
-- `find(...)` returns `Optional.empty()` only for optional unbound services.
-- undeclared `require(...)` and `find(...)` calls fail clearly
-- `availableServiceIds()` reports only bound declared services
+- `require(...)` returns the bound singleton or throws `ServiceAccessException` if the service is unavailable.
+- `find(...)` returns `Optional.empty()` only for optional unbound declared services or the empty fallback registry.
+- undeclared `require(...)` and `find(...)` calls fail clearly with `ServiceAccessException`
+- `availableServiceIds()` reports only bound declared services in deterministic sorted order
+
+Mod-facing service API failures use `ServiceAccessException`, including unavailable registries, undeclared services, required unbound services, `require(...)` on optional unbound services, provider conflicts, type mismatches, provider load failures, and provider instantiation failures.
 
 ## Binding Outcomes
 

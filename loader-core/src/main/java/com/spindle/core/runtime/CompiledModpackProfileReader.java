@@ -9,6 +9,11 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityGrant;
 import com.spindle.core.runtime.capability.RuntimeCapabilityModPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilityPlan;
 import com.spindle.core.runtime.capability.RuntimeCapabilitySummary;
+import com.spindle.core.runtime.closure.RuntimeClosureContract;
+import com.spindle.core.runtime.closure.RuntimeClosureGate;
+import com.spindle.core.runtime.closure.RuntimeClosureLoaderApiBoundary;
+import com.spindle.core.runtime.closure.RuntimeClosureSummary;
+import com.spindle.core.runtime.closure.RuntimeClosureSurface;
 import com.spindle.core.runtime.config.RuntimeConfigContract;
 import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
 import com.spindle.core.runtime.config.RuntimeConfigModPlan;
@@ -49,6 +54,7 @@ public final class CompiledModpackProfileReader {
           readPermissions(requiredObject(root, "permissions")),
           readConfig(root.has("config") ? root.getAsJsonObject("config") : null),
           readServices(root.has("services") ? root.getAsJsonObject("services") : null),
+          readRuntimeClosure(root.has("runtimeClosure") ? root.getAsJsonObject("runtimeClosure") : null),
           readLifecycle(requiredObject(root, "lifecycle")),
           readContexts(requiredObject(root, "contexts")),
           readPackagePolicy(requiredObject(root, "packagePolicy")),
@@ -100,6 +106,64 @@ public final class CompiledModpackProfileReader {
         requiredString(object, "format"),
         mods,
         readConfigSummary(requiredObject(object, "summary")));
+  }
+
+  private RuntimeClosureContract readRuntimeClosure(JsonObject object) {
+    if (object == null) {
+      return RuntimeClosureContract.empty();
+    }
+    List<RuntimeClosureSurface> surfaces = new ArrayList<>();
+    for (JsonElement element : requiredArray(object, "surfaces")) {
+      JsonObject surface = element.getAsJsonObject();
+      surfaces.add(
+          new RuntimeClosureSurface(
+              requiredString(surface, "id"),
+              requiredString(surface, "state"),
+              optionalString(surface, "owner"),
+              optionalString(surface, "capability"),
+              optionalString(surface, "apiClass"),
+              optionalString(surface, "profileSection"),
+              optionalString(surface, "note")));
+    }
+
+    List<RuntimeClosureGate> gates = new ArrayList<>();
+    for (JsonElement element : requiredArray(object, "gates")) {
+      JsonObject gate = element.getAsJsonObject();
+      gates.add(
+          new RuntimeClosureGate(
+              requiredInt(gate, "order"),
+              requiredString(gate, "id"),
+              requiredString(gate, "phase"),
+              requiredBoolean(gate, "beforeClassloading"),
+              requiredString(gate, "fatalCondition"),
+              requiredString(gate, "note")));
+    }
+
+    JsonObject boundary = requiredObject(object, "loaderApiBoundary");
+    JsonObject summary = requiredObject(object, "summary");
+    return new RuntimeClosureContract(
+        requiredInt(object, "contractVersion"),
+        requiredString(object, "arcStatus"),
+        requiredString(object, "scope"),
+        requiredString(object, "targetModel"),
+        requiredString(object, "runtimeExecutionIsolationMode"),
+        requiredBoolean(object, "sandboxed"),
+        requiredString(object, "sandboxClaim"),
+        surfaces,
+        gates,
+        new RuntimeClosureLoaderApiBoundary(
+            requiredString(boundary, "status"),
+            requiredString(boundary, "nextArc"),
+            readStringArray(requiredArray(boundary, "stableCandidates")),
+            readStringArray(requiredArray(boundary, "deferredReview")),
+            readStringArray(requiredArray(boundary, "internalPackagesExcluded"))),
+        new RuntimeClosureSummary(
+            requiredInt(summary, "implemented"),
+            requiredInt(summary, "unavailable"),
+            requiredInt(summary, "visibilityOnly"),
+            requiredInt(summary, "gates"),
+            requiredInt(summary, "stableApiCandidates"),
+            requiredInt(summary, "deferredApiReview")));
   }
 
   private CompiledModpackProfile.Cache readCache(JsonObject object) {

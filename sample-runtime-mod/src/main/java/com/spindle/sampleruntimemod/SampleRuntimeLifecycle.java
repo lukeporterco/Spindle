@@ -9,6 +9,7 @@ public final class SampleRuntimeLifecycle {
   private SampleRuntimeLifecycle() {}
 
   public static void bootstrap(ModContext context) throws Exception {
+    context.requireCapability("storage.generated");
     Files.writeString(
         context.generatedDirectory().resolve("sample-runtime.marker"),
         context.modId()
@@ -31,6 +32,7 @@ public final class SampleRuntimeLifecycle {
   }
 
   private static void appendPhase(ModContext context, String phase) throws Exception {
+    context.requireCapability("storage.data");
     Files.writeString(
         context.dataDirectory().resolve("lifecycle.log"),
         phase + System.lineSeparator(),

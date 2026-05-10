@@ -26,6 +26,8 @@ import com.spindle.core.runtime.service.RuntimeServicePlanner;
 import com.spindle.core.runtime.config.RuntimeConfigContract;
 import com.spindle.core.runtime.config.RuntimeConfigMaterializer;
 import com.spindle.core.runtime.config.RuntimeConfigPlanner;
+import com.spindle.core.runtime.closure.RuntimeClosureContract;
+import com.spindle.core.runtime.closure.RuntimeClosurePlanner;
 import java.nio.file.Path;
 
 public final class CompiledRuntimeOrchestrator {
@@ -44,6 +46,7 @@ public final class CompiledRuntimeOrchestrator {
   private final RuntimeConfigPlanner runtimeConfigPlanner = new RuntimeConfigPlanner();
   private final RuntimeConfigMaterializer runtimeConfigMaterializer = new RuntimeConfigMaterializer();
   private final RuntimeServicePlanner runtimeServicePlanner = new RuntimeServicePlanner();
+  private final RuntimeClosurePlanner runtimeClosurePlanner = new RuntimeClosurePlanner();
   private final RuntimeQualityReportWriter runtimeQualityReportWriter =
       new RuntimeQualityReportWriter();
   private final SecurityValidator securityValidator;
@@ -98,6 +101,7 @@ public final class CompiledRuntimeOrchestrator {
             context.workingDirectory(), runtimeConfigPlanner.plan(planningResult.resolvedMods()));
     RuntimeServiceContract serviceContract =
         runtimeServicePlanner.plan(planningResult.resolvedMods(), planningResult.classOwnershipIndex());
+    RuntimeClosureContract runtimeClosure = runtimeClosurePlanner.plan();
     RuntimeQualityReport qualityReport =
         runtimeQualityReporter.create(planningResult, configContract, serviceContract);
     CompiledModpackProfile compiledProfile =
@@ -120,6 +124,7 @@ public final class CompiledRuntimeOrchestrator {
                 lifecyclePlan,
                 configContract,
                 serviceContract,
+                runtimeClosure,
                 qualityReport);
     if (!cacheLookup.hit()) {
       cache.store(context, inputFingerprint, compiledProfile);
