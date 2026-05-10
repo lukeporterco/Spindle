@@ -47,6 +47,8 @@ public record MinecraftProviderConfig(
     boolean explainBoundary,
     boolean explainRuntime,
     boolean explainMods,
+    boolean interpretArtifact,
+    boolean explainInterpretation,
     boolean reproducibilityCheck,
     boolean executionPlan,
     boolean bootstrapClassloaderGraph,
@@ -141,6 +143,8 @@ public record MinecraftProviderConfig(
         false, // explainBoundary
         false, // explainRuntime
         false, // explainMods
+        false, // interpretArtifact
+        false, // explainInterpretation
         false, // reproducibilityCheck
         false, // executionPlan
         false, // bootstrapClassloaderGraph
@@ -263,6 +267,8 @@ public record MinecraftProviderConfig(
         explainBoundary,
         explainRuntime,
         explainMods,
+        interpretArtifact,
+        explainInterpretation,
         reproducibilityCheck,
         executionPlan,
         bootstrapClassloaderGraph,
@@ -328,6 +334,8 @@ public record MinecraftProviderConfig(
         explainBoundary,
         explainRuntime,
         explainMods,
+        interpretArtifact,
+        explainInterpretation,
         reproducibilityCheck,
         executionPlan,
         bootstrapClassloaderGraph,

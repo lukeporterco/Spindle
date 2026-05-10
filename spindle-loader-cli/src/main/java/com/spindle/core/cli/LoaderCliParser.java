@@ -63,6 +63,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainBoundary = false;
     boolean minecraftExplainRuntime = false;
     boolean minecraftExplainMods = false;
+    boolean minecraftInterpretArtifact = false;
+    boolean minecraftExplainInterpretation = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
     boolean minecraftBootstrapClassloaderGraph = false;
@@ -330,6 +332,17 @@ public final class LoaderCliParser {
         minecraftIntegrationPlan = true;
         continue;
       }
+      if ("--minecraft-interpret-artifact".equals(argument)) {
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-interpretation".equals(argument)) {
+        minecraftExplainInterpretation = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
       if ("--minecraft-reproducibility-check".equals(argument)) {
         minecraftReproducibilityCheck = true;
         minecraftRuntimePlan = true;
@@ -446,6 +459,8 @@ public final class LoaderCliParser {
             minecraftExplainBoundary,
             minecraftExplainRuntime,
             minecraftExplainMods,
+            minecraftInterpretArtifact,
+            minecraftExplainInterpretation,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,
             minecraftBootstrapClassloaderGraph,

@@ -2,6 +2,8 @@
 
 This pass defines the next Minecraft-facing boundary before any injection hook implementation lands.
 
+Target-1 now adds artifact interpretation before hook contracts. That pass remains analysis-only and stays inside `target-minecraft`.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.

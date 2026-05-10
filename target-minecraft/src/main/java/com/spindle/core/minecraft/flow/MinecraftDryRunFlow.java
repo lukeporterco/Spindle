@@ -44,6 +44,9 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
+import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
+import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
+import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
 import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
@@ -78,6 +81,11 @@ public final class MinecraftDryRunFlow {
     MinecraftFileVerifier fileVerifier = new MinecraftFileVerifier();
     MacheReferenceScanner macheReferenceScanner = new MacheReferenceScanner();
     MacheReferenceWriter macheReferenceWriter = new MacheReferenceWriter();
+
+    if (config.interpretArtifact() && config.side() != MinecraftSide.SERVER) {
+      throw new LoaderException(
+          "Minecraft artifact interpretation currently supports the server-side Minecraft runtime only.");
+    }
 
     if (config.cacheInspect()) {
       DiagnosticMeasurements.measure(
@@ -286,6 +294,7 @@ public final class MinecraftDryRunFlow {
             && (config.runtimePlan()
                 || config.planMods()
                 || config.boundaryReport()
+                || config.interpretArtifact()
                 || config.integrationPlan()
                 || config.preflight()
                 || config.reproducibilityCheck()
@@ -350,6 +359,48 @@ public final class MinecraftDryRunFlow {
                   "runtimeProvenanceOutputPath", DisplayPaths.displayPath(context, outputPath)));
       megaMilestoneReports.add("minecraft-server-runtime-plan.json");
       megaMilestoneReports.add("minecraft-runtime-provenance.json");
+      if (config.interpretArtifact()) {
+        MinecraftArtifactInterpretation interpretation =
+            DiagnosticMeasurements.measure(
+                diagnosticSink,
+                "minecraft.artifact_interpretation.create",
+                LaunchPhase.COMPLETE,
+                () ->
+                    new MinecraftArtifactInterpreter()
+                        .interpret(
+                            metadata.id(),
+                            config.side(),
+                            minecraftArtifactInterpretationInputs(
+                                context, finalPlannedRuntime.plan())),
+                report ->
+                    DiagnosticMeasurements.details(
+                        "jarCount",
+                        Integer.toString(report.jars().size()),
+                        "packageCount",
+                        Integer.toString(report.packageCount()),
+                        "classCount",
+                        Integer.toString(report.classCount()),
+                        "methodCount",
+                        Integer.toString(report.methodCount())));
+        DiagnosticMeasurements.measure(
+            diagnosticSink,
+            "minecraft.artifact_interpretation.write",
+            LaunchPhase.COMPLETE,
+            () -> {
+              Path outputPath =
+                  context.workingDirectory().resolve("minecraft-artifact-interpretation.json");
+              new MinecraftArtifactInterpretationWriter().write(outputPath, interpretation);
+              return outputPath;
+            },
+            outputPath ->
+                DiagnosticMeasurements.details(
+                    "artifactInterpretationOutputPath",
+                    DisplayPaths.displayPath(context, outputPath)));
+        megaMilestoneReports.add("minecraft-artifact-interpretation.json");
+        if (config.explainInterpretation()) {
+          printMinecraftArtifactInterpretationExplain(interpretation);
+        }
+      }
       if (config.explainRuntime()) {
         printMinecraftRuntimeExplain(finalPlannedRuntime.plan());
       }
@@ -653,6 +704,20 @@ public final class MinecraftDryRunFlow {
     return runtimeJars;
   }
 
+  private static List<MinecraftArtifactInterpreter.JarInput> minecraftArtifactInterpretationInputs(
+      LaunchContext context, MinecraftServerRuntimePlan runtimePlan) {
+    List<MinecraftArtifactInterpreter.JarInput> inputs = new ArrayList<>();
+    for (com.spindle.core.minecraft.MinecraftServerRuntimeClasspath.Entry entry :
+        runtimePlan.classpathEntries()) {
+      Path path = Path.of(entry.path());
+      Path resolvedPath = path.isAbsolute() ? path : context.workingDirectory().resolve(path);
+      inputs.add(
+          MinecraftArtifactInterpreter.JarInput.of(
+              resolvedPath, entry.path(), entry.ownership(), entry.origin(), entry.sha256()));
+    }
+    return List.copyOf(inputs);
+  }
+
   private static void printMinecraftBoundaryExplain(MinecraftRuntimeBoundary boundary) {
     System.out.println("[spindle] explain-boundary: Mega-Milestone 7 boundary is analysis-only");
     System.out.println(
@@ -702,5 +767,18 @@ public final class MinecraftDryRunFlow {
     System.out.println(
         "[spindle] explain-runtime: classpath entries " + plan.classpathEntries().size());
     System.out.println("[spindle] explain-runtime: wrote minecraft-server-runtime-plan.json");
+  }
+
+  private static void printMinecraftArtifactInterpretationExplain(
+      MinecraftArtifactInterpretation interpretation) {
+    System.out.println(
+        "[spindle] explain-interpretation: Target-1 artifact interpretation is analysis-only");
+    System.out.println("[spindle] explain-interpretation: jars " + interpretation.jars().size());
+    System.out.println(
+        "[spindle] explain-interpretation: packages " + interpretation.packageCount());
+    System.out.println("[spindle] explain-interpretation: classes " + interpretation.classCount());
+    System.out.println("[spindle] explain-interpretation: methods " + interpretation.methodCount());
+    System.out.println(
+        "[spindle] explain-interpretation: wrote minecraft-artifact-interpretation.json");
   }
 }
