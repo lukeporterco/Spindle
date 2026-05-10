@@ -24,3 +24,21 @@ Target-1 is analysis-only:
 - it does not imply sandboxing
 
 See [Target-1: Minecraft Artifact Interpretation](../docs/architecture/target-1-minecraft-artifact-interpretation.md).
+
+## Target-2 hook contract diagnostics
+
+Target-2 adds an internal hook point contract model and validation scaffold on top of Target-1.
+
+It validates explicit class, method, constructor, and field contracts against interpreted server-side Minecraft symbols and writes `minecraft-hook-contracts.json`.
+
+Target-2 is analysis-only:
+
+- it does not discover hook points automatically
+- it does not parse method instructions or inspect callsites
+- it does not install hooks
+- it does not transform Minecraft
+- it does not expose a public API
+
+The default Target-2 contract catalog is intentionally empty in this pass. The report still records schema, target, side, version, analysis-only flags, and diagnostics explaining that no hook contracts are declared yet.
+
+See [Target-2: Hook Point Contract Model](../docs/architecture/target-2-hook-point-contract-model.md).

@@ -4,6 +4,8 @@ This pass defines the next Minecraft-facing boundary before any injection hook i
 
 Target-1 now adds artifact interpretation before hook contracts. That pass remains analysis-only and stays inside `target-minecraft`.
 
+Target-2 now adds explicit hook point contract validation on top of Target-1 interpretation. That pass also remains analysis-only and stays inside `target-minecraft`.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -11,6 +13,10 @@ The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Tar
 It communicates with Minecraft internals through hook points, mapped symbols, classloading boundaries, and deterministic diagnostics.
 
 It is not a standalone public API and it is not the ergonomic modding surface.
+
+The first concrete internal contract in that subsystem is now the Target-2 hook point contract model under `com.spindle.core.minecraft.hook`.
+
+That Target-2 pass validates explicit symbol-level contracts only. It does not discover hook points, parse method instructions, inspect callsites, install hooks, or transform Minecraft.
 
 ## Target Layer API
 
@@ -41,3 +47,5 @@ Future ergonomic modding APIs should not use `.target` names.
 This document is a boundary-prep note only.
 
 It names the first planned Minecraft Target Layer subsystem, the Injection Hook Subsystem, without implementing it.
+
+Target-2 remains analysis-only scaffolding inside that boundary. Real contract catalogs, hook candidate classification, bytecode placement validation, and installation behavior are future passes.

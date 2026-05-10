@@ -49,6 +49,8 @@ Target-1 does not:
 
 Hook contracts and hook installation remain future passes.
 
+Target-2 is the first of those future passes. It consumes Target-1 interpreted symbols to validate explicit hook point contracts without installing hooks.
+
 ## Boundary Position
 
 Target-1 is the bridge between runtime artifact planning and the future hook-contract and hook-installation work.

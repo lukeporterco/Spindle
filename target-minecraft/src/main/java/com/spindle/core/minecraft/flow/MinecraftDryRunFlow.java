@@ -44,6 +44,10 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
+import com.spindle.core.minecraft.hook.MinecraftHookContractCatalog;
+import com.spindle.core.minecraft.hook.MinecraftHookContractReport;
+import com.spindle.core.minecraft.hook.MinecraftHookContractReportWriter;
+import com.spindle.core.minecraft.hook.MinecraftHookContractValidator;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
@@ -82,9 +86,10 @@ public final class MinecraftDryRunFlow {
     MacheReferenceScanner macheReferenceScanner = new MacheReferenceScanner();
     MacheReferenceWriter macheReferenceWriter = new MacheReferenceWriter();
 
-    if (config.interpretArtifact() && config.side() != MinecraftSide.SERVER) {
+    if ((config.interpretArtifact() || config.hookContracts() || config.explainHookContracts())
+        && config.side() != MinecraftSide.SERVER) {
       throw new LoaderException(
-          "Minecraft artifact interpretation currently supports the server-side Minecraft runtime only.");
+          "Minecraft artifact interpretation and hook contract diagnostics currently support the server-side Minecraft runtime only.");
     }
 
     if (config.cacheInspect()) {
@@ -295,6 +300,8 @@ public final class MinecraftDryRunFlow {
                 || config.planMods()
                 || config.boundaryReport()
                 || config.interpretArtifact()
+                || config.hookContracts()
+                || config.explainHookContracts()
                 || config.integrationPlan()
                 || config.preflight()
                 || config.reproducibilityCheck()
@@ -359,8 +366,11 @@ public final class MinecraftDryRunFlow {
                   "runtimeProvenanceOutputPath", DisplayPaths.displayPath(context, outputPath)));
       megaMilestoneReports.add("minecraft-server-runtime-plan.json");
       megaMilestoneReports.add("minecraft-runtime-provenance.json");
-      if (config.interpretArtifact()) {
-        MinecraftArtifactInterpretation interpretation =
+      MinecraftArtifactInterpretation interpretation = null;
+      boolean shouldCreateInterpretation =
+          config.interpretArtifact() || config.hookContracts() || config.explainHookContracts();
+      if (shouldCreateInterpretation) {
+        interpretation =
             DiagnosticMeasurements.measure(
                 diagnosticSink,
                 "minecraft.artifact_interpretation.create",
@@ -382,6 +392,7 @@ public final class MinecraftDryRunFlow {
                         Integer.toString(report.classCount()),
                         "methodCount",
                         Integer.toString(report.methodCount())));
+        MinecraftArtifactInterpretation finalInterpretation = interpretation;
         DiagnosticMeasurements.measure(
             diagnosticSink,
             "minecraft.artifact_interpretation.write",
@@ -389,7 +400,7 @@ public final class MinecraftDryRunFlow {
             () -> {
               Path outputPath =
                   context.workingDirectory().resolve("minecraft-artifact-interpretation.json");
-              new MinecraftArtifactInterpretationWriter().write(outputPath, interpretation);
+              new MinecraftArtifactInterpretationWriter().write(outputPath, finalInterpretation);
               return outputPath;
             },
             outputPath ->
@@ -399,6 +410,66 @@ public final class MinecraftDryRunFlow {
         megaMilestoneReports.add("minecraft-artifact-interpretation.json");
         if (config.explainInterpretation()) {
           printMinecraftArtifactInterpretationExplain(interpretation);
+        }
+      }
+      if (config.hookContracts() || config.explainHookContracts()) {
+        MinecraftArtifactInterpretation finalInterpretation =
+            interpretation == null
+                ? DiagnosticMeasurements.measure(
+                    diagnosticSink,
+                    "minecraft.artifact_interpretation.create",
+                    LaunchPhase.COMPLETE,
+                    () ->
+                        new MinecraftArtifactInterpreter()
+                            .interpret(
+                                metadata.id(),
+                                config.side(),
+                                minecraftArtifactInterpretationInputs(
+                                    context, finalPlannedRuntime.plan())),
+                    report ->
+                        DiagnosticMeasurements.details(
+                            "jarCount",
+                            Integer.toString(report.jars().size()),
+                            "packageCount",
+                            Integer.toString(report.packageCount()),
+                            "classCount",
+                            Integer.toString(report.classCount()),
+                            "methodCount",
+                            Integer.toString(report.methodCount())))
+                : interpretation;
+        MinecraftHookContractReport hookContractReport =
+            DiagnosticMeasurements.measure(
+                diagnosticSink,
+                "minecraft.hook_contracts.validate",
+                LaunchPhase.COMPLETE,
+                () ->
+                    new MinecraftHookContractValidator()
+                        .validate(finalInterpretation, MinecraftHookContractCatalog.empty()),
+                report ->
+                    DiagnosticMeasurements.details(
+                        "contractCount",
+                        Integer.toString(report.contractCount()),
+                        "validContractCount",
+                        Integer.toString(report.validContractCount()),
+                        "warningCount",
+                        Integer.toString(report.warningCount()),
+                        "errorCount",
+                        Integer.toString(report.errorCount())));
+        DiagnosticMeasurements.measure(
+            diagnosticSink,
+            "minecraft.hook_contracts.write",
+            LaunchPhase.COMPLETE,
+            () -> {
+              Path outputPath = context.workingDirectory().resolve("minecraft-hook-contracts.json");
+              new MinecraftHookContractReportWriter().write(outputPath, hookContractReport);
+              return outputPath;
+            },
+            outputPath ->
+                DiagnosticMeasurements.details(
+                    "hookContractOutputPath", DisplayPaths.displayPath(context, outputPath)));
+        megaMilestoneReports.add("minecraft-hook-contracts.json");
+        if (config.explainHookContracts()) {
+          printMinecraftHookContractsExplain(hookContractReport);
         }
       }
       if (config.explainRuntime()) {
@@ -780,5 +851,15 @@ public final class MinecraftDryRunFlow {
     System.out.println("[spindle] explain-interpretation: methods " + interpretation.methodCount());
     System.out.println(
         "[spindle] explain-interpretation: wrote minecraft-artifact-interpretation.json");
+  }
+
+  private static void printMinecraftHookContractsExplain(MinecraftHookContractReport report) {
+    System.out.println(
+        "[spindle] explain-hook-contracts: Target-2 hook contracts are validation-only");
+    System.out.println("[spindle] explain-hook-contracts: contracts " + report.contractCount());
+    System.out.println("[spindle] explain-hook-contracts: valid " + report.validContractCount());
+    System.out.println("[spindle] explain-hook-contracts: warnings " + report.warningCount());
+    System.out.println("[spindle] explain-hook-contracts: errors " + report.errorCount());
+    System.out.println("[spindle] explain-hook-contracts: wrote minecraft-hook-contracts.json");
   }
 }

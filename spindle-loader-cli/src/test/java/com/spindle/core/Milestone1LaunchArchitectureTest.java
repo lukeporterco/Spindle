@@ -353,6 +353,27 @@ class Milestone1LaunchArchitectureTest {
   }
 
   @Test
+  void minecraftExplainHookContractsEnablesDependentPlanningFlags() throws LoaderException {
+    LaunchArguments arguments =
+        LoaderMain.parseArguments(
+            new String[] {
+              "--game-main",
+              "unused.for.minecraft.HookContracts",
+              "--game-provider",
+              "minecraft",
+              "--minecraft-version",
+              "26.1.2",
+              "--minecraft-dry-run",
+              "--minecraft-explain-hook-contracts"
+            });
+
+    assertTrue(arguments.minecraftProviderConfig().explainHookContracts());
+    assertTrue(arguments.minecraftProviderConfig().hookContracts());
+    assertTrue(arguments.minecraftProviderConfig().interpretArtifact());
+    assertTrue(arguments.minecraftProviderConfig().runtimePlan());
+  }
+
+  @Test
   void launchTimeoutRequiresPositiveInteger() {
     LoaderException exception =
         assertThrows(

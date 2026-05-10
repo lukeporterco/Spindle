@@ -49,6 +49,8 @@ public record MinecraftProviderConfig(
     boolean explainMods,
     boolean interpretArtifact,
     boolean explainInterpretation,
+    boolean hookContracts,
+    boolean explainHookContracts,
     boolean reproducibilityCheck,
     boolean executionPlan,
     boolean bootstrapClassloaderGraph,
@@ -145,6 +147,8 @@ public record MinecraftProviderConfig(
         false, // explainMods
         false, // interpretArtifact
         false, // explainInterpretation
+        false, // hookContracts
+        false, // explainHookContracts
         false, // reproducibilityCheck
         false, // executionPlan
         false, // bootstrapClassloaderGraph
@@ -269,6 +273,8 @@ public record MinecraftProviderConfig(
         explainMods,
         interpretArtifact,
         explainInterpretation,
+        hookContracts,
+        explainHookContracts,
         reproducibilityCheck,
         executionPlan,
         bootstrapClassloaderGraph,
@@ -336,6 +342,8 @@ public record MinecraftProviderConfig(
         explainMods,
         interpretArtifact,
         explainInterpretation,
+        hookContracts,
+        explainHookContracts,
         reproducibilityCheck,
         executionPlan,
         bootstrapClassloaderGraph,
