@@ -24,14 +24,14 @@ Spindle Ecosystem
  |   |-- Runtime Execution [DONE]
  |   `-- Runtime-facing Loader API [DONE]
  |
- |-- Minecraft Target Layer [PART]
- |   |-- Minecraft Target Model [PART]
- |   |-- Artifact, Version, and Mapping Integration [PART]
- |   |-- Target Launch and Attachment [PART]
- |   |-- Target Lifecycle Bridge [PART]
- |   |-- Target Hook System [TODO]
- |   |-- Target Diagnostics [PART]
- |   `-- Target API Bridge [PART]
+|-- Minecraft Target Layer [PART]
+|   |-- Minecraft Target Model [PART]
+|   |-- Artifact, Version, and Mapping Integration [PART]
+|   |-- Target Launch and Attachment [PART]
+|   |-- Target Lifecycle Bridge [PART]
+|   |-- Injection Hook Subsystem [TODO]
+|   |-- Target Diagnostics [PART]
+|   `-- Target API Bridge [PART]
  |
  |-- Spindle API Layer [TODO]
  |   |-- API Contract Foundation [TODO]
@@ -134,7 +134,7 @@ Spindle Loader
 
 Minecraft Target Layer
   Owns Minecraft launch integration, version and mapping handling, target
-  lifecycle bridging, target diagnostics, and future target hook installation.
+  lifecycle bridging, target diagnostics, and future injection hook subsystem work.
 
 Spindle API Layer
   Owns developer-facing Minecraft APIs such as events, registries, resources,
@@ -404,7 +404,9 @@ Current target work includes:
 - server bootstrap fixture tests
 - a narrow server-side bootstrap path for approved Spindle Minecraft server entrypoints
 
-This is not yet a completed Minecraft Target Layer. In particular, the target hook system and custom injection hooker are not implemented. Full Minecraft gameplay APIs are also not implemented.
+This is not yet a completed Minecraft Target Layer. In particular, the injection hook subsystem is not implemented yet. Full Minecraft gameplay APIs are also not implemented.
+
+The next boundary-prep step is the Target Layer API boundary, which keeps internal hook work inside the Minecraft Target Layer while deferring any ergonomic Modding API surface above it. The first planned subsystem in that boundary is the injection hook subsystem.
 
 The target layer should eventually become a first-class subsystem around the loader. It should consume loader contracts and lower them into Minecraft-specific behavior without making `spindle-loader-core` responsible for every Minecraft concern.
 
@@ -673,6 +675,7 @@ docs/architecture/runtime-4-config-schema-runtime.md
 docs/architecture/runtime-5-runtime-contract-closure.md
 docs/architecture/loader-api-0-public-runtime-api-boundary.md
 docs/architecture/loader-api-hardening.md
+docs/architecture/target-layer-api-boundary.md
 docs/architecture/foundation-hardening-loader-runtime.md
 ```
 

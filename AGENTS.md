@@ -261,6 +261,8 @@ Good near-term systems:
 
 Avoid broad scope jumps. A pass should have clear non-goals.
 
+Boundary-prep passes are documentation-only unless the task explicitly says otherwise; do not implement the injection hook subsystem, Modding API surfaces, ECS, threading, or simulation work as part of a boundary-prep pass.
+
 ## Before finalizing a change
 
 Check:
