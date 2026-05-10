@@ -2,7 +2,7 @@
 
 Spindle is a custom Minecraft mod loader project built around a simple long-term rule: Minecraft is the target, not the foundation.
 
-The current repository is the Spindle Loader. It is the backend spine of the ecosystem. It discovers mods, validates metadata and trust state, resolves dependencies, compiles deterministic runtime contracts, prepares runtime state, creates classloaders, executes lifecycle handlers, and hands off toward Minecraft target integration.
+The current repository contains the Spindle Loader. It is the completed loader subsystem inside the broader Spindle ecosystem. It discovers mods, validates metadata and trust state, resolves dependencies, compiles deterministic runtime contracts, prepares runtime state, creates classloaders, executes lifecycle handlers, and hands off toward Minecraft target integration.
 
 Spindle is not currently a full Minecraft gameplay API, a replacement for Fabric API, a performance mod suite, or a custom injection framework. Those belong to future ecosystem layers that should build around the loader rather than being folded into the loader core.
 
@@ -73,7 +73,7 @@ Status labels:
 
 ## What this repository is
 
-This repository is the Spindle Loader.
+This repository contains the Spindle Loader.
 
 Its job is to provide a deterministic backend runtime for mods:
 
@@ -153,12 +153,20 @@ Third-Party Mods
 
 ```text
 .
-|-- loader-api
-|   `-- Public runtime-facing loader API used by mods today.
+|-- spindle-loader-api
+|   `-- Public runtime-facing Spindle Loader API used by mods today.
 |
-|-- loader-core
-|   `-- Loader implementation, runtime contracts, diagnostics, security,
-       classloading, lifecycle execution, and Minecraft target foundation.
+|-- spindle-loader-core
+|   `-- Target-neutral loader implementation, runtime contracts, diagnostics,
+|       security, classloading, and lifecycle execution.
+|
+|-- spindle-loader-cli
+|   `-- Loader entrypoint, CLI parsing, and application wiring for the
+|       completed Spindle Loader subsystem.
+|
+|-- target-minecraft
+|   `-- Partial Minecraft Target Layer implementation that consumes loader
+|       contracts without expanding the stable loader API.
 |
 |-- sample-mod
 |   `-- Basic sample mod for the sample provider.
@@ -263,7 +271,7 @@ Provides the stable public API surface for loader runtime behavior:
 
 ## Stable Loader API
 
-Loader API-0 stabilizes only the runtime-facing `loader-api` surface.
+Loader API-0 stabilizes only the runtime-facing `spindle-loader-api` surface.
 
 Stable today:
 
@@ -283,8 +291,8 @@ The public API metadata currently reports:
 
 ```text
 RUNTIME_API_VERSION = 1
-API_STATUS = runtime-api-stabilized
-API_SCOPE = runtime-facing-loader-api
+API_STATUS = spindle-loader-runtime-api-stabilized
+API_SCOPE = runtime-facing-spindle-loader-api
 TARGET_MODEL = minecraft-as-target-not-foundation
 SANDBOXED = false
 SANDBOX_CLAIM = not-sandboxed
@@ -382,7 +390,7 @@ It does not:
 
 ## Minecraft target foundation
 
-The repository contains a partial Minecraft target foundation under `loader-core`.
+The repository contains a partial Minecraft target foundation under `target-minecraft`.
 
 Current target work includes:
 
@@ -398,7 +406,7 @@ Current target work includes:
 
 This is not yet a completed Minecraft Target Layer. In particular, the target hook system and custom injection hooker are not implemented. Full Minecraft gameplay APIs are also not implemented.
 
-The target layer should eventually become a first-class subsystem around the loader. It should consume loader contracts and lower them into Minecraft-specific behavior without making loader-core responsible for every Minecraft concern.
+The target layer should eventually become a first-class subsystem around the loader. It should consume loader contracts and lower them into Minecraft-specific behavior without making `spindle-loader-core` responsible for every Minecraft concern.
 
 ## Build and verification
 
@@ -438,8 +446,8 @@ Run focused Minecraft planning and bootstrap checks:
 Run current runtime and loader API tests through the normal Gradle test task:
 
 ```bash
-./gradlew :loader-core:test
-./gradlew :loader-api:test
+./gradlew :spindle-loader-core:test
+./gradlew :spindle-loader-api:test
 ```
 
 ## Common tasks

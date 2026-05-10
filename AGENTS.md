@@ -22,16 +22,14 @@ Future work should move toward named architecture arcs, especially `Runtime-*`, 
 
 ## Repository map
 
-- `loader-api/`
+- `spindle-loader-api/`
   - Public API only.
   - Keep this small, stable, and developer-readable.
   - Do not expose loader internals through this module.
 
-- `loader-core/`
-  - Loader implementation.
+- `spindle-loader-core/`
+  - Target-neutral loader implementation.
   - Important package areas:
-    - `artifact`: Minecraft artifact cache/download/verification
-    - `baseline`: real vanilla server baseline acquisition/reporting
     - `classpath`: mod classloader and runtime classpath planning
     - `diagnostics`: structured diagnostics and loader exceptions
     - `discovery`: mod jar discovery
@@ -39,15 +37,25 @@ Future work should move toward named architecture arcs, especially `Runtime-*`, 
     - `graph`: frozen mod graph and dependency/conflict model
     - `lockfile`: deterministic lockfile writing/verification
     - `metadata`: `loader.mod.json` parsing
-    - `minecraft`: Minecraft runtime planning, boundary reports, integration plans, execution plans
-    - `minecraft/bootstrap`: child-JVM bootstrap path
     - `ownership`: class/package ownership indexes
-    - `process`: managed Minecraft server process launching
     - `profile`: startup profiling
     - `resource`: resource conflict indexes
     - `resolve`: dependency resolution
     - `security`: trust-boundary validation, gate, and report writing
     - `state`: modpack state reports
+
+- `spindle-loader-cli/`
+  - Loader application entrypoint, CLI parsing, and provider-selection wiring.
+
+- `target-minecraft/`
+  - Partial Minecraft Target Layer.
+  - Important package areas:
+    - `artifact`: Minecraft artifact cache/download/verification
+    - `baseline`: real vanilla server baseline acquisition/reporting
+    - `mache`: optional reference scan tooling
+    - `minecraft`: Minecraft runtime planning, boundary reports, integration plans, execution plans
+    - `minecraft/bootstrap`: child-JVM bootstrap path
+    - `process`: managed Minecraft server process launching
 
 - `sample-game/`
   - Fake game provider fixture.
@@ -89,7 +97,7 @@ For normal code changes, run:
 ```bash
 ./gradlew spotlessApply
 ./gradlew spotlessCheck
-./gradlew :loader-core:test
+./gradlew :spindle-loader-core:test
 ```
 
 For changes touching Minecraft runtime planning, boundary reports, preflight, reproducibility, bundled runtime behavior, integration planning, approved Minecraft server mod execution, bootstrap classloaders, plan fingerprints, child-JVM bootstrap, or bootstrap reports, also run:
@@ -120,7 +128,7 @@ Use Java.
 
 Keep public API names boring and obvious. Prefer names like `ModContext`, `LifecyclePhase`, `ServiceRegistry`, `ConfigView`, `ResourcePlan`, and `HookPermission`.
 
-Do not leak implementation classes from `loader-core` into `loader-api`.
+Do not leak implementation classes from `spindle-loader-core` into `spindle-loader-api`.
 
 Keep deterministic behavior explicit:
 

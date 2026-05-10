@@ -195,8 +195,7 @@ val prepareMinecraftFixture by tasks.registering {
 }
 
 fun minecraftRuntimeClasspath() =
-    project(":loader-core").the<SourceSetContainer>()["main"].runtimeClasspath +
-        project(":loader-api").the<SourceSetContainer>()["main"].output
+    project(":spindle-loader-cli").the<SourceSetContainer>()["main"].runtimeClasspath
 
 fun JavaExec.ensureRuntimeWorkingDir() {
     doFirst {
@@ -287,12 +286,12 @@ val prepareMinecraftBundledServerFixture by tasks.registering {
 tasks.register<JavaExec>("runMilestone0") {
     group = "application"
     description = "Builds the sample mod and runs the Milestone 0 deterministic entrypoint loader."
-    dependsOn(":loader-core:classes", ":sample-game:classes", ":loader-api:classes", prepareMilestone0Mods)
+    dependsOn(":spindle-loader-cli:classes", ":sample-game:classes", prepareMilestone0Mods)
 
-    val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
+    val loaderCliSourceSets = project(":spindle-loader-cli").the<SourceSetContainer>()
     val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
     classpath =
-        loaderCoreSourceSets["main"].runtimeClasspath +
+        loaderCliSourceSets["main"].runtimeClasspath +
             sampleGameSourceSets["main"].output
 
     mainClass.set("com.spindle.core.LoaderMain")
@@ -305,12 +304,12 @@ tasks.register<JavaExec>("runMilestone0") {
 tasks.register<JavaExec>("validateMilestone0") {
     group = "application"
     description = "Builds the sample mod and validates the frozen Milestone 0 modpack without launching the game."
-    dependsOn(":loader-core:classes", ":sample-game:classes", ":loader-api:classes", prepareMilestone0Mods)
+    dependsOn(":spindle-loader-cli:classes", ":sample-game:classes", prepareMilestone0Mods)
 
-    val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
+    val loaderCliSourceSets = project(":spindle-loader-cli").the<SourceSetContainer>()
     val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
     classpath =
-        loaderCoreSourceSets["main"].runtimeClasspath +
+        loaderCliSourceSets["main"].runtimeClasspath +
             sampleGameSourceSets["main"].output
 
     mainClass.set("com.spindle.core.LoaderMain")
@@ -323,12 +322,12 @@ tasks.register<JavaExec>("validateMilestone0") {
 tasks.register<JavaExec>("explainMilestone0") {
     group = "application"
     description = "Builds the sample mod and prints an explain summary for the frozen Milestone 0 modpack."
-    dependsOn(":loader-core:classes", ":sample-game:classes", ":loader-api:classes", prepareMilestone0Mods)
+    dependsOn(":spindle-loader-cli:classes", ":sample-game:classes", prepareMilestone0Mods)
 
-    val loaderCoreSourceSets = project(":loader-core").the<SourceSetContainer>()
+    val loaderCliSourceSets = project(":spindle-loader-cli").the<SourceSetContainer>()
     val sampleGameSourceSets = project(":sample-game").the<SourceSetContainer>()
     classpath =
-        loaderCoreSourceSets["main"].runtimeClasspath +
+        loaderCliSourceSets["main"].runtimeClasspath +
             sampleGameSourceSets["main"].output
 
     mainClass.set("com.spindle.core.LoaderMain")
@@ -341,7 +340,7 @@ tasks.register<JavaExec>("explainMilestone0") {
 tasks.register<JavaExec>("minecraftDryRun") {
     group = "application"
     description = "Builds the sample mod and runs the Minecraft client dry-run planner."
-    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
+    dependsOn(":spindle-loader-cli:classes", prepareMinecraftFixture)
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -365,7 +364,7 @@ tasks.register<JavaExec>("minecraftDryRun") {
 tasks.register<JavaExec>("minecraftServerDryRun") {
     group = "application"
     description = "Builds the sample mod and runs the Minecraft server dry-run planner."
-    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
+    dependsOn(":spindle-loader-cli:classes", prepareMinecraftFixture)
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -389,7 +388,7 @@ tasks.register<JavaExec>("minecraftServerDryRun") {
 tasks.register<JavaExec>("macheReferenceScan") {
     group = "application"
     description = "Runs the optional read-only Mache reference scan when -PmacheDir is provided."
-    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftFixture)
+    dependsOn(":spindle-loader-cli:classes", prepareMinecraftFixture)
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -431,7 +430,7 @@ tasks.register<JavaExec>("macheReferenceScan") {
 tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
     group = "application"
     description = "Runs the fake managed Minecraft server launch smoke task without Mojang jars."
-    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftServerLaunchFixture)
+    dependsOn(":spindle-loader-cli:classes", prepareMinecraftServerLaunchFixture)
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -465,7 +464,7 @@ tasks.register<JavaExec>("minecraftServerLaunchFakeSmoke") {
 tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
     group = "application"
     description = "Launches a real local vanilla Minecraft server jar in managed dry-smoke mode when -PminecraftDir is provided."
-    dependsOn(":loader-core:classes", ":loader-api:classes")
+    dependsOn(":spindle-loader-cli:classes")
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
@@ -509,7 +508,7 @@ tasks.register<JavaExec>("minecraftServerLaunchDrySmoke") {
 tasks.register<JavaExec>("minecraftServerCacheInspect") {
     group = "application"
     description = "Inspects the managed vanilla server artifact cache without launching Minecraft."
-    dependsOn(":loader-core:classes", ":loader-api:classes")
+    dependsOn(":spindle-loader-cli:classes")
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -532,7 +531,7 @@ tasks.register<JavaExec>("minecraftServerCacheInspect") {
 tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
     group = "application"
     description = "Verifies the managed vanilla server artifact cache in offline strict mode."
-    dependsOn(":loader-core:classes", ":loader-api:classes")
+    dependsOn(":spindle-loader-cli:classes")
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -557,7 +556,7 @@ tasks.register<JavaExec>("minecraftServerOfflineCacheCheck") {
 tasks.register<JavaExec>("minecraftServerCacheRepair") {
     group = "application"
     description = "Repairs cached vanilla server metadata and the server jar when explicitly allowed."
-    dependsOn(":loader-core:classes", ":loader-api:classes")
+    dependsOn(":spindle-loader-cli:classes")
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -583,7 +582,7 @@ tasks.register<JavaExec>("minecraftServerCacheRepair") {
 tasks.register<JavaExec>("minecraftServerDownloadSmoke") {
     group = "application"
     description = "Downloads and verifies the vanilla Minecraft server artifact, then attempts a managed launch."
-    dependsOn(":loader-core:classes", ":loader-api:classes")
+    dependsOn(":spindle-loader-cli:classes")
 
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
@@ -620,7 +619,7 @@ fun JavaExec.configureRealBaselineTask(
     extraArgs: List<String> = emptyList()
 ) {
     group = "application"
-    dependsOn(":loader-core:classes", ":loader-api:classes")
+    dependsOn(":spindle-loader-cli:classes")
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
@@ -725,7 +724,7 @@ tasks.register<JavaExec>("minecraftRealServerOfflineReplay") {
 
 fun JavaExec.configureMinecraftServerFixtureTask(taskMain: String, fixtureTask: TaskProvider<*>, fixtureDir: String, extraArgs: List<String>) {
     group = "application"
-    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMilestone0Mods, fixtureTask)
+    dependsOn(":spindle-loader-cli:classes", prepareMilestone0Mods, fixtureTask)
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime").asFile
@@ -891,7 +890,7 @@ tasks.register("minecraftMegaMilestone7Check") {
         "minecraftModIntegrationPlan",
         "minecraftPreflight",
         "minecraftReproducibilityCheck",
-        ":loader-core:test"
+        ":target-minecraft:test"
     )
 }
 
@@ -933,7 +932,7 @@ val prepareMinecraftMilestone8Fixture by tasks.registering {
 
 fun JavaExec.configureMinecraftMilestone8Task(taskMain: String, extraArgs: List<String>) {
     group = "application"
-    dependsOn(":loader-core:classes", ":loader-api:classes", prepareMinecraftMilestone8Fixture)
+    dependsOn(":spindle-loader-cli:classes", prepareMinecraftMilestone8Fixture)
     classpath = minecraftRuntimeClasspath()
     mainClass.set("com.spindle.core.LoaderMain")
     workingDir = layout.projectDirectory.dir("runtime/milestone8").asFile
@@ -1002,9 +1001,9 @@ fun registerMilestone8FocusedTest(taskName: String, includePattern: String, desc
     tasks.register<Test>(taskName) {
         group = "verification"
         description = descriptionText
-        dependsOn(":loader-core:testClasses")
-        testClassesDirs = project(":loader-core").the<SourceSetContainer>()["test"].output.classesDirs
-        classpath = project(":loader-core").the<SourceSetContainer>()["test"].runtimeClasspath
+        dependsOn(":target-minecraft:testClasses")
+        testClassesDirs = project(":target-minecraft").the<SourceSetContainer>()["test"].output.classesDirs
+        classpath = project(":target-minecraft").the<SourceSetContainer>()["test"].runtimeClasspath
         useJUnitPlatform()
         binaryResultsDirectory.set(layout.buildDirectory.dir("milestone8-test-results/$taskName/binary"))
         reports.html.outputLocation.set(layout.buildDirectory.dir("reports/$taskName"))
@@ -1046,6 +1045,6 @@ tasks.register("minecraftMilestone8Check") {
         "minecraftServerBootstrapDriftSmoke",
         "minecraftServerBootstrapStrictSmoke",
         "minecraftMegaMilestone7Check",
-        ":loader-core:test"
+        ":target-minecraft:test"
     )
 }

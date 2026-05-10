@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":loader-api"))
+    implementation(project(":spindle-loader-api"))
 }
