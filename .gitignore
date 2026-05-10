@@ -5,10 +5,10 @@ build/
 
 # Generated runtime artifacts
 runtime/
-!loader-core/src/main/java/com/spindle/core/runtime/
-!loader-core/src/main/java/com/spindle/core/runtime/**
-!loader-core/src/test/java/com/spindle/core/runtime/
-!loader-core/src/test/java/com/spindle/core/runtime/**
+!spindle-loader-core/src/main/java/com/spindle/core/runtime/
+!spindle-loader-core/src/main/java/com/spindle/core/runtime/**
+!spindle-loader-core/src/test/java/com/spindle/core/runtime/
+!spindle-loader-core/src/test/java/com/spindle/core/runtime/**
 
 # Local scratch space used during development
 .tools/
