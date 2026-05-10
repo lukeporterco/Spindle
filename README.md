@@ -1,23 +1,450 @@
 # Spindle
 
-Spindle currently provides a deterministic loader core with two provider paths:
+Spindle is a custom Minecraft mod loader project built around a simple long-term rule: Minecraft is the target, not the foundation.
 
-- `sample`: the existing fake-game provider used for Milestone 0-2 launches
-- `minecraft`: a Mega-Milestone 7 plus Milestone 8 provider that runs deterministic dry-run planning, owns a server runtime capsule, writes pre-mod boundary reports, and now has a guarded child-JVM server bootstrap path for approved Spindle Minecraft server entrypoints before the managed vanilla server main is invoked
+The current repository is the Spindle Loader. It is the backend spine of the ecosystem. It discovers mods, validates metadata and trust state, resolves dependencies, compiles deterministic runtime contracts, prepares runtime state, creates classloaders, executes lifecycle handlers, and hands off toward Minecraft target integration.
+
+Spindle is not currently a full Minecraft gameplay API, a replacement for Fabric API, a performance mod suite, or a custom injection framework. Those belong to future ecosystem layers that should build around the loader rather than being folded into the loader core.
 
 Minimum Java version: Java 25
 
 First intended Minecraft target: 26.1.2
 
-Mega-Milestone 7 keeps `26.1.2` as the project target Minecraft version for loader metadata and dependency validation. Real vanilla server smoke tasks use a separate official baseline version selected from Mojang metadata, for example `latest-release` or an exact version such as `1.21.8`.
+## Current status
 
-Mega-Milestone 7 turns Spindle into a deterministic Minecraft server runtime owner with a frozen, inspectable, replayable, and explainable pre-mod integration boundary. It still deliberately stops before real Minecraft mod loading: no Minecraft mod classes are loaded, no Minecraft entrypoints are invoked, no mod jars are placed on the real Minecraft runtime classpath, and no Mixin, remapping, bytecode transformation, patching, Fabric/Forge/NeoForge/Quilt/Paper/Bukkit/Sponge compatibility, or injection exists.
+The loader spine is considered complete for the current scope. The Minecraft target layer has a partial foundation. The broad developer-facing API layer, performance layer, and real third-party ecosystem are future work.
 
-Milestone 8 crosses that boundary in one narrow place only: approved server-side Spindle mods may now execute a tiny `minecraftServer` bootstrap entrypoint through a loader-owned child JVM, under a hardened mod classloader, before the Minecraft server main class is invoked. Preflight, runtime planning, boundary reporting, integration planning, explain paths, and reproducibility checks remain non-executing. This is still not a gameplay modding layer: no Mixin, remapping, bytecode transformation, patching, access wideners, compatibility layer, client launch, or Minecraft API exposure exists.
+```text
+Spindle Ecosystem
+ |-- Spindle Loader [DONE]
+ |   |-- Mod Intake [DONE]
+ |   |-- Resolution and Planning [DONE]
+ |   |-- Runtime Contract System [DONE]
+ |   |-- Security and Diagnostics [DONE]
+ |   |-- Runtime Execution [DONE]
+ |   `-- Runtime-facing Loader API [DONE]
+ |
+ |-- Minecraft Target Layer [PART]
+ |   |-- Minecraft Target Model [PART]
+ |   |-- Artifact, Version, and Mapping Integration [PART]
+ |   |-- Target Launch and Attachment [PART]
+ |   |-- Target Lifecycle Bridge [PART]
+ |   |-- Target Hook System [TODO]
+ |   |-- Target Diagnostics [PART]
+ |   `-- Target API Bridge [PART]
+ |
+ |-- Spindle API Layer [TODO]
+ |   |-- API Contract Foundation [TODO]
+ |   |-- Event API [TODO]
+ |   |-- Registry API [TODO]
+ |   |-- Resource and Data API [TODO]
+ |   |-- Networking API [TODO]
+ |   |-- Command API [TODO]
+ |   |-- Client API [TODO]
+ |   |-- World and Gameplay API [TODO]
+ |   `-- Developer Utilities [PART]
+ |
+ |-- Spindle Performance Layer [TODO]
+ |   |-- Performance Control Plane [TODO]
+ |   |-- Renderer Optimizations [TODO]
+ |   |-- Chunk and World Optimizations [TODO]
+ |   |-- Lighting Optimizations [TODO]
+ |   |-- Entity and Tick Optimizations [TODO]
+ |   |-- Networking Optimizations [TODO]
+ |   `-- Memory Optimizations [TODO]
+ |
+ `-- Third-Party Mods [PART]
+     |-- Runtime-only mods [PART]
+     |-- Minecraft API mods [TODO]
+     |-- Resource/data mods [TODO]
+     |-- Client-side mods [TODO]
+     |-- Server-side mods [TODO]
+     |-- Optimization-dependent mods [TODO]
+     `-- Full gameplay/content mods [TODO]
+```
 
-## Tasks
+Status labels:
 
-Normal sample launch:
+```text
+[DONE] The subsystem is implemented for the current intended scope.
+[PART] A foundation exists, but the subsystem is not complete.
+[TODO] The subsystem is not implemented yet.
+```
+
+## What this repository is
+
+This repository is the Spindle Loader.
+
+Its job is to provide a deterministic backend runtime for mods:
+
+- discover mod artifacts
+- parse and validate `loader.mod.json`
+- resolve dependencies and version requirements
+- produce a frozen mod graph
+- plan classpaths and ownership indexes
+- collect trust, risk, quality, and diagnostics reports
+- compile a deterministic runtime profile
+- enforce runtime contract gates before lifecycle execution
+- materialize mod-owned storage and config
+- expose a stable runtime-facing loader API
+- execute loader-controlled lifecycle handlers
+- prepare the boundary that future Minecraft target work consumes
+
+The loader should stay narrow. It should not absorb broad gameplay APIs, Minecraft registries, event systems, networking APIs, commands, resource overlays, performance optimizations, ECS, threading systems, or custom injection behavior.
+
+## What this repository is not
+
+Spindle currently does not provide a complete Minecraft modding ecosystem.
+
+Not implemented yet:
+
+- full Minecraft gameplay API
+- event API
+- registry API
+- command API
+- networking API
+- resource and data overlay API
+- client API
+- world and gameplay API
+- renderer, chunk, lighting, entity, networking, or memory optimization modules
+- general-purpose target hook system
+- custom injection hooker
+- Mixin, ASM, access widener, Fabric, Forge, NeoForge, Quilt, Bukkit, Paper, or Sponge compatibility
+
+Spindle Java mod execution is not sandboxed. The current runtime honesty contract is:
+
+```text
+execution: in-process-unrestricted-java
+sandboxed: false
+sandboxClaim: not-sandboxed
+```
+
+Security features in this repository are validation, reporting, trust classification, warning-only static risk signals, restricted child-JVM static tooling, and fatal gates for declared runtime contracts. They are not a Java sandbox.
+
+## Ecosystem direction
+
+Spindle should grow around the loader, not by bloating it.
+
+The intended long-term split is:
+
+```text
+Spindle Loader
+  Owns discovery, validation, resolution, runtime contracts, classloading,
+  lifecycle execution, security diagnostics, and the runtime-facing loader API.
+
+Minecraft Target Layer
+  Owns Minecraft launch integration, version and mapping handling, target
+  lifecycle bridging, target diagnostics, and future target hook installation.
+
+Spindle API Layer
+  Owns developer-facing Minecraft APIs such as events, registries, resources,
+  networking, commands, client APIs, world hooks, and developer utilities.
+
+Spindle Performance Layer
+  Owns first-party optimization modules. These modules may integrate deeply with
+  the target and API layers, but should not become loader-core responsibilities.
+
+Third-Party Mods
+  Depend on stable Spindle contracts and API surfaces. Mods should declare their
+  needs clearly rather than relying on hidden Minecraft internals.
+```
+
+## Repository layout
+
+```text
+.
+|-- loader-api
+|   `-- Public runtime-facing loader API used by mods today.
+|
+|-- loader-core
+|   `-- Loader implementation, runtime contracts, diagnostics, security,
+       classloading, lifecycle execution, and Minecraft target foundation.
+|
+|-- sample-mod
+|   `-- Basic sample mod for the sample provider.
+|
+|-- sample-runtime-mod
+|   `-- Sample mod that exercises runtime-facing config, services, storage,
+       and capability behavior.
+|
+|-- sample-minecraft-mod
+|   `-- Sample Minecraft-targeted bootstrap mod. This uses deferred
+       Minecraft-facing API surfaces and is not a stable Minecraft API example.
+|
+|-- sample-game
+|   `-- Fake sample game provider used for deterministic loader smoke tests.
+|
+|-- sample-server-fixture
+|   `-- Fake server fixture used by Minecraft server planning and bootstrap tests.
+|
+|-- docs
+|   |-- architecture
+|   `-- mods
+|
+|-- backlog
+|   `-- Longer-term direction notes.
+|
+`-- runtime
+    `-- Generated local runtime outputs. This directory is ignored by Git.
+```
+
+## Loader subsystem breakdown
+
+The current repository should be evaluated as these completed loader categories.
+
+### Mod Intake
+
+Handles the input side of mod loading:
+
+- mod discovery
+- metadata parsing
+- artifact identity
+- artifact trust state
+- static risk signal collection
+
+### Resolution and Planning
+
+Turns discovered artifacts into deterministic loader plans:
+
+- dependency resolution
+- version requirement handling
+- frozen mod graph generation
+- classpath planning
+- ownership indexing
+- resource conflict indexing
+
+### Runtime Contract System
+
+Compiles mod declarations into deterministic runtime behavior:
+
+- compiled runtime profile
+- capability grants
+- storage grants
+- config schema runtime
+- deterministic service registry
+- lifecycle contract
+- runtime closure contract
+- target handoff boundary
+
+### Security and Diagnostics
+
+Reports loader trust and failure state without pretending Java execution is sandboxed:
+
+- trust boundary report
+- security gates
+- warning-only risk signals
+- restricted static tooling
+- runtime honesty disclosures
+- developer and user diagnostics
+
+### Runtime Execution
+
+Executes loader-controlled runtime behavior after validation gates:
+
+- runtime config materialization
+- runtime service planning
+- classloader creation
+- `ModContext` materialization
+- lifecycle execution
+- failure translation into public API exceptions
+
+### Runtime-facing Loader API
+
+Provides the stable public API surface for loader runtime behavior:
+
+- `LoaderApi`
+- `ModInitializer`
+- `ModContext`
+- capability checks
+- storage access
+- config access
+- service access
+- public loader exceptions
+
+## Stable Loader API
+
+Loader API-0 stabilizes only the runtime-facing `loader-api` surface.
+
+Stable today:
+
+- `com.spindle.api.LoaderApi`
+- `com.spindle.api.ModContext`
+- `com.spindle.api.ModInitializer`
+- `com.spindle.api.config.ModConfig`
+- `com.spindle.api.exception.*`
+- `com.spindle.api.lifecycle.LifecyclePhase`
+- `com.spindle.api.service.ServiceRegistry`
+
+Deferred:
+
+- `com.spindle.api.minecraft.*`
+
+The public API metadata currently reports:
+
+```text
+RUNTIME_API_VERSION = 1
+API_STATUS = runtime-api-stabilized
+API_SCOPE = runtime-facing-loader-api
+TARGET_MODEL = minecraft-as-target-not-foundation
+SANDBOXED = false
+SANDBOX_CLAIM = not-sandboxed
+```
+
+`com.spindle.api.minecraft.*` exists only as a deferred Minecraft bootstrap surface. It is not part of the stabilized runtime-facing Loader API.
+
+## Runtime contracts
+
+The current compiled profile schema is schema `6`.
+
+The runtime contract system includes:
+
+- capability grant contract
+- mod-owned storage grants
+- config schema runtime
+- deterministic service registry
+- runtime closure contract
+- runtime honesty fields
+- unavailable resource capability declarations
+- deterministic gate order
+
+Current resource capabilities remain intentionally unavailable:
+
+```text
+resource.declare
+resource.overlay
+```
+
+Those belong to future Resource and Data API work, not the completed loader spine.
+
+## Capabilities
+
+The current grantable runtime capabilities include loader-owned runtime surfaces such as:
+
+```text
+storage.config
+storage.data
+storage.cache
+storage.generated
+config.read
+config.write
+service.provide
+service.consume
+```
+
+Broad Java behaviors such as process execution, native access, network access, and reflection are visibility or risk-reporting concerns. They are not treated as sandbox-enforced grants in the current loader.
+
+## Config
+
+Mods may declare flat schema-2 config entries in `loader.mod.json`. The runtime config system supports primitive config types:
+
+```text
+boolean
+integer
+number
+string
+```
+
+Config is materialized under mod-owned config storage:
+
+```text
+runtime/config/<modId>/config.json
+```
+
+The public `ModConfig` API exposes declared keys only. Writes require the appropriate runtime grant and must pass schema validation. Integer config is signed 32-bit end-to-end.
+
+## Services
+
+Mods may declare deterministic service providers and service consumers in metadata. The loader compiles those declarations into the runtime service contract and exposes per-mod service views through `context.services()`.
+
+Service providers are planned before classloading gates and instantiated lazily after fatal gates pass. Mods only see services they declared as consumed.
+
+## Security posture
+
+Spindle security is explicit about what it does and does not do.
+
+It does:
+
+- validate metadata and runtime contracts
+- report artifact trust state
+- emit warning-only static risk signals
+- run restricted static tooling in child JVMs
+- gate standard runtime lifecycle execution on fatal validation failures
+- document runtime honesty fields
+- expose developer and user diagnostics
+
+It does not:
+
+- sandbox Java mod execution
+- claim process, network, native, or reflection access is blocked
+- transform arbitrary Java code into safe code
+- guarantee third-party mod safety
+- make warning-only static risk signals fatal unless a future contract explicitly does so
+
+## Minecraft target foundation
+
+The repository contains a partial Minecraft target foundation under `loader-core`.
+
+Current target work includes:
+
+- Minecraft version planning
+- vanilla server artifact handling
+- cache inspection and repair flows
+- runtime boundary reports
+- mod integration planning
+- preflight reports
+- reproducibility checks
+- server bootstrap fixture tests
+- a narrow server-side bootstrap path for approved Spindle Minecraft server entrypoints
+
+This is not yet a completed Minecraft Target Layer. In particular, the target hook system and custom injection hooker are not implemented. Full Minecraft gameplay APIs are also not implemented.
+
+The target layer should eventually become a first-class subsystem around the loader. It should consume loader contracts and lower them into Minecraft-specific behavior without making loader-core responsible for every Minecraft concern.
+
+## Build and verification
+
+Run all tests:
+
+```bash
+./gradlew test
+```
+
+Run formatting checks:
+
+```bash
+./gradlew spotlessCheck
+```
+
+Apply formatting:
+
+```bash
+./gradlew spotlessApply
+```
+
+Run focused loader smoke flows:
+
+```bash
+./gradlew runMilestone0
+./gradlew validateMilestone0
+./gradlew explainMilestone0
+```
+
+Run focused Minecraft planning and bootstrap checks:
+
+```bash
+./gradlew minecraftMegaMilestone7Check
+./gradlew minecraftMilestone8Check
+```
+
+Run current runtime and loader API tests through the normal Gradle test task:
+
+```bash
+./gradlew :loader-core:test
+./gradlew :loader-api:test
+```
+
+## Common tasks
+
+Sample launch:
 
 ```bash
 ./gradlew runMilestone0
@@ -29,7 +456,7 @@ Validation-only sample run:
 ./gradlew validateMilestone0
 ```
 
-Validation plus explain summary:
+Validation with explain summary:
 
 ```bash
 ./gradlew explainMilestone0
@@ -47,34 +474,64 @@ Minecraft server dry run:
 ./gradlew minecraftServerDryRun
 ```
 
-Managed fake server launch smoke:
+Minecraft server runtime plan:
 
 ```bash
-./gradlew minecraftServerLaunchFakeSmoke
+./gradlew minecraftServerRuntimePlan
 ```
 
-Managed server cache inspect:
+Minecraft runtime boundary report:
 
 ```bash
-./gradlew minecraftServerCacheInspect
+./gradlew minecraftServerRuntimeBoundary
 ```
 
-Managed server cache repair:
+Minecraft mod integration plan:
 
 ```bash
-./gradlew minecraftServerCacheRepair
+./gradlew minecraftModIntegrationPlan
 ```
 
-Managed server offline cache check:
+Minecraft preflight:
 
 ```bash
-./gradlew minecraftServerOfflineCacheCheck
+./gradlew minecraftPreflight
 ```
 
-Managed server download smoke:
+Minecraft reproducibility check:
 
 ```bash
-./gradlew minecraftServerDownloadSmoke
+./gradlew minecraftReproducibilityCheck
+```
+
+Milestone 8 Minecraft mod execution plan:
+
+```bash
+./gradlew minecraftModExecutionPlan
+```
+
+Milestone 8 bootstrap classloader graph:
+
+```bash
+./gradlew minecraftBootstrapClassloaderGraph
+```
+
+Milestone 8 fake Minecraft bootstrap smoke:
+
+```bash
+./gradlew minecraftServerBootstrapFakeSmoke
+```
+
+Milestone 8 approved Minecraft server mod execution smoke:
+
+```bash
+./gradlew minecraftServerModExecutionFakeSmoke
+```
+
+Milestone 8 offline bootstrap replay smoke:
+
+```bash
+./gradlew minecraftServerModExecutionOfflineReplay
 ```
 
 Real vanilla server baseline acquire:
@@ -101,54 +558,6 @@ Optional real vanilla server EULA smoke:
 ./gradlew minecraftRealServerEulaSmoke -PmcRealVersion=latest-release
 ```
 
-Managed real local server dry smoke:
-
-```bash
-./gradlew minecraftServerLaunchDrySmoke -PminecraftDir=C:\path\to\.minecraft
-```
-
-Mega-Milestone 7 runtime plan:
-
-```bash
-./gradlew minecraftServerRuntimePlan
-```
-
-Mega-Milestone 7 fake bundled server runtime smoke:
-
-```bash
-./gradlew minecraftServerBundledFixtureSmoke
-```
-
-Mega-Milestone 7 runtime boundary report:
-
-```bash
-./gradlew minecraftServerRuntimeBoundary
-```
-
-Mega-Milestone 7 mod integration plan:
-
-```bash
-./gradlew minecraftModIntegrationPlan
-```
-
-Mega-Milestone 7 preflight:
-
-```bash
-./gradlew minecraftPreflight
-```
-
-Mega-Milestone 7 reproducibility check:
-
-```bash
-./gradlew minecraftReproducibilityCheck
-```
-
-Mega-Milestone 7 fixture check suite:
-
-```bash
-./gradlew minecraftMegaMilestone7Check
-```
-
 Optional Mache reference scan:
 
 ```bash
@@ -156,6 +565,66 @@ Optional Mache reference scan:
 ```
 
 If `-PmacheDir` is not provided, `macheReferenceScan` prints a skip message and does nothing else.
+
+## Generated outputs
+
+Typical validation and runtime flows write reports under `runtime/`.
+
+Common loader outputs:
+
+```text
+runtime/spindle.profile.json
+runtime/spindle.report.json
+runtime/spindle.graph.json
+runtime/spindle.lock.json
+runtime/spindle.security-report.json
+runtime/spindle.lifecycle-report.json
+runtime/spindle.quality-report.json
+runtime/diagnostics/startup-trace.json
+runtime/diagnostics/startup-profile.json
+```
+
+Common Minecraft target foundation outputs:
+
+```text
+runtime/minecraft-launch-plan.json
+runtime/minecraft-artifacts.json
+runtime/minecraft-server-runtime-plan.json
+runtime/minecraft-runtime-boundary.json
+runtime/minecraft-mod-integration-plan.json
+runtime/spindle.preflight.json
+runtime/minecraft-runtime-provenance.json
+runtime/minecraft-reproducibility-check.json
+runtime/minecraft-mod-execution-plan.json
+runtime/minecraft-bootstrap-classloader-graph.json
+runtime/minecraft-server-bootstrap-result.json
+runtime/minecraft-mod-execution-result.json
+```
+
+`runtime/` is generated local state and is ignored by Git.
+
+## CLI notes
+
+Use `--game-provider sample` for the fake sample provider and `--game-provider minecraft` for Minecraft planning and target foundation flows.
+
+Useful Minecraft flags include:
+
+```text
+--minecraft-version <version>
+--minecraft-side <client|server>
+--minecraft-server
+--minecraft-dry-run
+--minecraft-plan-runtime
+--minecraft-runtime-boundary
+--minecraft-plan-mods
+--minecraft-preflight
+--minecraft-reproducibility-check
+--strict-resources
+--strict-packages
+--offline
+```
+
+Use `--strict-resources` to fail on duplicate non-class resources. Use `--strict-packages` to fail on split packages. Without those flags, duplicate resources and split packages are recorded as diagnostics only.
 
 ## Expected sample output
 
@@ -181,249 +650,59 @@ Game starting
 [spindle] startup complete
 ```
 
-## Validation and dry-run outputs
+## Documentation
 
-Validation mode resolves and verifies the modpack without loading mod classes, creating a mod class loader, invoking entrypoints, or launching the game. Successful validation writes:
-
-- `runtime/spindle.profile.json`
-- `runtime/spindle.report.json`
-- `runtime/spindle.graph.json`
-- `runtime/diagnostics/startup-trace.json`
-- `runtime/diagnostics/startup-profile.json`
-
-Minecraft dry run keeps the same deterministic mod-resolution pipeline, then parses Minecraft version metadata and writes:
-
-- `runtime/spindle.profile.json`
-- `runtime/minecraft-launch-plan.json`
-- `runtime/minecraft-artifacts.json`
-- `runtime/spindle.report.json`
-- `runtime/spindle.graph.json`
-- `runtime/diagnostics/startup-trace.json`
-- `runtime/diagnostics/startup-profile.json`
-
-If Mache reference scanning is enabled, it also writes:
-
-- `runtime/mache-reference-report.json`
-
-Milestone 5 adds an explicit verified vanilla server artifact cache under `runtime/minecraft-cache/`. Milestone 6 extends that into a real official vanilla server baseline flow. The loader can resolve an official Mojang server version, cache version metadata, cache only the vanilla server jar, verify cached server artifacts, write `runtime/minecraft-artifacts.json`, write `runtime/minecraft-cache/versions/<version>/server-artifacts.lock.json`, and write `runtime/minecraft-server-baseline.json` after a successful baseline resolution.
-
-Milestone 6 also adds an explicit offline replay path. Offline replay uses only cached manifest metadata, cached version JSON, and a cached verified server jar. It performs zero network requests, writes the normal artifact and launch-plan reports, and writes a deterministic baseline report.
-
-Mega-Milestone 7 adds a server runtime planning layer between artifact resolution and process launch. Server planning writes `runtime/minecraft-server-runtime-plan.json`, selects simple-jar or bundled-server mode, records a deterministic structured launch command preview, materializes bundled runtime libraries under `runtime/minecraft-cache/versions/<version>/server-runtime/`, verifies cache-owned runtime files, and proves analysis-only behavior.
-
-Mega-Milestone 7 also writes:
-
-- `runtime/minecraft-runtime-boundary.json`
-- `runtime/minecraft-mod-integration-plan.json`
-- `runtime/spindle.preflight.json`
-- `runtime/minecraft-runtime-provenance.json`
-- `runtime/minecraft-reproducibility-check.json`
-
-The runtime boundary report indexes Minecraft runtime packages, resources, services, module-info presence, multi-release jars, native libraries, duplicate resources, split packages, classpath ownership by layer, and explicit proof fields showing that no Minecraft injection, mod class loading, entrypoint invocation, Mixin, remapping, transformation, patching, or mod-runtime classpath attachment occurred. It is analysis-only and defines boundaries future mods must not cross.
-
-The mod integration plan discovers Spindle mod jars intended for Minecraft server usage, parses `loader.mod.json`, validates loader, Java, Minecraft, side, dependency, and breaks metadata, scans jar bytes, and freezes a would-load order. `--minecraft-plan-mods` performs the required prerequisite runtime analysis first, writes the runtime plan and boundary report, writes `runtime/minecraft-mod-integration-plan.json`, never launches Minecraft, never defines or loads scanned mod classes, and never invokes `ModInitializer`.
-
-The preflight report is now a real gate instead of a declarative summary. `runtime/spindle.preflight.json` keeps accepted and rejected counts, warning and fatal counts, rejected mod details, and explicit failure reasons. Preflight exits non-zero when fatal runtime boundary issues exist, fatal integration issues exist, or any discovered Minecraft-targeted mod candidate is rejected.
-
-The reproducibility report is also real. `runtime/minecraft-reproducibility-check.json` compares the generated runtime plan, runtime boundary, mod integration plan, and preflight report when present against a controlled second run, records both file paths and SHA-256 hashes, reports byte equality, and flags nondeterministic ordering, timestamp leakage, path instability, or offline-network violations.
-
-Downloads remain explicit and limited to Minecraft version metadata plus the vanilla server jar. This milestone does not download client jars, client assets, client libraries, client natives, mappings, or source.
-
-Managed Minecraft behavior remains server-only. Minecraft client launch is still not implemented. The loader does not inject mods into Minecraft, put mod jars on the Minecraft server classpath, create a mod classloader for Minecraft server launch, invoke mod entrypoints on the Minecraft server launch path, patch entrypoints, transform classes, remap classes, or perform authentication. Bundled official server runtime support is still fixture-proven and verification-hardened here; it is not yet presented as broad real-world mod loading support.
-
-Use `--strict-resources` to fail on duplicate non-class resources, and `--strict-packages` to fail on split packages. Without those flags, duplicate resources and split packages are recorded as diagnostics only.
-
-## Minecraft CLI flags
-
-Use these with `--game-provider minecraft`:
-
-- `--minecraft-version <version>`
-- `--minecraft-dir <path>`
-- `--minecraft-version-json <path>`
-- `--minecraft-manifest-json <path>`
-- `--minecraft-side client|server`
-- `--minecraft-dry-run`
-- `--minecraft-verify-files`
-- `--minecraft-fetch-metadata`
-- `--minecraft-download-server`
-- `--minecraft-cache-dir <path>`
-- `--minecraft-offline`
-- `--minecraft-cache-inspect`
-- `--minecraft-cache-repair`
-- `--minecraft-cache-strict`
-- `--minecraft-force-redownload`
-- `--minecraft-output-plan <path>`
-- `--minecraft-launch`
-- `--minecraft-baseline-server`
-- `--minecraft-baseline-version <version|latest-release|latest-snapshot>`
-- `--minecraft-baseline-report <path>`
-- `--minecraft-offline-replay`
-- `--minecraft-require-ready`
-- `--minecraft-real-smoke`
-- `--minecraft-server-dir <path>`
-- `--minecraft-server-jvm-arg <arg>` repeatable
-- `--minecraft-server-arg <arg>` repeatable
-- `--minecraft-launch-timeout-seconds <seconds>`
-- `--minecraft-stop-after-ready`
-- `--minecraft-ready-timeout-seconds <seconds>`
-- `--minecraft-accept-eula-for-test`
-- `--minecraft-runtime-plan`
-- `--minecraft-plan-mods`
-- `--minecraft-integration-plan`
-- `--minecraft-boundary-report`
-- `--minecraft-preflight`
-- `--minecraft-offline-preflight`
-- `--minecraft-strict-boundary`
-- `--minecraft-strict-runtime-conflicts`
-- `--minecraft-strict-side`
-- `--minecraft-strict-class-versions`
-- `--minecraft-explain-boundary`
-- `--minecraft-explain-runtime`
-- `--minecraft-explain-mods`
-- `--minecraft-reproducibility-check`
-
-Behavior notes:
-
-- `--game-provider sample` remains the default.
-- `--game-provider minecraft` requires `--minecraft-dry-run`.
-- `--minecraft-launch` is server-only, requires `--minecraft-side server`, and also requires `--minecraft-verify-files`.
-- `--minecraft-baseline-server` enables the real official vanilla server baseline flow without changing the project target `26.1.2`.
-- `--minecraft-baseline-version` selects the real official server version to resolve. Use `latest-release`, `latest-snapshot`, or an exact Mojang version id. The Gradle real-smoke tasks use `-PmcRealVersion=latest-release` by default.
-- `--minecraft-baseline-report` defaults to `runtime/minecraft-server-baseline.json`.
-- `--minecraft-offline-replay` requires `--minecraft-baseline-server` and `--minecraft-offline`.
-- `--minecraft-require-ready` makes readiness detection mandatory for success when launch is attempted.
-- `--minecraft-real-smoke` is an explicit marker for real baseline acquisition and smoke tasks. It requires `--game-provider minecraft`, `--minecraft-side server`, and `--minecraft-dry-run`.
-- `--minecraft-launch` still writes `minecraft-launch-plan.json` before process launch.
-- `--minecraft-server-dir` defaults to `runtime/minecraft-server/<version>`.
-- Real baseline server launch defaults to `runtime/minecraft-server-baseline/<resolvedVersion>`.
-- `--minecraft-server-jvm-arg` values are inserted before the planned launch mode.
-- `--minecraft-server-arg` values are inserted after the planned server main target. If none are provided, the managed launch defaults to `nogui`.
-- `--minecraft-launch-timeout-seconds` defaults to `30`.
-- `--minecraft-ready-timeout-seconds` defaults to `20`.
-- `--minecraft-stop-after-ready` watches for a conservative ready line and then sends `stop`.
-- `--minecraft-accept-eula-for-test` writes `eula=true` in the managed server directory before launch. Use this only for local testing and only if you accept Mojang's EULA.
-- `--minecraft-version-json` overrides local version JSON discovery.
-- `--minecraft-manifest-json` is used only for metadata resolution.
-- `--minecraft-fetch-metadata` may fetch only the version manifest and version JSON.
-- `--minecraft-download-server` explicitly allows caching the vanilla server jar.
-- `--minecraft-cache-dir` defaults to `minecraft-cache` relative to the runtime working directory, which maps to `runtime/minecraft-cache` for Gradle tasks and avoids `runtime/runtime/minecraft-cache`.
-- `--minecraft-offline` disables all network fetches and downloads.
-- `--minecraft-offline` forbids all network fetches and downloads.
-- `--minecraft-cache-inspect` inspects cache state, writes `runtime/minecraft-artifacts.json`, writes diagnostics/profile output, and does not launch Minecraft.
-- `--minecraft-cache-repair` may repair missing or invalid cached metadata and the cached server jar, but only when downloads are otherwise allowed.
-- `--minecraft-cache-strict` fails missing, corrupt, or hash-mismatched cache-owned runtime files and cache lock mismatches.
-- `--minecraft-force-redownload` refreshes allowed cache artifacts even when a cached copy already exists.
-- `--minecraft-dir` defaults to the standard user Minecraft directory only when it can be determined safely for the current OS.
-- `--minecraft-download-server` by itself never downloads anything except metadata needed to identify the server jar and the vanilla server jar itself.
-- `--minecraft-runtime-plan` writes `runtime/minecraft-server-runtime-plan.json` and `runtime/minecraft-runtime-provenance.json`.
-- `--minecraft-boundary-report` writes `runtime/minecraft-runtime-boundary.json`.
-- `--minecraft-plan-mods` performs runtime planning plus boundary analysis before writing `runtime/minecraft-mod-integration-plan.json`.
-- `--minecraft-integration-plan` writes `runtime/minecraft-mod-integration-plan.json`.
-- `--minecraft-preflight` runs runtime planning, boundary reporting, and mod integration planning, writes `runtime/spindle.preflight.json`, and exits non-zero on fatal issues or rejected required mod candidates before launch or class loading.
-- `--minecraft-offline-preflight` combines preflight with offline cache-only behavior.
-- `--minecraft-reproducibility-check` writes `runtime/minecraft-reproducibility-check.json` after rerunning the relevant report generation path and comparing deterministic outputs byte-for-byte.
-- `--minecraft-strict-boundary` promotes boundary warnings such as runtime duplicate-resource and split-package findings to fatal now.
-- `--minecraft-strict-runtime-conflicts` promotes runtime and mod-vs-runtime package/resource conflict findings to fatal now.
-- `--minecraft-strict-side` makes side mismatch a fatal mod-planning issue.
-- `--minecraft-strict-class-versions` makes unsupported or too-new class files a fatal mod-planning issue.
-- `--minecraft-explain-runtime`, `--minecraft-explain-boundary`, and `--minecraft-explain-mods` print deterministic CI-friendly reasons for runtime mode, boundary ownership, and mod acceptance/rejection.
-
-When `--minecraft-launch` is used, the loader also writes `runtime/minecraft-server-launch-result.json` with the managed process command preview, launch outcome, timing, and bounded stdout/stderr tails.
-
-`minecraftServerLaunchDrySmoke` does not require a real Minecraft server jar by default. If `-PminecraftDir` is not provided, it prints a clear skip message and exits successfully.
-
-`minecraftServerLaunchFakeSmoke` builds a tiny fake server jar, launches it through the managed Minecraft server path, detects readiness, sends `stop`, and writes `runtime/minecraft-server-launch-result.json`.
-
-`minecraftServerCacheInspect` does not require network and prints:
+Architecture docs:
 
 ```text
-[spindle] minecraft cache inspection complete
+docs/architecture/security-posture.md
+docs/architecture/restricted-security-tooling.md
+docs/architecture/runtime-0-compiled-profile-footprint.md
+docs/architecture/runtime-1-compiled-runtime-kernel.md
+docs/architecture/runtime-2-capability-grant-contract.md
+docs/architecture/runtime-3-deterministic-service-registry.md
+docs/architecture/runtime-4-config-schema-runtime.md
+docs/architecture/runtime-5-runtime-contract-closure.md
+docs/architecture/loader-api-0-public-runtime-api-boundary.md
+docs/architecture/loader-api-hardening.md
+docs/architecture/foundation-hardening-loader-runtime.md
 ```
 
-`minecraftServerCacheRepair` is the explicit network-enabled repair path for metadata plus the vanilla server jar.
+Mod-facing docs:
 
-`minecraftServerOfflineCacheCheck` verifies that a previously populated cache is complete enough to run offline. It is allowed to fail when the cache has not been populated yet.
-
-`minecraftServerDownloadSmoke` is the explicit network-enabled smoke path. It fetches metadata if needed, fetches and verifies the vanilla server jar if needed, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-cache/versions/<version>/server-artifacts.lock.json`, writes `runtime/minecraft-launch-plan.json`, and then attempts a managed vanilla server launch. It does not pass `--minecraft-accept-eula-for-test` by default.
-
-`minecraftRealServerAcquire` is the explicit real-baseline acquisition path. It resolves the real official server version from Mojang metadata, fetches only manifest metadata, version metadata, and the vanilla server jar, verifies those artifacts, writes `runtime/minecraft-artifacts.json`, writes `runtime/minecraft-launch-plan.json`, writes `runtime/minecraft-server-baseline.json`, and does not launch the server.
-
-`minecraftRealServerSmoke` is the explicit real-baseline launch smoke path. It uses official Mojang metadata and a verified vanilla server jar, launches only the server side, writes `runtime/minecraft-server-launch-result.json` when the process starts, and does not inject mods.
-
-`minecraftRealServerOfflineReplay` is the explicit cache-only replay path. It uses `--minecraft-offline` plus `--minecraft-offline-replay`, performs zero network requests, verifies cached metadata and the cached verified server jar, writes the same reports, and may fail clearly if the cache is incomplete.
-
-`minecraftRealServerEulaSmoke` is local-only and should be run only if you explicitly accept Mojang's EULA. It adds `--minecraft-accept-eula-for-test`, waits for readiness, sends `stop`, and requires readiness before treating the run as successful.
-
-`minecraftRealServerRuntimeAcquire`, `minecraftRealServerRuntimeSmoke`, and `minecraftRealServerRuntimeOfflineReplay` are the real-server Mega-Milestone 7 runtime-plan variants. They preserve the Milestone 6 real-baseline behavior while adding runtime capsule and boundary reports.
-
-## Mega-Milestone 7 severity model
-
-Mega-Milestone 7 diagnostics use four severities:
-
-- `info`: deterministic context or proof statements
-- `warning`: allowed now, but usually fatal before a future injection milestone
-- `error`: invalid input or metadata that rejects a mod candidate
-- `fatal`: execution cannot continue, or strict mode promoted the issue
-
-Boundary reports also label issues as fatal now, warning now but fatal before injection, informational only, or strict-mode fatal.
-
-## Remaining gap before real Minecraft mod loading
-
-Before real Minecraft mod loading can happen, Spindle still needs a safe Minecraft classloader attachment design, injection lifecycle, verified entrypoint execution boundary, compatibility and conflict policy, and explicit user-facing safety gates. Mega-Milestone 7 prepares those decisions by owning the Minecraft runtime plan and freezing the pre-mod boundary, but it does not cross into injection.
-
-## Mache reference scan
-
-Optional Mache flags:
-
-- `--mache-dir <path>`
-- `--mache-version <version>`
-- `--mache-reference-scan`
-
-The Mache scan is reference-only. It does not clone Mache, compile Mache, read source snippets, copy Mache code, or add any dependency on Mache. It only scans repository layout and metadata. If the detected license text looks LGPL, the generated report includes a warning that Mache must remain reference-only and must not be copied into this MIT project.
-
-## Intentionally not implemented yet
-
-- Minecraft client launch
-- mod injection into Minecraft
-- Mixin
-- class transformation
-- remapping
-- patching
-- Fabric compatibility
-- Forge or NeoForge compatibility
-- Paper compatibility
-- Mache compatibility
-- Vulkan renderer integration
-- optimization modules
-- broad gameplay APIs
-- older Java support
-- older Minecraft support
-Milestone 8 execution plan:
-
-```bash
-./gradlew minecraftModExecutionPlan
+```text
+docs/mods/loader-api.md
+docs/mods/capabilities.md
+docs/mods/config.md
+docs/mods/services.md
+docs/mods/artifact-trust.md
+docs/mods/static-risk-signals.md
+docs/mods/security-and-trust-boundaries.md
+docs/mods/security-scenarios.md
 ```
 
-Milestone 8 bootstrap classloader graph:
+## Development guidance
 
-```bash
-./gradlew minecraftBootstrapClassloaderGraph
+Keep loader changes small and local. The current loader spine is intended to be stable enough to build around.
+
+Prefer future work to land in the correct layer:
+
+```text
+Loader problem
+  Put it in Spindle Loader.
+
+Minecraft integration problem
+  Put it in Minecraft Target Layer.
+
+Developer-facing gameplay API problem
+  Put it in Spindle API Layer.
+
+Optimization problem
+  Put it in Spindle Performance Layer.
 ```
 
-Milestone 8 fake server bootstrap smoke:
+Do not add unrelated ECS, threading, injection, simulation, compatibility, or optimization features to the loader core. Do not imply Java mod execution is sandboxed. Do not stabilize `com.spindle.api.minecraft.*` until the Minecraft Target Layer and API Layer are intentionally ready for that boundary.
 
-```bash
-./gradlew minecraftServerBootstrapFakeSmoke
-```
+## License
 
-Milestone 8 offline bootstrap replay smoke:
-
-```bash
-./gradlew minecraftServerModExecutionOfflineReplay
-```
-
-Milestone 8 focused check:
-
-```bash
-./gradlew minecraftMilestone8Check
-```
+See `LICENSE`.
