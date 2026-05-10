@@ -51,6 +51,8 @@ Both remain unavailable in the capability catalog and in `runtimeClosure`. Runti
 
 Runtime-5 closes the runtime contract inventory so the next planned arc can focus on public API design:
 
-- `nextArc: "Loader API Arc"`
+- `nextArc: "Minecraft Target Arc"`
 
 Loader API-0 is the follow-up pass that stabilizes the runtime-facing `loader-api` boundary, adds public API metadata and unchecked exceptions, and keeps `com.spindle.api.minecraft.*` deferred. Runtime-5 only prepares that boundary.
+
+Later foundation hardening keeps this contract inventory fresh without changing Runtime closure contract version `2`, Runtime API version `1`, compiled profile schema `6`, or runtime honesty fields. Java mod execution remains `in-process-unrestricted-java`, `sandboxed` remains `false`, and `sandboxClaim` remains `not-sandboxed`.

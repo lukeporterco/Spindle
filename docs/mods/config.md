@@ -57,6 +57,7 @@ Rules:
 - no TOML or YAML
 - only declared keys are accessible
 - getters must match the declared type
+- `integer` means signed 32-bit only (`-2147483648` through `2147483647`)
 
 Spindle stores the file at `config/<modId>/config.json`.
 
@@ -69,5 +70,8 @@ Mod-facing config API failures use `ConfigAccessException`, including:
 - denied writes
 - writes while `config.runtimeWrites` is false
 - invalid runtime values
+- non-finite `setNumber(...)` values such as `NaN`, `Infinity`, and `-Infinity`
 - unavailable fallback config views such as `ModConfig.empty()`
 - persistence failures while saving runtime writes
+
+This config hardening pass does not change Runtime API version `1`, compiled profile schema `6`, or Runtime-4 config schema shape.

@@ -66,7 +66,7 @@ public final class RuntimeServicePlanner {
           RuntimeServiceStates.CONFLICT,
           "Multiple mods provide service `"
               + provider.id()
-              + "`, so Runtime-3 does not select a provider.");
+              + "`, so Spindle does not select a provider.");
     }
     String implementationOwner =
         classOwnershipIndex.ownerOfClass(provider.implementation()).orElse(null);
@@ -117,7 +117,7 @@ public final class RuntimeServicePlanner {
               null,
               "Multiple providers declare service `"
                   + consumer.id()
-                  + "`, so Runtime-3 does not bind a winner."),
+                  + "`, so Spindle does not bind a winner."),
           new RuntimeServiceBinding(
               consumer.id(),
               consumerModId,

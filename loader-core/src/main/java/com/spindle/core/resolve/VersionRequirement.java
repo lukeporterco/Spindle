@@ -1,6 +1,9 @@
 package com.spindle.core.resolve;
 
+import java.math.BigInteger;
+
 final class VersionRequirement {
+  private static final BigInteger MAX_SUPPORTED_SEGMENT = BigInteger.valueOf(Integer.MAX_VALUE);
   private final String text;
   private final String minimumVersion;
 
@@ -22,6 +25,9 @@ final class VersionRequirement {
   }
 
   boolean matches(String actualVersion) {
+    if (!isSupportedVersion(actualVersion)) {
+      return false;
+    }
     return compareVersions(actualVersion, minimumVersion) >= 0;
   }
 
@@ -36,6 +42,9 @@ final class VersionRequirement {
     }
     for (String segment : segments) {
       if (segment.isEmpty() || !segment.chars().allMatch(Character::isDigit)) {
+        return false;
+      }
+      if (new BigInteger(segment).compareTo(MAX_SUPPORTED_SEGMENT) > 0) {
         return false;
       }
     }

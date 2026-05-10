@@ -1,5 +1,6 @@
 package com.spindle.core.minecraft;
 
+import com.spindle.core.artifact.MinecraftVersionId;
 import com.spindle.core.diagnostics.LoaderException;
 
 public final class MinecraftVersionSelector {
@@ -20,7 +21,8 @@ public final class MinecraftVersionSelector {
       if (resolved == null || resolved.isBlank()) {
         throw unresolved(requestedVersion, manifest);
       }
-      return new MinecraftVersionSelection(requestedVersion, resolved, "manifest");
+      return new MinecraftVersionSelection(
+          requestedVersion, MinecraftVersionId.requireSafe(resolved), "manifest");
     }
     if ("latest-snapshot".equals(requestedVersion)) {
       if (manifest == null) {
@@ -31,13 +33,16 @@ public final class MinecraftVersionSelector {
       if (resolved == null || resolved.isBlank()) {
         throw unresolved(requestedVersion, manifest);
       }
-      return new MinecraftVersionSelection(requestedVersion, resolved, "manifest");
+      return new MinecraftVersionSelection(
+          requestedVersion, MinecraftVersionId.requireSafe(resolved), "manifest");
     }
 
     if (manifest == null) {
       if (explicitVersionJsonSupplied) {
         return new MinecraftVersionSelection(
-            requestedVersion, requestedVersion, "explicit-version-json");
+            requestedVersion,
+            MinecraftVersionId.requireSafe(requestedVersion),
+            "explicit-version-json");
       }
       throw new LoaderException(
           "Minecraft version selection requires a version manifest for " + requestedVersion + ".");
@@ -45,10 +50,13 @@ public final class MinecraftVersionSelector {
 
     if (explicitVersionJsonSupplied) {
       return new MinecraftVersionSelection(
-          requestedVersion, requestedVersion, "explicit-version-json");
+          requestedVersion,
+          MinecraftVersionId.requireSafe(requestedVersion),
+          "explicit-version-json");
     }
     if (manifest.findVersion(requestedVersion).isPresent()) {
-      return new MinecraftVersionSelection(requestedVersion, requestedVersion, "manifest");
+      return new MinecraftVersionSelection(
+          requestedVersion, MinecraftVersionId.requireSafe(requestedVersion), "manifest");
     }
     throw unresolved(requestedVersion, manifest);
   }

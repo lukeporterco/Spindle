@@ -15,7 +15,7 @@ public final class SecurityGate {
             .orElseThrow();
     StringBuilder message =
         new StringBuilder(
-            "Security validation blocked Runtime-1 lifecycle execution with "
+            "Security validation blocked standard runtime lifecycle execution with "
                 + validationResult.fatalCount()
                 + " fatal finding(s). ");
     message.append('[').append(firstFinding.ruleId().id()).append("] ");

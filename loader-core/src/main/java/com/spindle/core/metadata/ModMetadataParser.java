@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ public final class ModMetadataParser {
   private static final Pattern SERVICE_ID_PATTERN =
       Pattern.compile("[a-z][a-z0-9_-]{1,63}:[a-z][a-z0-9_.-]{1,127}");
   private static final Pattern CONFIG_KEY_PATTERN = Pattern.compile("[a-z][a-z0-9_-]{0,63}");
+  private static final Set<String> BUILTIN_DEPENDENCY_IDS = Set.of("loader", "java", "minecraft");
   private static final Set<String> VALID_SIDES = Set.of("universal", "client", "server");
   private static final Set<String> VALID_LIFECYCLE_PHASES =
       Set.of(
@@ -487,7 +489,7 @@ public final class ModMetadataParser {
           }
           yield Boolean.toString(element.getAsBoolean());
         }
-        case "integer" -> canonicalInteger(element.getAsString());
+        case "integer" -> canonicalInt32(element.getAsString(), modId, key, fieldName, sourceName);
         case "number" -> canonicalNumber(element.getAsString());
         case "string" -> {
           if (!element.getAsJsonPrimitive().isString()) {
@@ -609,8 +611,20 @@ public final class ModMetadataParser {
     return allowed;
   }
 
-  private String canonicalInteger(String value) {
-    return new BigDecimal(value).toBigIntegerExact().toString();
+  private String canonicalInt32(
+      String value, String modId, String key, String fieldName, String sourceName)
+      throws LoaderException {
+    BigInteger integerValue;
+    try {
+      integerValue = new BigDecimal(value).toBigIntegerExact();
+    } catch (ArithmeticException | NumberFormatException exception) {
+      throw invalidConfigValue(modId, key, fieldName, "integer", sourceName, exception);
+    }
+    if (integerValue.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) < 0
+        || integerValue.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
+      throw invalidConfigValue(modId, key, fieldName, "integer", sourceName, null);
+    }
+    return integerValue.toString();
   }
 
   private String canonicalNumber(String value) {
@@ -732,6 +746,7 @@ public final class ModMetadataParser {
 
     Map<String, String> depends = new TreeMap<>();
     for (Map.Entry<String, JsonElement> entry : dependsObject.entrySet()) {
+      validateDependencyKey(entry.getKey(), fieldName, sourceName);
       JsonElement element = entry.getValue();
       if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
         throw new LoaderException(
@@ -745,6 +760,48 @@ public final class ModMetadataParser {
       depends.put(entry.getKey(), requirement);
     }
     return Map.copyOf(depends);
+  }
+
+  private void validateDependencyKey(String key, String fieldName, String sourceName)
+      throws LoaderException {
+    if (BUILTIN_DEPENDENCY_IDS.contains(key) || isValidModId(key)) {
+      return;
+    }
+    throw new LoaderException(
+        metadataError(
+            fieldName
+                + " key `"
+                + key
+                + "` must be a valid mod id or one of loader, java, minecraft in "
+                + sourceName
+                + "."));
+  }
+
+  private boolean isValidModId(String value) {
+    return MOD_ID_PATTERN.matcher(value).matches();
+  }
+
+  private LoaderException invalidConfigValue(
+      String modId,
+      String key,
+      String fieldName,
+      String type,
+      String sourceName,
+      RuntimeException cause) {
+    String message =
+        metadataError(
+            "Mod `"
+                + modId
+                + "` declares config key `"
+                + key
+                + "` with invalid "
+                + fieldName
+                + " for type `"
+                + type
+                + "` in "
+                + sourceName
+                + ".");
+    return cause == null ? new LoaderException(message) : new LoaderException(message, cause);
   }
 
   private JsonObject requiredObject(JsonObject jsonObject, String key, String sourceName)

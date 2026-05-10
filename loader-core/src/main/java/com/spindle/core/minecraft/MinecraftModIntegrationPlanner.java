@@ -327,7 +327,14 @@ public final class MinecraftModIntegrationPlanner {
             .takeWhile(Character::isDigit)
             .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
             .toString();
-    return digits.isBlank() ? 0 : Integer.parseInt(digits);
+    if (digits.isBlank()) {
+      return 0;
+    }
+    try {
+      return Integer.parseInt(digits);
+    } catch (NumberFormatException exception) {
+      return Integer.MAX_VALUE;
+    }
   }
 
   private List<String> conflicts(Map<String, List<String>> ownershipByOwner) {

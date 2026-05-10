@@ -3,12 +3,11 @@ package com.spindle.core.security.tool;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.security.risk.StaticRiskAnalyzer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 public final class SecurityRiskScanWorkerMain {
   private final StaticRiskAnalyzer staticRiskAnalyzer = new StaticRiskAnalyzer();
   private final RestrictedToolReportWriter reportWriter = new RestrictedToolReportWriter();
+  private final RestrictedToolRequestReader requestReader = new RestrictedToolRequestReader();
 
   public static void main(String[] args) {
     int exitCode = new SecurityRiskScanWorkerMain().run(args);
@@ -42,9 +41,7 @@ public final class SecurityRiskScanWorkerMain {
   }
 
   private WorkerArguments parseArgs(String[] args) {
-    Path workingDirectory = null;
-    Path outputPath = null;
-    List<RestrictedToolRequest.ModInput> mods = new ArrayList<>();
+    Path requestPath = null;
     for (int index = 0; index < args.length; index++) {
       String arg = args[index];
       if (index + 1 >= args.length) {
@@ -52,32 +49,14 @@ public final class SecurityRiskScanWorkerMain {
       }
       String value = args[++index];
       switch (arg) {
-        case "--working-directory" -> workingDirectory = Path.of(value);
-        case "--output" -> outputPath = Path.of(value);
-        case "--mod" -> mods.add(parseMod(value));
+        case "--request" -> requestPath = Path.of(value);
         default -> throw new IllegalArgumentException("Unknown argument `" + arg + "`.");
       }
     }
-    if (workingDirectory == null) {
-      throw new IllegalArgumentException("Missing required `--working-directory`.");
+    if (requestPath == null) {
+      throw new IllegalArgumentException("Missing required `--request`.");
     }
-    if (outputPath == null) {
-      throw new IllegalArgumentException("Missing required `--output`.");
-    }
-    if (mods.isEmpty()) {
-      throw new IllegalArgumentException("At least one `--mod` input is required.");
-    }
-    return new WorkerArguments(
-        new RestrictedToolRequest(
-            RestrictedToolRequest.STATIC_RISK_SCAN_WORKER, workingDirectory, outputPath, mods));
-  }
-
-  private RestrictedToolRequest.ModInput parseMod(String value) {
-    String[] parts = value.split("\\|", 4);
-    if (parts.length != 4) {
-      throw new IllegalArgumentException("Invalid `--mod` value `" + value + "`.");
-    }
-    return new RestrictedToolRequest.ModInput(parts[0], parts[1], parts[2], Path.of(parts[3]));
+    return new WorkerArguments(requestReader.read(requestPath));
   }
 
   private record WorkerArguments(RestrictedToolRequest request) {}

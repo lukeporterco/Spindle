@@ -2,6 +2,8 @@
 
 `Loader API Hardening: Runtime API Compatibility and Developer Experience` hardens the Loader API-0 runtime-facing boundary without adding new loader features.
 
+A later foundation hardening pass fixed audited edge cases in config numeric handling, restricted tool request passing, Minecraft version path safety, static risk scan limits, and lazy singleton service instantiation without adding API features or changing versioned contracts.
+
 This pass preserves the existing public contract:
 
 - Runtime API version remains `1`.

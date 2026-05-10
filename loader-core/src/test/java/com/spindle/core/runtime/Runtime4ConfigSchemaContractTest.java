@@ -14,7 +14,9 @@ import com.spindle.core.app.LoaderApplication;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.metadata.ModMetadataParser;
 import com.spindle.core.security.SecurityRuleId;
+import com.spindle.core.runtime.config.RuntimeConfigEntryPlan;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.ConfigKeysLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.ConfigReaderLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.ConfigWriterLifecycle;
@@ -27,6 +29,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +43,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class Runtime4ConfigSchemaContractTest {
   @TempDir Path tempDirectory;
+  private final ModMetadataParser metadataParser = new ModMetadataParser();
 
   @Test
   void compiledProfileIncludesRuntimeFourConfigContract() throws Exception {
@@ -203,6 +209,119 @@ class Runtime4ConfigSchemaContractTest {
   }
 
   @Test
+  void integerConfigDefaultOutsideIntRangeFailsMetadata() {
+    LoaderException exception =
+        assertThrows(
+            LoaderException.class,
+            () ->
+                metadataParser.parse(
+                    metadataJson(
+                        "overflowdefault",
+                        Map.of("BOOTSTRAP", List.of(SecurityReportAwareLifecycle.class.getName() + "::bootstrap")),
+                        List.of("config.read", "storage.config"),
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        List.of(
+                            configEntry(
+                                "maxcount", "integer", "2147483648", "0", "64", null))),
+                    "overflow-default"));
+    assertTrue(exception.getMessage().contains("invalid default"));
+  }
+
+  @Test
+  void integerConfigMinOrMaxOutsideIntRangeFailsMetadata() {
+    LoaderException minException =
+        assertThrows(
+            LoaderException.class,
+            () ->
+                metadataParser.parse(
+                    metadataJson(
+                        "overflowmin",
+                        Map.of("BOOTSTRAP", List.of(SecurityReportAwareLifecycle.class.getName() + "::bootstrap")),
+                        List.of("config.read", "storage.config"),
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        List.of(
+                            configEntry(
+                                "maxcount", "integer", "8", "-2147483649", "64", null))),
+                    "overflow-min"));
+    assertTrue(minException.getMessage().contains("invalid min"));
+
+    LoaderException maxException =
+        assertThrows(
+            LoaderException.class,
+            () ->
+                metadataParser.parse(
+                    metadataJson(
+                        "overflowmax",
+                        Map.of("BOOTSTRAP", List.of(SecurityReportAwareLifecycle.class.getName() + "::bootstrap")),
+                        List.of("config.read", "storage.config"),
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        List.of(
+                            configEntry(
+                                "maxcount", "integer", "8", "0", "2147483648", null))),
+                    "overflow-max"));
+    assertTrue(maxException.getMessage().contains("invalid max"));
+  }
+
+  @Test
+  void integerConfigFileOutsideIntRangeIsFatalConfigFinding() throws Exception {
+    createModJar(
+        tempDirectory.resolve("mods/overflowconfig.jar"),
+        "overflowconfig",
+        Map.of("BOOTSTRAP", List.of(ConfigReaderLifecycle.class.getName() + "::bootstrap")),
+        List.of("config.read", "storage.config"),
+        true,
+        false,
+        false,
+        false,
+        false,
+        defaultConfigEntries(),
+        Map.of(resourceName(ConfigReaderLifecycle.class), readClassBytes(ConfigReaderLifecycle.class)));
+    Path configPath = tempDirectory.resolve("config/overflowconfig/config.json");
+    Files.createDirectories(configPath.getParent());
+    Files.writeString(configPath, "{\"maxcount\":2147483648}", StandardCharsets.UTF_8);
+
+    execute(true);
+
+    assertTrue(findingCodes(readQualityReport(), "fatalFindings").contains("config.invalid_type"));
+  }
+
+  @Test
+  void setNumberRejectsNanAndInfinityWithConfigAccessException() throws Exception {
+    Object config = runtimeModConfig("ratio", "number", "1.0", null, null, List.of());
+    Method setNumber = config.getClass().getDeclaredMethod("setNumber", String.class, double.class);
+    setNumber.setAccessible(true);
+
+    InvocationTargetException nanException =
+        assertThrows(
+            InvocationTargetException.class, () -> setNumber.invoke(config, "ratio", Double.NaN));
+    assertInstanceOf(ConfigAccessException.class, nanException.getCause());
+
+    InvocationTargetException positiveInfinity =
+        assertThrows(
+            InvocationTargetException.class,
+            () -> setNumber.invoke(config, "ratio", Double.POSITIVE_INFINITY));
+    assertInstanceOf(ConfigAccessException.class, positiveInfinity.getCause());
+
+    InvocationTargetException negativeInfinity =
+        assertThrows(
+            InvocationTargetException.class,
+            () -> setNumber.invoke(config, "ratio", Double.NEGATIVE_INFINITY));
+    assertInstanceOf(ConfigAccessException.class, negativeInfinity.getCause());
+  }
+
+  @Test
   void runtimeConfigWriteRequiresConfigWriteGrant() throws Exception {
     createModJar(
         tempDirectory.resolve("mods/readonly.jar"),
@@ -329,6 +448,77 @@ class Runtime4ConfigSchemaContractTest {
     execute(true);
 
     assertEquals("schema mismatch", readCompiledProfile().getAsJsonObject("cache").get("reason").getAsString());
+  }
+
+  @Test
+  void dependencyKeysMustBeValidModIdsOrBuiltins() {
+    LoaderException exception =
+        assertThrows(
+            LoaderException.class,
+            () ->
+                metadataParser.parse(
+                    """
+                    {
+                      "schema": 2,
+                      "id": "invaliddeps",
+                      "version": "1.0.0",
+                      "side": "universal",
+                      "depends": {
+                        "../evil": ">=1.0.0"
+                      },
+                      "breaks": {},
+                      "lifecycle": {
+                        "BOOTSTRAP": ["example.Valid::bootstrap"]
+                      },
+                      "permissions": [],
+                      "storage": {
+                        "config": false,
+                        "data": false,
+                        "cache": false,
+                        "generated": false
+                      },
+                      "services": {
+                        "provides": [],
+                        "consumes": []
+                      }
+                    }
+                    """,
+                    "invalid-deps"));
+    assertTrue(exception.getMessage().contains("must be a valid mod id or one of loader, java, minecraft"));
+  }
+
+  @Test
+  void dependencyBuiltinsRemainAccepted() throws Exception {
+    metadataParser.parse(
+        """
+        {
+          "schema": 2,
+          "id": "builtinsok",
+          "version": "1.0.0",
+          "side": "universal",
+          "depends": {
+            "loader": ">=1.0.0",
+            "java": ">=17",
+            "minecraft": ">=1.20.4"
+          },
+          "breaks": {},
+          "lifecycle": {
+            "BOOTSTRAP": ["example.Valid::bootstrap"]
+          },
+          "permissions": [],
+          "storage": {
+            "config": false,
+            "data": false,
+            "cache": false,
+            "generated": false
+          },
+          "services": {
+            "provides": [],
+            "consumes": []
+          }
+        }
+        """,
+        "builtin-deps");
   }
 
   private void createModJar(
@@ -549,6 +739,34 @@ class Runtime4ConfigSchemaContractTest {
     return values.stream()
         .map(value -> "\"" + value + "\"")
         .collect(java.util.stream.Collectors.joining(", ", "[", "]"));
+  }
+
+  private Object runtimeModConfig(
+      String key, String type, String defaultValue, String min, String max, List<String> allowed)
+      throws Exception {
+    Class<?> runtimeModConfigClass =
+        Class.forName("com.spindle.core.runtime.config.RuntimeModConfig");
+    Constructor<?> constructor =
+        runtimeModConfigClass.getDeclaredConstructor(
+            String.class,
+            boolean.class,
+            boolean.class,
+            Path.class,
+            Map.class,
+            Map.class,
+            Map.class);
+    constructor.setAccessible(true);
+    RuntimeConfigEntryPlan entry =
+        new RuntimeConfigEntryPlan(
+            key, type, defaultValue, defaultValue, "valid", "ok", min, max, allowed, null);
+    return constructor.newInstance(
+        "examplemod",
+        true,
+        true,
+        tempDirectory.resolve("config/examplemod/config.json"),
+        Map.of(key, entry),
+        new LinkedHashMap<>(Map.of(key, defaultValue)),
+        Map.of());
   }
 
   private String execute(boolean validateOnly) throws Exception {

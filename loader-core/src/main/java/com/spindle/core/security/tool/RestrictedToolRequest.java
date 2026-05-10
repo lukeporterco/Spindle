@@ -7,7 +7,10 @@ import java.util.List;
 
 public record RestrictedToolRequest(
     String worker, Path workingDirectory, Path outputPath, List<ModInput> mods) {
+  public static final int SCHEMA_VERSION = 1;
   public static final String STATIC_RISK_SCAN_WORKER = "static-risk-scan";
+  public static final String DEFAULT_REQUEST_PATH =
+      ".spindle/security-tools/static-risk-scan/request.json";
   private static final String DEFAULT_OUTPUT_PATH =
       ".spindle/security-tools/static-risk-scan/output.json";
 
@@ -26,6 +29,10 @@ public record RestrictedToolRequest(
         normalizedWorkingDirectory,
         normalizedWorkingDirectory.resolve(DEFAULT_OUTPUT_PATH),
         mods.stream().map(ModInput::fromResolvedMod).toList());
+  }
+
+  public Path requestPath() {
+    return workingDirectory.resolve(DEFAULT_REQUEST_PATH).toAbsolutePath().normalize();
   }
 
   public String relativeOutputPath() {

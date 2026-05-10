@@ -6,6 +6,8 @@ import com.spindle.core.classpath.ModClassLoader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public final class RuntimeServiceRegistryFactory {
   public Map<String, ServiceRegistry> create(
@@ -15,7 +17,7 @@ public final class RuntimeServiceRegistryFactory {
       bindingsByConsumerAndId.put(binding.consumerModId() + "\u0000" + binding.id(), binding);
     }
 
-    Map<String, Object> singletonInstances = new LinkedHashMap<>();
+    ConcurrentMap<String, Object> singletonInstances = new ConcurrentHashMap<>();
     ProviderResolver providerResolver =
         new ProviderResolver() {
           @Override
@@ -56,19 +58,23 @@ public final class RuntimeServiceRegistryFactory {
       RuntimeServiceBinding binding,
       Class<T> requestedType,
       ClassLoader classLoader,
-      Map<String, Object> singletonInstances) {
+      ConcurrentMap<String, Object> singletonInstances) {
     String providerModId = binding.providerModId();
     String implementationClassName = binding.implementation();
     String declaredTypeName = binding.type();
     String singletonKey = providerModId + "\u0000" + binding.id();
 
-    Object instance = singletonInstances.get(singletonKey);
-    if (instance == null) {
-      instance =
-          instantiateProvider(
-              consumerModId, binding.id(), providerModId, implementationClassName, declaredTypeName, classLoader);
-      singletonInstances.put(singletonKey, instance);
-    }
+    Object instance =
+        singletonInstances.computeIfAbsent(
+            singletonKey,
+            ignored ->
+                instantiateProvider(
+                    consumerModId,
+                    binding.id(),
+                    providerModId,
+                    implementationClassName,
+                    declaredTypeName,
+                    classLoader));
     if (!requestedType.isInstance(instance)) {
       throw new ServiceAccessException(
           consumerModId,

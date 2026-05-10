@@ -35,6 +35,8 @@ Runtime-3 rules:
 - Spindle does not instantiate providers during planning or validate-only runs.
 - Spindle does not instantiate providers before the security gate.
 - Spindle does not sandbox provider constructors.
+- Service providers remain lazy singletons.
+- Lazy singleton creation is thread-safe when multiple consumers resolve the same bound service concurrently.
 - A mod can only access services it declares in `services.consumes`.
 
 ## Access
@@ -62,3 +64,5 @@ Mod-facing service API failures use `ServiceAccessException`, including unavaila
 - Optional consumers do not block execution when unbound.
 - Type matching is exact string matching during planning.
 - Runtime instantiation still verifies assignability before returning the instance.
+
+This services hardening pass does not change Runtime API version `1`, compiled profile schema `6`, or Runtime-3 planning semantics beyond thread-safe lazy singleton creation.

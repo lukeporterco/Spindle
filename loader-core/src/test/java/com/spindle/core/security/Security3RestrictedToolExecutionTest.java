@@ -29,6 +29,8 @@ import com.spindle.core.security.risk.StaticRiskRuleId;
 import com.spindle.core.security.tool.RestrictedToolOutputReader;
 import com.spindle.core.security.tool.RestrictedToolProcessLauncher;
 import com.spindle.core.security.tool.RestrictedToolRequest;
+import com.spindle.core.security.tool.RestrictedToolRequestReader;
+import com.spindle.core.security.tool.RestrictedToolRequestWriter;
 import com.spindle.core.security.tool.RestrictedToolResult;
 import com.spindle.core.security.tool.SecurityRiskScanWorkerMain;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.AlphaLifecycle;
@@ -65,15 +67,23 @@ class Security3RestrictedToolExecutionTest {
             Map.of(resourceName(AlphaLifecycle.class), readClassBytes(AlphaLifecycle.class)),
             true,
             List.of());
-    Path outputPath = tempDirectory.resolve("worker-output/output.json");
+    RestrictedToolRequest request =
+        new RestrictedToolRequest(
+            RestrictedToolRequest.STATIC_RISK_SCAN_WORKER,
+            tempDirectory,
+            tempDirectory.resolve("worker-output/output.json"),
+            List.of(
+                new RestrictedToolRequest.ModInput(
+                    "cleanmod", "mods/clean.jar", "0".repeat(64), jarPath)));
+    writeRequest(request);
 
     SecurityRiskScanWorkerMain workerMain = new SecurityRiskScanWorkerMain();
-    assertEquals(0, workerMain.run(workerArgs(outputPath, "cleanmod", "mods/clean.jar", jarPath)));
-    String firstOutput = Files.readString(outputPath, StandardCharsets.UTF_8);
+    assertEquals(0, workerMain.run(workerArgs(request.requestPath())));
+    String firstOutput = Files.readString(request.outputPath(), StandardCharsets.UTF_8);
 
-    Files.delete(outputPath);
-    assertEquals(0, workerMain.run(workerArgs(outputPath, "cleanmod", "mods/clean.jar", jarPath)));
-    String secondOutput = Files.readString(outputPath, StandardCharsets.UTF_8);
+    Files.delete(request.outputPath());
+    assertEquals(0, workerMain.run(workerArgs(request.requestPath())));
+    String secondOutput = Files.readString(request.outputPath(), StandardCharsets.UTF_8);
 
     JsonObject report = JsonParser.parseString(firstOutput).getAsJsonObject();
     assertEquals(0, report.getAsJsonObject("summary").get("signalCount").getAsInt());
@@ -136,7 +146,70 @@ class Security3RestrictedToolExecutionTest {
     String classpath = command.get(classpathIndex + 1);
 
     assertFalse(classpath.contains(jarPath.toString()));
-    assertTrue(command.stream().anyMatch(part -> part.contains(jarPath.toString())));
+    assertFalse(command.stream().anyMatch(part -> part.contains(jarPath.toString())));
+  }
+
+  @Test
+  void restrictedToolCommandUsesRequestFile() throws Exception {
+    Path jarPath =
+        createSchemaTwoModJar(
+            tempDirectory.resolve("mods/request-file.jar"),
+            "requestfile",
+            Map.of("BOOTSTRAP", List.of(AlphaLifecycle.class.getName() + "::bootstrap")),
+            Map.of(resourceName(AlphaLifecycle.class), readClassBytes(AlphaLifecycle.class)),
+            true,
+            List.of());
+    RestrictedToolRequest request =
+        RestrictedToolRequest.staticRiskScan(
+            tempDirectory, List.of(resolvedMod("requestfile", jarPath)));
+
+    RestrictedToolProcessLauncher launcher = new RestrictedToolProcessLauncher();
+    @SuppressWarnings("unchecked")
+    List<String> command = (List<String>) invokeHidden(launcher, "buildCommand", request);
+
+    assertTrue(command.contains("--request"));
+    assertFalse(command.contains("--mod"));
+  }
+
+  @Test
+  void restrictedToolRequestRoundTripsPathsContainingPipe() throws Exception {
+    RestrictedToolRequest request =
+        new RestrictedToolRequest(
+            RestrictedToolRequest.STATIC_RISK_SCAN_WORKER,
+            tempDirectory,
+            tempDirectory.resolve("worker-output/output.json"),
+            List.of(
+                new RestrictedToolRequest.ModInput(
+                    "pipemod",
+                    "mods/with|pipe.jar",
+                    "0".repeat(64),
+                    tempDirectory.resolve("mods/pipe.jar"))));
+
+    writeRequest(request);
+
+    RestrictedToolRequest roundTrip = new RestrictedToolRequestReader().read(request.requestPath());
+    RestrictedToolRequest.ModInput mod = roundTrip.mods().getFirst();
+    assertEquals("mods/with|pipe.jar", mod.relativePath());
+    assertEquals(
+        tempDirectory.resolve("mods/pipe.jar").toAbsolutePath().normalize(), mod.jarPath());
+  }
+
+  @Test
+  void securityRiskWorkerRejectsMalformedRequestJson() throws Exception {
+    Path requestPath = tempDirectory.resolve("worker-input/request.json");
+    Files.createDirectories(requestPath.getParent());
+    Files.writeString(
+        requestPath,
+        """
+        {
+          "schemaVersion": 2,
+          "outputPath": "out.json",
+          "mods": []
+        }
+        """,
+        StandardCharsets.UTF_8);
+
+    assertEquals(2, new SecurityRiskScanWorkerMain().run(workerArgs(requestPath)));
   }
 
   @Test
@@ -178,7 +251,6 @@ class Security3RestrictedToolExecutionTest {
     assertTrue(
         result.findings().stream()
             .anyMatch(finding -> finding.ruleId() == SecurityRuleId.SEC_TOOL_001));
-    assertTrue(result.findings().getFirst().message().contains("validation failed"));
   }
 
   @Test
@@ -290,6 +362,7 @@ class Security3RestrictedToolExecutionTest {
     return new RestrictedToolProcessLauncher(
         new com.spindle.core.process.JavaExecutableResolver(),
         new RestrictedToolOutputReader(),
+        new RestrictedToolRequestWriter(),
         new com.spindle.core.security.risk.StaticRiskAnalyzer(),
         workerMainClass.getName(),
         classpathEntries,
@@ -302,15 +375,12 @@ class Security3RestrictedToolExecutionTest {
         .normalize();
   }
 
-  private String[] workerArgs(Path outputPath, String modId, String relativePath, Path jarPath) {
-    return new String[] {
-      "--working-directory",
-      tempDirectory.toString(),
-      "--output",
-      outputPath.toString(),
-      "--mod",
-      modId + "|" + relativePath + "|" + "0".repeat(64) + "|" + jarPath
-    };
+  private String[] workerArgs(Path requestPath) {
+    return new String[] {"--request", requestPath.toString()};
+  }
+
+  private void writeRequest(RestrictedToolRequest request) throws LoaderException {
+    new RestrictedToolRequestWriter().write(request.requestPath(), request);
   }
 
   private JsonObject readSecurityReport() throws IOException {

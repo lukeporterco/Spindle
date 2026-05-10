@@ -42,7 +42,7 @@ class Milestone5MinecraftArtifactCacheTest {
   @TempDir Path tempDirectory;
 
   @Test
-  void artifactCachePathsAreDeterministic() {
+  void artifactCachePathsAreDeterministic() throws Exception {
     MinecraftArtifactCache cache =
         new MinecraftArtifactCache(tempDirectory, tempDirectory.resolve("runtime/minecraft-cache"));
 
@@ -76,6 +76,27 @@ class Milestone5MinecraftArtifactCacheTest {
     assertEquals(
         tempDirectory.resolve("minecraft-artifacts.json").toAbsolutePath().normalize(),
         cache.artifactReportPath());
+  }
+
+  @Test
+  void minecraftArtifactCacheRejectsUnsafeVersionIds() {
+    MinecraftArtifactCache cache =
+        new MinecraftArtifactCache(tempDirectory, tempDirectory.resolve("runtime/minecraft-cache"));
+
+    assertThrows(LoaderException.class, () -> cache.versionJsonPath("../evil"));
+    assertThrows(LoaderException.class, () -> cache.serverJarPath("1.20/evil"));
+    assertThrows(LoaderException.class, () -> cache.artifactLockPath("bad\\evil"));
+  }
+
+  @Test
+  void minecraftArtifactCacheAcceptsKnownSafeVersionIds() throws Exception {
+    MinecraftArtifactCache cache =
+        new MinecraftArtifactCache(tempDirectory, tempDirectory.resolve("runtime/minecraft-cache"));
+
+    assertTrue(cache.versionJsonPath("1.20.4").toString().endsWith("1.20.4.json"));
+    assertTrue(cache.serverJarPath("1.20.4-pre1").toString().contains("1.20.4-pre1"));
+    assertTrue(cache.artifactLockPath("23w13a").toString().contains("23w13a"));
+    assertTrue(cache.serverJarPath("1.20.5-rc1").toString().contains("1.20.5-rc1"));
   }
 
   @Test

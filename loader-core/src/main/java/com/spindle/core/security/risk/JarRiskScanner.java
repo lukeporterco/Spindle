@@ -11,7 +11,17 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
 public final class JarRiskScanner {
+  private static final long MAX_CLASS_ENTRY_BYTES = 10L * 1024L * 1024L;
   private final ClassConstantPoolRiskScanner classScanner = new ClassConstantPoolRiskScanner();
+  private final long maxClassEntryBytes;
+
+  public JarRiskScanner() {
+    this(MAX_CLASS_ENTRY_BYTES);
+  }
+
+  JarRiskScanner(long maxClassEntryBytes) {
+    this.maxClassEntryBytes = maxClassEntryBytes;
+  }
 
   public JarRiskScanResult scan(StaticRiskAnalyzer.TargetMod mod) throws LoaderException {
     List<ClassEntryScan> classEntries = new ArrayList<>();
@@ -29,9 +39,18 @@ public final class JarRiskScanner {
         }
         String entryName = normalizeEntryName(entry.getName());
         if (entryName.endsWith(".class")) {
+          long entrySize = entry.getSize();
+          if (entrySize > maxClassEntryBytes) {
+            scanWarnings.add(oversizedClassWarning(mod, entryName, entrySize));
+            continue;
+          }
           byte[] classBytes;
           try (var inputStream = jarFile.getInputStream(entry)) {
             classBytes = inputStream.readAllBytes();
+          }
+          if (classBytes.length > maxClassEntryBytes) {
+            scanWarnings.add(oversizedClassWarning(mod, entryName, classBytes.length));
+            continue;
           }
           ClassConstantPoolRiskScanner.ScanResult scanResult = classScanner.scan(classBytes);
           if (scanResult.hasWarning()) {
@@ -98,6 +117,22 @@ public final class JarRiskScanner {
 
   private boolean isEmbeddedJar(String entryName) {
     return entryName.toLowerCase(Locale.ROOT).endsWith(".jar");
+  }
+
+  private StaticRiskSignal oversizedClassWarning(
+      StaticRiskAnalyzer.TargetMod mod, String entryName, long size) {
+    return new StaticRiskSignal(
+        StaticRiskRuleId.RISK_CLASSFILE_001,
+        StaticRiskSeverity.WARNING,
+        mod.id(),
+        SecurityLocation.of("class-entry", entryName),
+        "class entry size " + size + " bytes exceeded scan cap " + maxClassEntryBytes + " bytes",
+        "Mod `"
+            + mod.id()
+            + "` contains oversized class entry `"
+            + entryName
+            + "`, so Spindle skipped deterministic static class scanning for that entry. Users and pack builders should review the jar build output.",
+        "Reduce oversized generated class entries when possible, or review the jar manually before distribution.");
   }
 
   public record JarRiskScanResult(

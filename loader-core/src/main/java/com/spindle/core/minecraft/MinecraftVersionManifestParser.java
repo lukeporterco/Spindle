@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.spindle.core.artifact.MinecraftVersionId;
 import com.spindle.core.diagnostics.LoaderException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +15,8 @@ public final class MinecraftVersionManifestParser {
       throws LoaderException {
     JsonObject root = parseObject(json, sourceDescription);
     JsonObject latest = getObject(root, "latest");
-    String latestRelease = getString(latest, "release");
-    String latestSnapshot = getString(latest, "snapshot");
+    String latestRelease = optionalSafeVersionId(getString(latest, "release"));
+    String latestSnapshot = optionalSafeVersionId(getString(latest, "snapshot"));
 
     List<MinecraftVersionManifest.VersionEntry> versions = new ArrayList<>();
     JsonArray versionsArray = getArray(root, "versions");
@@ -27,7 +28,7 @@ public final class MinecraftVersionManifestParser {
         JsonObject versionObject = element.getAsJsonObject();
         versions.add(
             new MinecraftVersionManifest.VersionEntry(
-                getString(versionObject, "id"),
+                optionalSafeVersionId(getString(versionObject, "id")),
                 getString(versionObject, "type"),
                 getString(versionObject, "url"),
                 getString(versionObject, "sha1"),
@@ -69,5 +70,9 @@ public final class MinecraftVersionManifestParser {
     }
     JsonElement element = object.get(memberName);
     return element != null && element.isJsonPrimitive() ? element.getAsString() : null;
+  }
+
+  private String optionalSafeVersionId(String versionId) throws LoaderException {
+    return versionId == null ? null : MinecraftVersionId.requireSafe(versionId);
   }
 }

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +21,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public final class RuntimeConfigMaterializer {
+  private static final BigInteger INT32_MIN = BigInteger.valueOf(Integer.MIN_VALUE);
+  private static final BigInteger INT32_MAX = BigInteger.valueOf(Integer.MAX_VALUE);
   private final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
   public RuntimeConfigContract materialize(Path workingDirectory, RuntimeConfigContract contract)
@@ -252,7 +255,11 @@ public final class RuntimeConfigMaterializer {
     try {
       BigDecimal parsed = new BigDecimal(value.getAsString());
       if (integer) {
-        parsed = new BigDecimal(parsed.toBigIntegerExact());
+        BigInteger integerValue = parsed.toBigIntegerExact();
+        if (integerValue.compareTo(INT32_MIN) < 0 || integerValue.compareTo(INT32_MAX) > 0) {
+          return invalidType();
+        }
+        parsed = new BigDecimal(integerValue);
       }
       if (entry.min() != null && parsed.compareTo(new BigDecimal(entry.min())) < 0) {
         return new ValidationResult(
@@ -310,11 +317,23 @@ public final class RuntimeConfigMaterializer {
   private JsonElement typedValue(String value, String type) {
     return switch (type) {
       case "boolean" -> gson.toJsonTree(Boolean.parseBoolean(value));
-      case "integer" -> gson.toJsonTree(Integer.parseInt(value));
+      case "integer" -> gson.toJsonTree(parseInt32(value));
       case "number" -> gson.toJsonTree(new BigDecimal(value));
       case "string" -> gson.toJsonTree(value);
       default -> throw new IllegalArgumentException("Unsupported config type " + type);
     };
+  }
+
+  private int parseInt32(String value) {
+    try {
+      BigInteger integerValue = new BigDecimal(value).toBigIntegerExact();
+      if (integerValue.compareTo(INT32_MIN) < 0 || integerValue.compareTo(INT32_MAX) > 0) {
+        throw new IllegalArgumentException("Integer value is outside signed 32-bit range.");
+      }
+      return integerValue.intValueExact();
+    } catch (ArithmeticException | NumberFormatException exception) {
+      throw new IllegalArgumentException("Invalid integer config value `" + value + "`.", exception);
+    }
   }
 
   private String canonicalNumber(BigDecimal value) {

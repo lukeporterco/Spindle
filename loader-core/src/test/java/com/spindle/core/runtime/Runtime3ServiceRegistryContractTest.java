@@ -3,6 +3,7 @@ package com.spindle.core.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,11 +11,21 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spindle.api.exception.ServiceAccessException;
+import com.spindle.api.service.ServiceRegistry;
 import com.spindle.core.app.LoaderApplication;
+import com.spindle.core.classpath.ModClassLoader;
+import com.spindle.core.classpath.RuntimeClasspathPlan;
 import com.spindle.core.cli.LaunchArguments;
 import com.spindle.core.diagnostics.JsonDiagnosticSink;
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.runtime.CompiledModpackProfile;
 import com.spindle.core.security.SecurityRuleId;
+import com.spindle.core.runtime.service.RuntimeServiceBinding;
+import com.spindle.core.runtime.service.RuntimeServiceConsumerPlan;
+import com.spindle.core.runtime.service.RuntimeServiceContract;
+import com.spindle.core.runtime.service.RuntimeServiceModPlan;
+import com.spindle.core.runtime.service.RuntimeServiceProviderPlan;
+import com.spindle.core.runtime.service.RuntimeServiceRegistryFactory;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.AlternateGreetingService;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.GreetingConsumerLifecycle;
 import com.spindle.fixture.runtime.RuntimeLifecycleFixtures.GreetingService;
@@ -34,6 +45,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
@@ -375,6 +393,117 @@ class Runtime3ServiceRegistryContractTest {
         readCompiledProfile().getAsJsonObject("cache").get("reason").getAsString());
   }
 
+  @Test
+  void serviceProviderLazySingletonIsThreadSafe() throws Exception {
+    ConcurrentSingletonProvider.constructorCount.set(0);
+
+    RuntimeServiceContract services =
+        new RuntimeServiceContract(
+            RuntimeServiceContract.CONTRACT_VERSION,
+            RuntimeServiceContract.SCOPE,
+            RuntimeServiceContract.PROVIDER_INSTANTIATION,
+            List.of(
+                new RuntimeServiceModPlan(
+                    "consumer",
+                    List.of(),
+                    List.of(
+                        new RuntimeServiceConsumerPlan(
+                            "test:singleton",
+                            ConcurrentSingletonService.class.getName(),
+                            true,
+                            "bound",
+                            "provider",
+                            "bound"))),
+                new RuntimeServiceModPlan(
+                    "provider",
+                    List.of(
+                        new RuntimeServiceProviderPlan(
+                            "test:singleton",
+                            ConcurrentSingletonService.class.getName(),
+                            ConcurrentSingletonProvider.class.getName(),
+                            "available",
+                            "available")),
+                    List.of())),
+            List.of(
+                new RuntimeServiceBinding(
+                    "test:singleton",
+                    "consumer",
+                    "provider",
+                    ConcurrentSingletonService.class.getName(),
+                    ConcurrentSingletonProvider.class.getName(),
+                    true,
+                    "bound")),
+            null);
+
+    CompiledModpackProfile profile =
+        new CompiledModpackProfile(
+            CompiledModpackProfile.SCHEMA_VERSION,
+            CompiledModpackProfile.PROFILE_KIND,
+            "fingerprint",
+            "input",
+            "runtime",
+            new CompiledModpackProfile.Cache("miss", "test"),
+            new CompiledModpackProfile.Loader("spindle", "0.1.0"),
+            new CompiledModpackProfile.Game("sample", "1.0.0", "server"),
+            new CompiledModpackProfile.Metadata(List.of(2)),
+            List.of(
+                new CompiledModpackProfile.Mod("consumer", "1.0.0", "mods/consumer.jar", "a"),
+                new CompiledModpackProfile.Mod("provider", "1.0.0", "mods/provider.jar", "b")),
+            List.of("consumer", "provider"),
+            List.of(),
+            new CompiledModpackProfile.Ownership(
+                new CompiledModpackProfile.Count(0),
+                new CompiledModpackProfile.Count(0),
+                new CompiledModpackProfile.Resources(0)),
+            null,
+            null,
+            null,
+            services,
+            null,
+            new CompiledModpackProfile.Lifecycle(List.of(), List.of()),
+            new CompiledModpackProfile.Contexts(List.of()),
+            new CompiledModpackProfile.PackagePolicy(List.of(), List.of(), List.of(), List.of(), List.of()),
+            new CompiledModpackProfile.Quality(0, 0, 0));
+
+    Path classesPath =
+        Path.of(ConcurrentSingletonProvider.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    ModClassLoader classLoader =
+        ModClassLoader.create(new RuntimeClasspathPlan(List.of(classesPath), List.of(), List.of()), getClass().getClassLoader());
+    Map<String, ServiceRegistry> registries = new RuntimeServiceRegistryFactory().create(profile, classLoader);
+    ServiceRegistry registry = registries.get("consumer");
+
+    int threadCount = 8;
+    CountDownLatch ready = new CountDownLatch(threadCount);
+    CountDownLatch start = new CountDownLatch(1);
+    var executor = Executors.newFixedThreadPool(threadCount);
+    try {
+      List<Future<ConcurrentSingletonService>> futures = new ArrayList<>();
+      for (int index = 0; index < threadCount; index++) {
+        futures.add(
+            executor.submit(
+                () -> {
+                  ready.countDown();
+                  assertTrue(start.await(5, TimeUnit.SECONDS));
+                  return registry.require("test:singleton", ConcurrentSingletonService.class);
+                }));
+      }
+      assertTrue(ready.await(5, TimeUnit.SECONDS));
+      start.countDown();
+
+      Set<ConcurrentSingletonService> instances = ConcurrentHashMap.newKeySet();
+      for (Future<ConcurrentSingletonService> future : futures) {
+        instances.add(future.get(5, TimeUnit.SECONDS));
+      }
+
+      assertEquals(1, ConcurrentSingletonProvider.constructorCount.get());
+      assertEquals(1, instances.size());
+      ConcurrentSingletonService onlyInstance = instances.iterator().next();
+      assertSame(onlyInstance, registry.require("test:singleton", ConcurrentSingletonService.class));
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
   private void createProviderModJar(
       Path jarPath,
       String modId,
@@ -694,6 +823,16 @@ class Runtime3ServiceRegistryContractTest {
     return values.stream()
         .map(value -> "\"" + value + "\"")
         .collect(java.util.stream.Collectors.joining(", ", "[", "]"));
+  }
+
+  interface ConcurrentSingletonService {}
+
+  public static final class ConcurrentSingletonProvider implements ConcurrentSingletonService {
+    static final AtomicInteger constructorCount = new AtomicInteger();
+
+    public ConcurrentSingletonProvider() {
+      constructorCount.incrementAndGet();
+    }
   }
 
   private String execute(boolean validateOnly) throws Exception {

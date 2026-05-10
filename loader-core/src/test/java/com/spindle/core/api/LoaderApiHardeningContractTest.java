@@ -13,9 +13,19 @@ import com.spindle.api.exception.ConfigAccessException;
 import com.spindle.api.exception.ServiceAccessException;
 import com.spindle.api.exception.SpindleApiException;
 import com.spindle.api.service.ServiceRegistry;
+import com.spindle.core.runtime.CompiledModpackProfile;
+import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
 import com.spindle.core.runtime.closure.RuntimeClosureContract;
 import com.spindle.core.runtime.closure.RuntimeClosurePlanner;
+import com.spindle.core.security.SecurityFinding;
+import com.spindle.core.security.SecurityGate;
+import com.spindle.core.security.SecurityLocation;
 import com.spindle.core.security.SecurityPolicy;
+import com.spindle.core.security.SecurityPolicyFingerprint;
+import com.spindle.core.security.SecuritySeverity;
+import com.spindle.core.security.SecurityValidationResult;
+import com.spindle.core.security.tool.RestrictedToolExecutionMode;
+import com.spindle.core.security.tool.RestrictedToolResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +43,11 @@ class LoaderApiHardeningContractTest {
   @Test
   void loaderApiConstantsRemainStable() {
     assertEquals(1, LoaderApi.RUNTIME_API_VERSION);
+    assertEquals(6, CompiledModpackProfile.SCHEMA_VERSION);
+    assertEquals(2, RuntimeClosureContract.CONTRACT_VERSION);
+    assertEquals(2, RuntimeCapabilityCatalog.CATALOG_VERSION);
+    assertEquals(8, SecurityPolicy.standard().securityPolicyVersion());
+    assertEquals(5, SecurityPolicy.standard().permissionPolicyVersion());
     assertEquals("runtime-api-stabilized", LoaderApi.API_STATUS);
     assertEquals("runtime-facing-loader-api", LoaderApi.API_SCOPE);
     assertEquals("minecraft-as-target-not-foundation", LoaderApi.TARGET_MODEL);
@@ -147,6 +162,40 @@ class LoaderApiHardeningContractTest {
             "com.spindle.api.minecraft.MinecraftServerModContext",
             "com.spindle.api.minecraft.MinecraftServerModInitializer"),
         contract.loaderApiBoundary().deferredReview());
+  }
+
+  @Test
+  void securityGateMessageUsesStandardRuntimeLifecycleWording() {
+    SecurityValidationResult validationResult =
+        new SecurityValidationResult(
+            new SecurityPolicyFingerprint("fingerprint"),
+            new RestrictedToolResult(
+                RestrictedToolExecutionMode.RESTRICTED_CHILD_JVM,
+                "static-risk-scan",
+                RestrictedToolResult.STATUS_PASSED,
+                ".spindle/security-tools/static-risk-scan/output.json",
+                null,
+                List.of()),
+            List.of(),
+            List.of(),
+            new com.spindle.core.security.trust.ArtifactTrustSummary(0, 0, 0, 0),
+            com.spindle.core.security.risk.StaticRiskSummary.EMPTY,
+            List.of(),
+            List.of(
+                new SecurityFinding(
+                    com.spindle.core.security.SecurityRuleId.SEC_TOOL_001,
+                    SecuritySeverity.FATAL,
+                    "examplemod",
+                    SecurityLocation.of("tool-output", "output.json"),
+                    "fatal tool failure",
+                    "fix it")));
+
+    Exception exception =
+        assertThrows(
+            Exception.class,
+            () -> new SecurityGate().ensureLifecycleExecutionAllowed(validationResult));
+    assertTrue(exception.getMessage().contains("standard runtime lifecycle execution"));
+    assertFalse(exception.getMessage().contains("Runtime-1 lifecycle execution"));
   }
 
   @Test

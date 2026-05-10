@@ -1,5 +1,6 @@
 package com.spindle.core.artifact;
 
+import com.spindle.core.diagnostics.LoaderException;
 import java.nio.file.Path;
 
 public final class MinecraftArtifactCache {
@@ -23,19 +24,21 @@ public final class MinecraftArtifactCache {
     return cacheDirectory.resolve("metadata/version-manifest.json").toAbsolutePath().normalize();
   }
 
-  public Path versionJsonPath(String version) {
+  public Path versionJsonPath(String version) throws LoaderException {
+    String safeVersion = MinecraftVersionId.requireSafe(version);
     return cacheDirectory
         .resolve("metadata/versions")
-        .resolve(version + ".json")
+        .resolve(safeVersion + ".json")
         .toAbsolutePath()
         .normalize();
   }
 
-  public Path serverJarPath(String version) {
+  public Path serverJarPath(String version) throws LoaderException {
+    String safeVersion = MinecraftVersionId.requireSafe(version);
     return cacheDirectory
         .resolve("versions")
-        .resolve(version)
-        .resolve(version + "-server.jar")
+        .resolve(safeVersion)
+        .resolve(safeVersion + "-server.jar")
         .toAbsolutePath()
         .normalize();
   }
@@ -44,10 +47,11 @@ public final class MinecraftArtifactCache {
     return cacheDirectory.resolve("tmp").toAbsolutePath().normalize();
   }
 
-  public Path artifactLockPath(String version) {
+  public Path artifactLockPath(String version) throws LoaderException {
+    String safeVersion = MinecraftVersionId.requireSafe(version);
     return cacheDirectory
         .resolve("versions")
-        .resolve(version)
+        .resolve(safeVersion)
         .resolve("server-artifacts.lock.json")
         .toAbsolutePath()
         .normalize();

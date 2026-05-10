@@ -29,6 +29,7 @@ public final class RestrictedToolProcessLauncher {
 
   private final JavaExecutableResolver javaExecutableResolver;
   private final RestrictedToolOutputReader outputReader;
+  private final RestrictedToolRequestWriter requestWriter;
   private final StaticRiskAnalyzer staticRiskAnalyzer;
   private final List<Path> workerClasspathEntries;
   private final String workerMainClassName;
@@ -38,6 +39,7 @@ public final class RestrictedToolProcessLauncher {
     this(
         new JavaExecutableResolver(),
         new RestrictedToolOutputReader(),
+        new RestrictedToolRequestWriter(),
         new StaticRiskAnalyzer(),
         DEFAULT_WORKER_MAIN_CLASS,
         defaultWorkerClasspathEntries(),
@@ -47,12 +49,14 @@ public final class RestrictedToolProcessLauncher {
   public RestrictedToolProcessLauncher(
       JavaExecutableResolver javaExecutableResolver,
       RestrictedToolOutputReader outputReader,
+      RestrictedToolRequestWriter requestWriter,
       StaticRiskAnalyzer staticRiskAnalyzer,
       String workerMainClassName,
       List<Path> workerClasspathEntries,
       long timeoutSeconds) {
     this.javaExecutableResolver = javaExecutableResolver;
     this.outputReader = outputReader;
+    this.requestWriter = requestWriter;
     this.staticRiskAnalyzer = staticRiskAnalyzer;
     this.workerMainClassName = workerMainClassName;
     this.workerClasspathEntries = List.copyOf(workerClasspathEntries);
@@ -65,11 +69,16 @@ public final class RestrictedToolProcessLauncher {
     try {
       Files.createDirectories(request.outputPath().getParent());
       Files.deleteIfExists(request.outputPath());
+      requestWriter.write(request.requestPath(), request);
     } catch (IOException exception) {
       return failure(
           request,
           "Failed to prepare restricted tool output path: "
               + conciseMessage(exception.getMessage()));
+    } catch (LoaderException exception) {
+      return failure(
+          request,
+          "Failed to prepare restricted tool request: " + conciseMessage(exception.getMessage()));
     }
 
     List<String> command;
@@ -155,15 +164,8 @@ public final class RestrictedToolProcessLauncher {
     command.add("-cp");
     command.add(workerClasspath());
     command.add(workerMainClassName);
-    command.add("--working-directory");
-    command.add(request.workingDirectory().toString());
-    command.add("--output");
-    command.add(request.outputPath().toString());
-    for (RestrictedToolRequest.ModInput mod : request.mods()) {
-      command.add("--mod");
-      command.add(
-          mod.modId() + "|" + mod.relativePath() + "|" + mod.sha256() + "|" + mod.jarPath());
-    }
+    command.add("--request");
+    command.add(request.requestPath().toString());
     return List.copyOf(command);
   }
 

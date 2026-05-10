@@ -10,6 +10,7 @@ import com.spindle.core.runtime.capability.RuntimeCapabilityCatalog;
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +22,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 final class RuntimeModConfig implements ModConfig {
+  private static final BigInteger INT32_MIN = BigInteger.valueOf(Integer.MIN_VALUE);
+  private static final BigInteger INT32_MAX = BigInteger.valueOf(Integer.MAX_VALUE);
   private final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
   private final String modId;
   private final boolean writeGranted;
@@ -54,7 +57,18 @@ final class RuntimeModConfig implements ModConfig {
 
   @Override
   public int getInteger(String key) {
-    return Integer.parseInt(requireTypedKey(key, "integer"));
+    String value = requireTypedKey(key, "integer");
+    try {
+      return parseInt32(value, key);
+    } catch (ConfigAccessException exception) {
+      throw exception;
+    } catch (RuntimeException exception) {
+      throw new ConfigAccessException(
+          modId,
+          key,
+          "Config key `" + key + "` could not be read as a signed 32-bit integer.",
+          exception);
+    }
   }
 
   @Override
@@ -94,6 +108,10 @@ final class RuntimeModConfig implements ModConfig {
 
   @Override
   public void setNumber(String key, double value) {
+    if (!Double.isFinite(value)) {
+      throw new ConfigAccessException(
+          modId, key, "Config key `" + key + "` requires a finite number value.");
+    }
     setValue(key, "number", new BigDecimal(Double.toString(value)).stripTrailingZeros().toPlainString());
   }
 
@@ -215,13 +233,16 @@ final class RuntimeModConfig implements ModConfig {
   private void validateNumber(RuntimeConfigEntryPlan entry, BigDecimal value, boolean integer) {
     try {
       if (integer) {
-        value.toBigIntegerExact();
+        BigInteger integerValue = value.toBigIntegerExact();
+        if (integerValue.compareTo(INT32_MIN) < 0 || integerValue.compareTo(INT32_MAX) > 0) {
+          throw new ArithmeticException("signed 32-bit overflow");
+        }
       }
     } catch (ArithmeticException exception) {
       throw new ConfigAccessException(
           modId,
           entry.key(),
-          "Config key `" + entry.key() + "` requires an integer value.",
+          "Config key `" + entry.key() + "` requires a signed 32-bit integer value.",
           exception);
     }
     if (entry.min() != null && value.compareTo(new BigDecimal(entry.min())) < 0) {
@@ -259,10 +280,26 @@ final class RuntimeModConfig implements ModConfig {
   private JsonElement typedValue(String value, String type) {
     return switch (type) {
       case "boolean" -> gson.toJsonTree(Boolean.parseBoolean(value));
-      case "integer" -> gson.toJsonTree(Integer.parseInt(value));
+      case "integer" -> gson.toJsonTree(parseInt32(value, "<persist>"));
       case "number" -> gson.toJsonTree(new BigDecimal(value));
       case "string" -> gson.toJsonTree(value);
       default -> throw new IllegalArgumentException("Unsupported config type " + type);
     };
+  }
+
+  private int parseInt32(String value, String key) {
+    try {
+      BigInteger integerValue = new BigDecimal(value).toBigIntegerExact();
+      if (integerValue.compareTo(INT32_MIN) < 0 || integerValue.compareTo(INT32_MAX) > 0) {
+        throw new ArithmeticException("signed 32-bit overflow");
+      }
+      return integerValue.intValueExact();
+    } catch (ArithmeticException | NumberFormatException exception) {
+      throw new ConfigAccessException(
+          modId,
+          key,
+          "Config key `" + key + "` requires a signed 32-bit integer value.",
+          exception);
+    }
   }
 }

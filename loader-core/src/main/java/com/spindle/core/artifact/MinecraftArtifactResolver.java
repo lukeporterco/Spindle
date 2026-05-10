@@ -792,11 +792,18 @@ public final class MinecraftArtifactResolver {
   private boolean canResolveWithoutManifest(
       MinecraftProviderConfig config, String requestedVersion) {
     Path localVersionJson = localVersionJson(config, requestedVersion);
-    return config.explicitVersionJson() != null
-        || (localVersionJson != null && Files.isRegularFile(localVersionJson))
-        || (requestedVersion != null
-            && !requestedVersion.isBlank()
-            && Files.isRegularFile(cache.versionJsonPath(requestedVersion)));
+    if (config.explicitVersionJson() != null
+        || (localVersionJson != null && Files.isRegularFile(localVersionJson))) {
+      return true;
+    }
+    if (requestedVersion == null || requestedVersion.isBlank()) {
+      return false;
+    }
+    try {
+      return Files.isRegularFile(cache.versionJsonPath(requestedVersion));
+    } catch (LoaderException exception) {
+      return false;
+    }
   }
 
   private Path localVersionJson(MinecraftProviderConfig config, String version) {
@@ -841,7 +848,8 @@ public final class MinecraftArtifactResolver {
     }
   }
 
-  private LoaderException missingMetadataException(MinecraftProviderConfig config, String version) {
+  private LoaderException missingMetadataException(MinecraftProviderConfig config, String version)
+      throws LoaderException {
     return new LoaderException(
         "Minecraft metadata for version "
             + version
@@ -862,7 +870,8 @@ public final class MinecraftArtifactResolver {
             + hint);
   }
 
-  private LoaderException missingCachedVersionJson(MinecraftProviderConfig config, String version) {
+  private LoaderException missingCachedVersionJson(MinecraftProviderConfig config, String version)
+      throws LoaderException {
     String hint =
         config.baselineServerEnabled()
             ? "Run minecraftRealServerAcquire or minecraftServerCacheRepair to populate the cache."
@@ -876,7 +885,8 @@ public final class MinecraftArtifactResolver {
             + hint);
   }
 
-  private LoaderException missingCachedServerJar(MinecraftProviderConfig config, String version) {
+  private LoaderException missingCachedServerJar(MinecraftProviderConfig config, String version)
+      throws LoaderException {
     String hint =
         config.baselineServerEnabled()
             ? "Run minecraftRealServerAcquire, minecraftRealServerSmoke, or minecraftServerCacheRepair first."

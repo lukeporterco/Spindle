@@ -141,7 +141,7 @@ public final class RuntimeClosurePlanner {
     RuntimeClosureLoaderApiBoundary loaderApiBoundary =
         new RuntimeClosureLoaderApiBoundary(
             "runtime-api-stabilized",
-            "Loader API Hardening",
+            "Minecraft Target Arc",
             List.of(
                 "com.spindle.api.LoaderApi",
                 "com.spindle.api.ModContext",

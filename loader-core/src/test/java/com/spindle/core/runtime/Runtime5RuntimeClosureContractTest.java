@@ -138,7 +138,7 @@ class Runtime5RuntimeClosureContractTest {
     JsonObject boundary =
         readCompiledProfile().getAsJsonObject("runtimeClosure").getAsJsonObject("loaderApiBoundary");
     assertEquals("runtime-api-stabilized", boundary.get("status").getAsString());
-    assertEquals("Loader API Hardening", boundary.get("nextArc").getAsString());
+    assertEquals("Minecraft Target Arc", boundary.get("nextArc").getAsString());
     assertEquals(
         List.of(
             "com.spindle.api.LoaderApi",
