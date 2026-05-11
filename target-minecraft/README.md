@@ -42,3 +42,21 @@ Target-2 is analysis-only:
 The default Target-2 contract catalog is intentionally empty in this pass. The report still records schema, target, side, version, analysis-only flags, and diagnostics explaining that no hook contracts are declared yet.
 
 See [Target-2: Hook Point Contract Model](../docs/architecture/target-2-hook-point-contract-model.md).
+
+## Target-3 known-symbol hook validation
+
+Target-3 adds the first internal known-symbol hook contract catalog on top of Target-2.
+
+It selects a tiny catalog by Minecraft version and side, validates those symbols against Target-1 artifact interpretation, and writes `minecraft-hook-contracts.json` schema `2` with catalog metadata.
+
+The only supported catalog in this pass is Minecraft `26.1.2` on the server side, and it contains only `net/minecraft/server/Main` plus `main([Ljava/lang/String;)V`.
+
+Target-3 remains analysis-only and nonfatal:
+
+- it does not parse method bytecode or inspect callsites
+- it does not install hooks
+- it does not transform Minecraft
+- it does not expose a public API
+- it does not imply sandboxing
+
+See [Target-3: Non-Invasive Known Minecraft Symbol Hook Validation](../docs/architecture/target-3-known-symbol-hook-validation.md).

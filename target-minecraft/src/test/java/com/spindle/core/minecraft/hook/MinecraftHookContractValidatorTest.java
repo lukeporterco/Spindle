@@ -22,7 +22,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport report =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     contract(
                         "class-contract",
@@ -54,6 +54,9 @@ class MinecraftHookContractValidatorTest {
                         MinecraftHookRequirement.REQUIRED))));
 
     assertTrue(report.validationPassed());
+    assertEquals(2, report.schema());
+    assertEquals("Target-3", report.milestoneName());
+    assertEquals("test-catalog", report.catalogId());
     assertEquals(4, report.contractCount());
     assertEquals(4, report.validContractCount());
     assertEquals(0, report.invalidContractCount());
@@ -70,7 +73,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport report =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     contract(
                         "missing-class",
@@ -83,6 +86,7 @@ class MinecraftHookContractValidatorTest {
     assertFalse(report.validationPassed());
     assertEquals(1, report.errorCount());
     assertEquals("MISSING_CLASS", report.contracts().getFirst().status());
+    assertEquals("minecraft.hook_contract.missing_class", report.diagnostics().getFirst().code());
     assertEquals(MinecraftHookDiagnosticSeverity.ERROR, report.diagnostics().getFirst().severity());
     assertEquals("MISSING_CLASS", report.diagnostics().getFirst().status());
   }
@@ -92,7 +96,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport report =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     contract(
                         "optional-method",
@@ -115,7 +119,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport report =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     new MinecraftHookPointContract(
                         "client-only",
@@ -129,7 +133,7 @@ class MinecraftHookContractValidatorTest {
 
     assertFalse(report.contracts().getFirst().valid());
     assertEquals("SIDE_MISMATCH", report.contracts().getFirst().status());
-    assertEquals("target-2.side_mismatch", report.diagnostics().getFirst().code());
+    assertEquals("minecraft.hook_contract.side_mismatch", report.diagnostics().getFirst().code());
   }
 
   @Test
@@ -137,7 +141,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport dotOwnerReport =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     contract(
                         "dot-owner",
@@ -149,7 +153,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport badConstructorReport =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     contract(
                         "bad-constructor",
@@ -161,9 +165,12 @@ class MinecraftHookContractValidatorTest {
 
     assertEquals("MALFORMED_CONTRACT", dotOwnerReport.contracts().getFirst().status());
     assertEquals("MALFORMED_CONTRACT", badConstructorReport.contracts().getFirst().status());
-    assertEquals("target-2.malformed_contract", dotOwnerReport.diagnostics().getFirst().code());
     assertEquals(
-        "target-2.malformed_contract", badConstructorReport.diagnostics().getFirst().code());
+        "minecraft.hook_contract.malformed_contract",
+        dotOwnerReport.diagnostics().getFirst().code());
+    assertEquals(
+        "minecraft.hook_contract.malformed_contract",
+        badConstructorReport.diagnostics().getFirst().code());
   }
 
   @Test
@@ -171,7 +178,7 @@ class MinecraftHookContractValidatorTest {
     MinecraftHookContractReport report =
         validator.validate(
             interpretation(),
-            new MinecraftHookContractCatalog(
+            catalog(
                 List.of(
                     contract(
                         "duplicate",
@@ -191,7 +198,35 @@ class MinecraftHookContractValidatorTest {
     assertTrue(report.contracts().get(0).valid());
     assertFalse(report.contracts().get(1).valid());
     assertEquals("DUPLICATE_ID", report.contracts().get(1).status());
-    assertEquals("target-2.duplicate_id", report.diagnostics().getFirst().code());
+    assertEquals("minecraft.hook_contract.duplicate_id", report.diagnostics().getFirst().code());
+  }
+
+  @Test
+  void malformedFirstOccurrenceStillReservesDuplicateId() {
+    MinecraftHookContractReport report =
+        validator.validate(
+            interpretation(),
+            catalog(
+                List.of(
+                    contract(
+                        "duplicate",
+                        MinecraftHookPointKind.METHOD,
+                        "net/minecraft/server/MinecraftServer",
+                        null,
+                        null,
+                        MinecraftHookRequirement.REQUIRED),
+                    contract(
+                        "duplicate",
+                        MinecraftHookPointKind.CLASS,
+                        "net/minecraft/server/MinecraftServer",
+                        null,
+                        null,
+                        MinecraftHookRequirement.REQUIRED))));
+
+    assertEquals("MALFORMED_CONTRACT", report.contracts().get(0).status());
+    assertEquals("DUPLICATE_ID", report.contracts().get(1).status());
+    assertEquals("minecraft.hook_contract.malformed_contract", report.diagnostics().get(0).code());
+    assertEquals("minecraft.hook_contract.duplicate_id", report.diagnostics().get(1).code());
   }
 
   @Test
@@ -201,9 +236,16 @@ class MinecraftHookContractValidatorTest {
 
     assertTrue(report.validationPassed());
     assertEquals(0, report.contractCount());
+    assertEquals("empty", report.catalogId());
     assertEquals(1, report.diagnostics().size());
-    assertEquals("target-2.no_contracts_declared", report.diagnostics().getFirst().code());
+    assertEquals(
+        "minecraft.hook_contract.no_contracts_declared", report.diagnostics().getFirst().code());
     assertEquals(MinecraftHookDiagnosticSeverity.INFO, report.diagnostics().getFirst().severity());
+  }
+
+  private MinecraftHookContractCatalog catalog(List<MinecraftHookPointContract> contracts) {
+    return new MinecraftHookContractCatalog(
+        "test-catalog", "Validator test catalog.", "26.1.2", MinecraftSide.SERVER, contracts);
   }
 
   private MinecraftHookPointContract contract(

@@ -57,3 +57,5 @@ Future passes may add:
 - hook installation behavior
 
 Those future passes remain separate from the public Target Layer API and from any future Modding API work.
+
+Target-3 builds directly on this model by selecting the first version-specific internal known-symbol catalog and validating it against the same Target-1 interpretation output.

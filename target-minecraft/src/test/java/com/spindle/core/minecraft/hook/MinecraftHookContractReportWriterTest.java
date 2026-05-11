@@ -19,9 +19,13 @@ class MinecraftHookContractReportWriterTest {
   void writesDeterministicJsonAndCreatesParentDirectories() throws Exception {
     MinecraftHookContractReport report =
         new MinecraftHookContractReport(
-            1,
-            "Target-2",
+            2,
+            "Target-3",
             "minecraft",
+            "26.1.2",
+            "server",
+            "minecraft-26.1.2-server-known-symbols",
+            "Target-3 known-symbol hook contracts for Minecraft 26.1.2 server artifacts.",
             "26.1.2",
             "server",
             true,
@@ -79,7 +83,7 @@ class MinecraftHookContractReportWriterTest {
                     MinecraftHookDiagnosticSeverity.INFO,
                     "NO_CONTRACTS_DECLARED",
                     null,
-                    "target-2.no_contracts_declared",
+                    "minecraft.hook_contract.no_contracts_declared",
                     "info",
                     null,
                     null,
@@ -89,7 +93,7 @@ class MinecraftHookContractReportWriterTest {
                     MinecraftHookDiagnosticSeverity.ERROR,
                     "MISSING_MEMBER",
                     "contract-beta",
-                    "target-2.missing_member",
+                    "minecraft.hook_contract.missing_member",
                     "missing member",
                     "net/minecraft/server/Beta",
                     "tick",
@@ -105,10 +109,15 @@ class MinecraftHookContractReportWriterTest {
     String secondJson = Files.readString(secondOutput, StandardCharsets.UTF_8);
 
     assertTrue(Files.exists(firstOutput));
-    assertTrue(firstJson.contains("\"milestoneName\": \"Target-2\""));
+    assertTrue(firstJson.contains("\"schema\": 2"));
+    assertTrue(firstJson.contains("\"milestoneName\": \"Target-3\""));
+    assertTrue(firstJson.contains("\"catalogId\": \"minecraft-26.1.2-server-known-symbols\""));
+    assertTrue(firstJson.contains("\"catalogSide\": \"server\""));
     assertTrue(firstJson.contains("\"analysisOnly\": true"));
     assertTrue(firstJson.contains("\"classLoadingOccurred\": false"));
     assertTrue(firstJson.contains("\"injectionOccurred\": false"));
+    assertTrue(firstJson.contains("\"transformationOccurred\": false"));
+    assertTrue(firstJson.contains("\"patchingOccurred\": false"));
     assertTrue(firstJson.contains("\"hookInstallationOccurred\": false"));
     assertTrue(firstJson.contains("\"artifactInterpretationMilestone\": \"Target-1\""));
     assertTrue(

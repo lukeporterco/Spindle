@@ -38,6 +38,10 @@ public final class MinecraftHookContractReportWriter {
     root.addProperty("target", report.target());
     addString(root, "minecraftVersion", report.minecraftVersion());
     root.addProperty("side", report.side());
+    addString(root, "catalogId", report.catalogId());
+    addString(root, "catalogDescription", report.catalogDescription());
+    addString(root, "catalogMinecraftVersion", report.catalogMinecraftVersion());
+    addString(root, "catalogSide", report.catalogSide());
     root.addProperty("analysisOnly", report.analysisOnly());
     root.addProperty("classLoadingOccurred", report.classLoadingOccurred());
     root.addProperty("injectionOccurred", report.injectionOccurred());

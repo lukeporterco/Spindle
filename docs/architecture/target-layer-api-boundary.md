@@ -6,6 +6,8 @@ Target-1 now adds artifact interpretation before hook contracts. That pass remai
 
 Target-2 now adds explicit hook point contract validation on top of Target-1 interpretation. That pass also remains analysis-only and stays inside `target-minecraft`.
 
+Target-3 now selects the first internal known-symbol catalog and validates it non-invasively against Target-1 interpretation. That pass also remains analysis-only and stays inside `target-minecraft`.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -16,7 +18,15 @@ It is not a standalone public API and it is not the ergonomic modding surface.
 
 The first concrete internal contract in that subsystem is now the Target-2 hook point contract model under `com.spindle.core.minecraft.hook`.
 
-That Target-2 pass validates explicit symbol-level contracts only. It does not discover hook points, parse method instructions, inspect callsites, install hooks, or transform Minecraft.
+That model progresses through:
+
+1. Target-1 reads class-file structure from planned Minecraft runtime jars.
+2. Target-2 defines validation-only hook contracts.
+3. Target-3 selects the first internal known-symbol catalog and validates it non-invasively.
+4. Future Target-4 may inspect method bytecode placement.
+5. Future Target-5 may install a minimal controlled hook.
+
+Target-3 still does not discover hook points, parse method instructions, inspect callsites, install hooks, or transform Minecraft.
 
 ## Target Layer API
 
@@ -48,4 +58,4 @@ This document is a boundary-prep note only.
 
 It names the first planned Minecraft Target Layer subsystem, the Injection Hook Subsystem, without implementing it.
 
-Target-2 remains analysis-only scaffolding inside that boundary. Real contract catalogs, hook candidate classification, bytecode placement validation, and installation behavior are future passes.
+Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Real catalog growth, hook candidate classification, bytecode placement validation, and installation behavior are future passes.

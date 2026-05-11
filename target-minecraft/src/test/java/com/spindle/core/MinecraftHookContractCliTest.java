@@ -24,7 +24,7 @@ class MinecraftHookContractCliTest {
   @TempDir Path tempDirectory;
 
   @Test
-  void minecraftHookContractsWritesTargetTwoReportWithoutLaunching() throws Exception {
+  void minecraftHookContractsWritesTargetThreeReportWithoutLaunching() throws Exception {
     Path minecraftDir =
         createFixtureMinecraftDirectory(
             tempDirectory.resolve("minecraft"),
@@ -54,11 +54,14 @@ class MinecraftHookContractCliTest {
     assertTrue(Files.exists(interpretationPath));
     assertTrue(Files.exists(hookReportPath));
     String hookReport = Files.readString(hookReportPath, StandardCharsets.UTF_8);
-    assertTrue(hookReport.contains("\"milestoneName\": \"Target-2\""));
+    assertTrue(hookReport.contains("\"schema\": 2"));
+    assertTrue(hookReport.contains("\"milestoneName\": \"Target-3\""));
+    assertTrue(hookReport.contains("\"catalogId\": \"minecraft-26.1.2-server-known-symbols\""));
     assertTrue(hookReport.contains("\"analysisOnly\": true"));
     assertTrue(hookReport.contains("\"hookInstallationOccurred\": false"));
-    assertTrue(hookReport.contains("\"contractCount\": 0"));
-    assertTrue(hookReport.contains("target-2.no_contracts_declared"));
+    assertTrue(hookReport.contains("\"contractCount\": 2"));
+    assertTrue(hookReport.contains("\"validContractCount\": 2"));
+    assertTrue(hookReport.contains("\"errorCount\": 0"));
     assertFalse(Files.exists(tempDirectory.resolve("minecraft-server-launch-result.json")));
   }
 
@@ -129,6 +132,9 @@ class MinecraftHookContractCliTest {
       jar.putNextEntry(
           new JarEntry("com/spindle/sampleserverfixture/FakeMinecraftServerMain.class"));
       jar.write(readResourceBytes("com/spindle/sampleserverfixture/FakeMinecraftServerMain.class"));
+      jar.closeEntry();
+      jar.putNextEntry(new JarEntry("net/minecraft/server/Main.class"));
+      jar.write(readResourceBytes("net/minecraft/server/Main.class"));
       jar.closeEntry();
     }
     return jarPath;

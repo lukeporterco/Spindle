@@ -44,7 +44,7 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
-import com.spindle.core.minecraft.hook.MinecraftHookContractCatalog;
+import com.spindle.core.minecraft.hook.MinecraftHookContractCatalogProvider;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReport;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReportWriter;
 import com.spindle.core.minecraft.hook.MinecraftHookContractValidator;
@@ -444,7 +444,10 @@ public final class MinecraftDryRunFlow {
                 LaunchPhase.COMPLETE,
                 () ->
                     new MinecraftHookContractValidator()
-                        .validate(finalInterpretation, MinecraftHookContractCatalog.empty()),
+                        .validate(
+                            finalInterpretation,
+                            new MinecraftHookContractCatalogProvider()
+                                .catalogFor(metadata.id(), config.side())),
                 report ->
                     DiagnosticMeasurements.details(
                         "contractCount",
@@ -855,7 +858,8 @@ public final class MinecraftDryRunFlow {
 
   private static void printMinecraftHookContractsExplain(MinecraftHookContractReport report) {
     System.out.println(
-        "[spindle] explain-hook-contracts: Target-2 hook contracts are validation-only");
+        "[spindle] explain-hook-contracts: Target-3 known-symbol hook validation is analysis-only");
+    System.out.println("[spindle] explain-hook-contracts: catalog " + report.catalogId());
     System.out.println("[spindle] explain-hook-contracts: contracts " + report.contractCount());
     System.out.println("[spindle] explain-hook-contracts: valid " + report.validContractCount());
     System.out.println("[spindle] explain-hook-contracts: warnings " + report.warningCount());

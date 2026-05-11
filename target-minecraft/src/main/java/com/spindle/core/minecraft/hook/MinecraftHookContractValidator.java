@@ -9,12 +9,12 @@ import java.util.Objects;
 import java.util.Set;
 
 public final class MinecraftHookContractValidator {
-  private static final int REPORT_SCHEMA = 1;
-  private static final String MILESTONE_NAME = "Target-2";
+  private static final int REPORT_SCHEMA = 2;
+  private static final String MILESTONE_NAME = "Target-3";
   private static final String TARGET = "minecraft";
-  private static final String EMPTY_CATALOG_CODE = "target-2.no_contracts_declared";
+  private static final String EMPTY_CATALOG_CODE = "minecraft.hook_contract.no_contracts_declared";
   private static final String EMPTY_CATALOG_MESSAGE =
-      "Target-2 defines hook contract diagnostics, but no hook contracts are declared yet.";
+      "No hook contracts are declared for the selected Minecraft version and side.";
 
   public MinecraftHookContractReport validate(
       MinecraftArtifactInterpretation interpretation, MinecraftHookContractCatalog catalog) {
@@ -38,7 +38,7 @@ public final class MinecraftHookContractValidator {
               null,
               null,
               null));
-      return buildReport(interpretation, pendingResults, diagnosticCandidates);
+      return buildReport(interpretation, catalog, pendingResults, diagnosticCandidates);
     }
 
     Set<String> seenIds = new HashSet<>();
@@ -77,7 +77,7 @@ public final class MinecraftHookContractValidator {
       }
     }
 
-    return buildReport(interpretation, pendingResults, diagnosticCandidates);
+    return buildReport(interpretation, catalog, pendingResults, diagnosticCandidates);
   }
 
   private ValidationResult validateContract(
@@ -87,28 +87,36 @@ public final class MinecraftHookContractValidator {
       Set<String> seenIds) {
     Objects.requireNonNull(contract, "contract");
 
-    String malformedMessage = malformedMessage(contract);
-    if (malformedMessage != null) {
+    if (isBlank(contract.id())) {
       return invalid(
           MinecraftHookContractStatus.MALFORMED_CONTRACT,
           severityFor(contract.requirement()),
-          "target-2.malformed_contract",
-          malformedMessage);
+          "minecraft.hook_contract.malformed_contract",
+          "Hook contract ids must be nonblank.");
     }
 
     if (!seenIds.add(contract.id())) {
       return invalid(
           MinecraftHookContractStatus.DUPLICATE_ID,
           MinecraftHookDiagnosticSeverity.ERROR,
-          "target-2.duplicate_id",
+          "minecraft.hook_contract.duplicate_id",
           "Hook contract `" + contract.id() + "` is declared more than once.");
+    }
+
+    String malformedMessage = malformedMessage(contract);
+    if (malformedMessage != null) {
+      return invalid(
+          MinecraftHookContractStatus.MALFORMED_CONTRACT,
+          severityFor(contract.requirement()),
+          "minecraft.hook_contract.malformed_contract",
+          malformedMessage);
     }
 
     if (!contract.side().id().equals(interpretation.side())) {
       return invalid(
           MinecraftHookContractStatus.SIDE_MISMATCH,
           severityFor(contract.requirement()),
-          "target-2.side_mismatch",
+          "minecraft.hook_contract.side_mismatch",
           "Hook contract `"
               + contract.id()
               + "` targets side `"
@@ -122,7 +130,7 @@ public final class MinecraftHookContractValidator {
       return invalid(
           MinecraftHookContractStatus.MISSING_CLASS,
           severityFor(contract.requirement()),
-          "target-2.missing_class",
+          "minecraft.hook_contract.missing_class",
           "Hook contract `"
               + contract.id()
               + "` expected class `"
@@ -139,7 +147,7 @@ public final class MinecraftHookContractValidator {
               : invalid(
                   MinecraftHookContractStatus.MISSING_MEMBER,
                   severityFor(contract.requirement()),
-                  "target-2.missing_member",
+                  "minecraft.hook_contract.missing_member",
                   "Hook contract `"
                       + contract.id()
                       + "` expected method `"
@@ -154,7 +162,7 @@ public final class MinecraftHookContractValidator {
               : invalid(
                   MinecraftHookContractStatus.MISSING_MEMBER,
                   severityFor(contract.requirement()),
-                  "target-2.missing_member",
+                  "minecraft.hook_contract.missing_member",
                   "Hook contract `"
                       + contract.id()
                       + "` expected constructor `"
@@ -171,7 +179,7 @@ public final class MinecraftHookContractValidator {
               : invalid(
                   MinecraftHookContractStatus.MISSING_MEMBER,
                   severityFor(contract.requirement()),
-                  "target-2.missing_member",
+                  "minecraft.hook_contract.missing_member",
                   "Hook contract `"
                       + contract.id()
                       + "` expected field `"
@@ -186,6 +194,7 @@ public final class MinecraftHookContractValidator {
 
   private MinecraftHookContractReport buildReport(
       MinecraftArtifactInterpretation interpretation,
+      MinecraftHookContractCatalog catalog,
       List<PendingResult> pendingResults,
       List<DiagnosticCandidate> diagnosticCandidates) {
     List<List<String>> resultDiagnosticIds = new ArrayList<>();
@@ -279,6 +288,10 @@ public final class MinecraftHookContractValidator {
         TARGET,
         interpretation.minecraftVersion(),
         interpretation.side(),
+        catalog.id(),
+        catalog.description(),
+        catalog.minecraftVersion(),
+        catalog.side() == null ? null : catalog.side().id(),
         true,
         false,
         false,
@@ -300,9 +313,6 @@ public final class MinecraftHookContractValidator {
   }
 
   private String malformedMessage(MinecraftHookPointContract contract) {
-    if (isBlank(contract.id())) {
-      return "Hook contract ids must be nonblank.";
-    }
     if (contract.side() == null) {
       return "Hook contract `" + contract.id() + "` must declare a side.";
     }
