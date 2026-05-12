@@ -69,6 +69,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainHookContracts = false;
     boolean minecraftHookPlacementPlan = false;
     boolean minecraftExplainHookPlacement = false;
+    boolean minecraftHookBytecodeAnalysis = false;
+    boolean minecraftExplainHookBytecodeAnalysis = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -383,6 +385,29 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-hook-bytecode-analysis".equals(argument)) {
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-hook-bytecode-analysis".equals(argument)) {
+        minecraftExplainHookBytecodeAnalysis = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -527,6 +552,8 @@ public final class LoaderCliParser {
             minecraftExplainHookContracts,
             minecraftHookPlacementPlan,
             minecraftExplainHookPlacement,
+            minecraftHookBytecodeAnalysis,
+            minecraftExplainHookBytecodeAnalysis,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,

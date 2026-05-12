@@ -1,11 +1,16 @@
 package com.spindle.core.minecraft.hook.place;
 
 import com.spindle.core.diagnostics.LoaderException;
+import com.spindle.core.minecraft.hook.bytecode.MinecraftCodeNestedAttributeSummary;
+import com.spindle.core.minecraft.hook.bytecode.MinecraftDecodedCodeAttribute;
+import com.spindle.core.minecraft.hook.bytecode.MinecraftDecodedExceptionHandler;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class MinecraftMethodCodeReader {
   private static final int CLASS_MAGIC = 0xCAFEBABE;
@@ -30,6 +35,23 @@ public final class MinecraftMethodCodeReader {
   private static final int ACCESS_NATIVE = 0x0100;
 
   public MinecraftMethodCodeSummary read(
+      byte[] classBytes, String ownerInternalName, String memberName, String descriptor)
+      throws LoaderException {
+    MinecraftDecodedCodeAttribute codeAttribute =
+        readDecodedCode(classBytes, ownerInternalName, memberName, descriptor);
+    return new MinecraftMethodCodeSummary(
+        codeAttribute.maxStack(),
+        codeAttribute.maxLocals(),
+        codeAttribute.codeLength(),
+        codeAttribute.codeSha256(),
+        codeAttribute.exceptionHandlers().size(),
+        codeAttribute.nestedCodeAttributes().size(),
+        codeAttribute.hasCodeAttribute(),
+        codeAttribute.abstractOrNative(),
+        codeAttribute.methodEntryOffset());
+  }
+
+  public MinecraftDecodedCodeAttribute readDecodedCode(
       byte[] classBytes, String ownerInternalName, String memberName, String descriptor)
       throws LoaderException {
     if (classBytes == null) {
@@ -82,15 +104,27 @@ public final class MinecraftMethodCodeReader {
           String attributeName = constantPool.utf8(input.readUnsignedShort());
           int attributeLength = input.readInt();
           if ("Code".equals(attributeName)) {
-            return readCodeAttribute(input, attributeLength, abstractOrNative);
+            return readCodeAttribute(input, constantPool, attributeLength, abstractOrNative);
           }
           skipFully(input, Integer.toUnsignedLong(attributeLength));
         }
-        return new MinecraftMethodCodeSummary(
-            null, null, null, null, null, null, false, abstractOrNative, null);
+        return new MinecraftDecodedCodeAttribute(
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of(),
+            List.of(),
+            false,
+            abstractOrNative,
+            null,
+            false,
+            null);
       }
 
-      return new MinecraftMethodCodeSummary(null, null, null, null, null, null, false, false, null);
+      return new MinecraftDecodedCodeAttribute(
+          null, null, null, null, null, List.of(), List.of(), false, false, null, false, null);
     } catch (IOException exception) {
       throw new LoaderException(
           "Failed to read method code for " + ownerInternalName + "." + memberName + descriptor,
@@ -98,8 +132,11 @@ public final class MinecraftMethodCodeReader {
     }
   }
 
-  private MinecraftMethodCodeSummary readCodeAttribute(
-      DataInputStream input, int attributeLength, boolean abstractOrNative)
+  private MinecraftDecodedCodeAttribute readCodeAttribute(
+      DataInputStream input,
+      ConstantPool constantPool,
+      int attributeLength,
+      boolean abstractOrNative)
       throws IOException, LoaderException {
     long remaining = Integer.toUnsignedLong(attributeLength);
     if (remaining < 12L) {
@@ -129,7 +166,15 @@ public final class MinecraftMethodCodeReader {
     if (exceptionTableBytes > remaining) {
       throw new LoaderException("Malformed Code attribute: truncated exception table.");
     }
-    skipFully(input, exceptionTableBytes);
+    List<MinecraftDecodedExceptionHandler> exceptionHandlers = new ArrayList<>(exceptionTableCount);
+    for (int index = 0; index < exceptionTableCount; index++) {
+      exceptionHandlers.add(
+          new MinecraftDecodedExceptionHandler(
+              input.readUnsignedShort(),
+              input.readUnsignedShort(),
+              input.readUnsignedShort(),
+              input.readUnsignedShort()));
+    }
     remaining -= exceptionTableBytes;
     if (remaining < 2L) {
       throw new LoaderException("Malformed Code attribute: missing nested attribute count.");
@@ -137,34 +182,53 @@ public final class MinecraftMethodCodeReader {
 
     int nestedAttributeCount = input.readUnsignedShort();
     remaining -= 2L;
+    List<MinecraftCodeNestedAttributeSummary> nestedAttributes =
+        new ArrayList<>(nestedAttributeCount);
+    boolean stackMapTablePresent = false;
+    Integer stackMapTableEntryCount = null;
     for (int index = 0; index < nestedAttributeCount; index++) {
       if (remaining < 6L) {
         throw new LoaderException("Malformed Code attribute: truncated nested attribute.");
       }
-      input.readUnsignedShort();
+      int attributeNameIndex = input.readUnsignedShort();
       int nestedLength = input.readInt();
       remaining -= 6L;
       long nestedBodyLength = Integer.toUnsignedLong(nestedLength);
       if (nestedBodyLength > remaining) {
         throw new LoaderException("Malformed Code attribute: nested attribute exceeds bounds.");
       }
-      skipFully(input, nestedBodyLength);
+      String nestedAttributeName = constantPool.utf8(attributeNameIndex);
+      byte[] nestedBody = input.readNBytes((int) nestedBodyLength);
+      if (nestedBody.length != (int) nestedBodyLength) {
+        throw new LoaderException("Malformed Code attribute: truncated nested attribute body.");
+      }
+      Integer entryCount = null;
+      if ("StackMapTable".equals(nestedAttributeName)) {
+        stackMapTablePresent = true;
+        entryCount = stackMapTableEntryCount(nestedBody);
+        stackMapTableEntryCount = entryCount;
+      }
+      nestedAttributes.add(
+          new MinecraftCodeNestedAttributeSummary(nestedAttributeName, nestedLength, entryCount));
       remaining -= nestedBodyLength;
     }
     if (remaining > 0L) {
       skipFully(input, remaining);
     }
 
-    return new MinecraftMethodCodeSummary(
+    return new MinecraftDecodedCodeAttribute(
         maxStack,
         maxLocals,
         code.length,
         sha256Hex(code),
-        exceptionTableCount,
-        nestedAttributeCount,
+        code,
+        exceptionHandlers,
+        nestedAttributes,
         true,
         abstractOrNative,
-        0);
+        0,
+        stackMapTablePresent,
+        stackMapTableEntryCount);
   }
 
   private ConstantPool readConstantPool(DataInputStream input) throws IOException, LoaderException {
@@ -244,6 +308,17 @@ public final class MinecraftMethodCodeReader {
       return builder.toString();
     } catch (NoSuchAlgorithmException exception) {
       throw new LoaderException("SHA-256 is unavailable for method code analysis.", exception);
+    }
+  }
+
+  private Integer stackMapTableEntryCount(byte[] nestedBody) throws LoaderException {
+    if (nestedBody.length < 2) {
+      throw new LoaderException("Malformed StackMapTable attribute: missing entry count.");
+    }
+    try (DataInputStream nestedInput = new DataInputStream(new ByteArrayInputStream(nestedBody))) {
+      return nestedInput.readUnsignedShort();
+    } catch (IOException exception) {
+      throw new LoaderException("Failed to read StackMapTable entry count.", exception);
     }
   }
 

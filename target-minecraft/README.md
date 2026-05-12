@@ -80,6 +80,26 @@ Target-5 remains analysis-only:
 
 See [Target-5: Hook Placement Analysis Scaffold](../docs/architecture/target-5-hook-placement-analysis-scaffold.md).
 
+## Target-6 instruction-aware bytecode model
+
+Target-6 adds the first instruction-aware bytecode analysis layer after Target-5.
+
+It reuses the validated Minecraft `26.1.2` server entrypoint placement, decodes the selected `net.minecraft.server.Main.main(String[])` method body into an internal instruction model, validates instruction, branch, switch, and exception-table boundaries, preserves nested `Code` attribute metadata, and writes `minecraft-hook-bytecode-analysis.json`.
+
+Target-6 remains analysis-only:
+
+- it does not modify bytecode
+- it does not update stack maps
+- it does not compute full control flow
+- it does not generate patches
+- it does not install hooks
+- it does not expose a public hook API
+- it does not add gameplay hooks
+- it does not use Mixin or Java agents
+- it does not imply Java mod execution is sandboxed
+
+See [Target-6: Instruction-Aware Bytecode Model](../docs/architecture/target-6-instruction-aware-bytecode-model.md).
+
 ## Target-4 minimal hook installation proof
 
 Target-4 adds the first internal launch-boundary hook installation proof.

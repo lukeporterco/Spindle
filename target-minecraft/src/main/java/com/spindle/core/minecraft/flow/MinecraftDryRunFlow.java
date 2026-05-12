@@ -48,6 +48,9 @@ import com.spindle.core.minecraft.hook.MinecraftHookContractCatalogProvider;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReport;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReportWriter;
 import com.spindle.core.minecraft.hook.MinecraftHookContractValidator;
+import com.spindle.core.minecraft.hook.bytecode.MinecraftHookBytecodeAnalysisReport;
+import com.spindle.core.minecraft.hook.bytecode.MinecraftHookBytecodeAnalysisWriter;
+import com.spindle.core.minecraft.hook.bytecode.MinecraftHookBytecodeAnalyzer;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlan;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlanWriter;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlanner;
@@ -97,6 +100,8 @@ public final class MinecraftDryRunFlow {
             || config.explainHookContracts()
             || config.hookPlacementPlan()
             || config.explainHookPlacement()
+            || config.hookBytecodeAnalysis()
+            || config.explainHookBytecodeAnalysis()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -317,6 +322,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainHookContracts()
                 || config.hookPlacementPlan()
                 || config.explainHookPlacement()
+                || config.hookBytecodeAnalysis()
+                || config.explainHookBytecodeAnalysis()
                 || config.hookInstallationPlan()
                 || config.installHooks()
                 || config.integrationPlan()
@@ -390,6 +397,8 @@ public final class MinecraftDryRunFlow {
               || config.explainHookContracts()
               || config.hookPlacementPlan()
               || config.explainHookPlacement()
+              || config.hookBytecodeAnalysis()
+              || config.explainHookBytecodeAnalysis()
               || config.hookInstallationPlan()
               || config.installHooks();
       if (shouldCreateInterpretation) {
@@ -439,6 +448,8 @@ public final class MinecraftDryRunFlow {
           || config.explainHookContracts()
           || config.hookPlacementPlan()
           || config.explainHookPlacement()
+          || config.hookBytecodeAnalysis()
+          || config.explainHookBytecodeAnalysis()
           || config.hookInstallationPlan()
           || config.installHooks()) {
         MinecraftArtifactInterpretation finalInterpretation =
@@ -513,6 +524,7 @@ public final class MinecraftDryRunFlow {
           || config.planMods()
           || config.integrationPlan()
           || config.hookPlacementPlan()
+          || config.hookBytecodeAnalysis()
           || config.hookInstallationPlan()
           || config.installHooks()
           || config.preflight()
@@ -567,6 +579,7 @@ public final class MinecraftDryRunFlow {
               || config.reproducibilityCheck()
               || config.executionPlan()
               || config.hookPlacementPlan()
+              || config.hookBytecodeAnalysis()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer())
           && runtimeBoundary != null) {
@@ -617,6 +630,7 @@ public final class MinecraftDryRunFlow {
       if ((config.executionPlan()
               || config.hookInstallationPlan()
               || config.hookPlacementPlan()
+              || config.hookBytecodeAnalysis()
               || config.installHooks()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer()
@@ -717,6 +731,48 @@ public final class MinecraftDryRunFlow {
           megaMilestoneReports.add("minecraft-hook-placement-plan.json");
           if (config.explainHookPlacement()) {
             printMinecraftHookPlacementExplain(hookPlacementPlan);
+          }
+
+          if (config.hookBytecodeAnalysis()) {
+            MinecraftHookBytecodeAnalysisReport hookBytecodeAnalysisReport =
+                DiagnosticMeasurements.measure(
+                    diagnosticSink,
+                    "minecraft.hook_bytecode.analysis",
+                    LaunchPhase.COMPLETE,
+                    () ->
+                        new MinecraftHookBytecodeAnalyzer()
+                            .analyze(
+                                hookPlacementPlan,
+                                finalExecutionPlan,
+                                minecraftHookPlacementRuntimePlan(
+                                    context, executionPlannedRuntime.plan())),
+                    report ->
+                        DiagnosticMeasurements.details(
+                            "gatePassed",
+                            Boolean.toString(report.gatePassed()),
+                            "bytecodeAnalysisSucceeded",
+                            Boolean.toString(report.bytecodeAnalysisSucceeded()),
+                            "instructionCount",
+                            Integer.toString(report.instructionCount())));
+            DiagnosticMeasurements.measure(
+                diagnosticSink,
+                "minecraft.hook_bytecode_analysis.write",
+                LaunchPhase.COMPLETE,
+                () -> {
+                  Path outputPath =
+                      context.workingDirectory().resolve("minecraft-hook-bytecode-analysis.json");
+                  new MinecraftHookBytecodeAnalysisWriter()
+                      .write(outputPath, hookBytecodeAnalysisReport);
+                  return outputPath;
+                },
+                outputPath ->
+                    DiagnosticMeasurements.details(
+                        "hookBytecodeAnalysisOutputPath",
+                        DisplayPaths.displayPath(context, outputPath)));
+            megaMilestoneReports.add("minecraft-hook-bytecode-analysis.json");
+            if (config.explainHookBytecodeAnalysis()) {
+              printMinecraftHookBytecodeAnalysisExplain(hookBytecodeAnalysisReport);
+            }
           }
         }
 
@@ -1059,5 +1115,17 @@ public final class MinecraftDryRunFlow {
         "[spindle] explain-hook-placement: planned placements " + plan.plannedPlacementCount());
     System.out.println(
         "[spindle] explain-hook-placement: wrote minecraft-hook-placement-plan.json");
+  }
+
+  private static void printMinecraftHookBytecodeAnalysisExplain(
+      MinecraftHookBytecodeAnalysisReport report) {
+    System.out.println(
+        "[spindle] explain-hook-bytecode-analysis: Target-6 bytecode analysis is analysis-only");
+    System.out.println(
+        "[spindle] explain-hook-bytecode-analysis: gatePassed " + report.gatePassed());
+    System.out.println(
+        "[spindle] explain-hook-bytecode-analysis: instruction count " + report.instructionCount());
+    System.out.println(
+        "[spindle] explain-hook-bytecode-analysis: wrote minecraft-hook-bytecode-analysis.json");
   }
 }

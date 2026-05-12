@@ -47,7 +47,7 @@ Target-5 reads only enough class-file structure to find the selected method and 
 - `abstractOrNative`
 - `methodEntryOffset`
 
-The method body is treated as opaque bytes. Target-5 does not decode JVM instructions or inspect control flow.
+The method body is treated as opaque bytes. Target-5 does not decode JVM instructions or inspect control flow. Target-6 builds on this placement output and performs the first instruction-aware decode pass in a separate report without changing Target-5 output.
 
 ## What Target-5 Does Not Do
 
