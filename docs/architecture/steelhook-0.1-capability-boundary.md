@@ -35,6 +35,8 @@ Future Modding API
   networking, resources, client behavior, and gameplay surfaces.
 ```
 
+The ordered concept vocabulary above SteelHook is tracked in [Minecraft Target Concept Roadmap](minecraft-target-concept-roadmap.md). That roadmap is documentation/model-only in this pass. It names future Target Layer concepts without adding runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry behavior, data generation tooling, networking support, client support, or sandboxing.
+
 ## Included In SteelHook 0.1
 
 - internal known-symbol validation for one Minecraft `26.1.2` server entrypoint contract
@@ -61,3 +63,5 @@ Future Modding API
 - Java sandbox claims for mod execution
 
 SteelHook 0.1 should be described as an internal fake-server-only method-entry transform proof, not as a general Minecraft runtime transformation subsystem.
+
+It is also not a public arbitrary bytecode mutation API. The future Modding API remains deferred.

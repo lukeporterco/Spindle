@@ -67,6 +67,8 @@ It should expose target facts and target operations, not developer-friendly modd
 
 Advanced developers may eventually use it as an escape hatch when they need direct target behavior.
 
+The ordered concept vocabulary for that future layer now lives in [Minecraft Target Concept Roadmap](minecraft-target-concept-roadmap.md). In this pass, that roadmap and its matching internal catalog are documentation/model-only. They do not add runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry/content registration, data generation tooling, networking support, client support, or sandboxing.
+
 ## Modding API
 
 The Modding API is the future ergonomic API built on top of the Target Layer API.
@@ -82,6 +84,8 @@ Future internal hook implementation should live under `target-minecraft`, likely
 Future low-level target escape hatch API, if exposed publicly, should live under a deferred Minecraft namespace such as `com.spindle.api.minecraft.target.*`.
 
 Future ergonomic modding APIs should not use `.target` names.
+
+SteelHook remains internal machinery here. It is not a public arbitrary bytecode mutation API.
 
 ## Boundary Intent
 

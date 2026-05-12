@@ -89,6 +89,7 @@ The Minecraft target side can:
 - inspect and verify server-side runtime files
 - produce boundary, integration, preflight, reproducibility, and execution reports
 - run fake-server bootstrap smoke flows
+- name the first ten Minecraft Target Layer concept families through a documentation/model-only roadmap
 - validate known Minecraft hook symbols
 - analyze selected method bytecode for hook placement
 - plan one internal method-entry patch without modifying classes
@@ -151,6 +152,8 @@ The stable Loader API remains loader-focused. `com.spindle.api.minecraft.*` rema
 ## SteelHook status
 
 SteelHook is Spindle's internal custom injection hook subsystem inside `target-minecraft`. It is not a public hook API and not a Mixin replacement.
+
+The named Minecraft concept vocabulary above SteelHook now lives in [Minecraft Target Concept Roadmap](docs/architecture/minecraft-target-concept-roadmap.md). That roadmap is documentation/model-only in this pass. It does not add runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry behavior, data generation tooling, networking support, client support, or sandboxing.
 
 SteelHook currently has a narrow proof chain:
 
@@ -587,6 +590,7 @@ docs/architecture/runtime-5-runtime-contract-closure.md
 docs/architecture/loader-api-0-public-runtime-api-boundary.md
 docs/architecture/loader-api-hardening.md
 docs/architecture/target-layer-api-boundary.md
+docs/architecture/minecraft-target-concept-roadmap.md
 docs/architecture/target-1-minecraft-artifact-interpretation.md
 docs/architecture/target-2-hook-point-contract-model.md
 docs/architecture/target-3-known-symbol-hook-validation.md

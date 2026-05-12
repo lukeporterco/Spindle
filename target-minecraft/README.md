@@ -8,6 +8,8 @@ It owns Minecraft artifact handling, runtime planning, artifact interpretation r
 
 The next boundary-prep arc is documented in [Target Layer API Boundary](../docs/architecture/target-layer-api-boundary.md).
 
+The named concept vocabulary for future Target Layer, SteelHook, and Modding API planning is documented in [Minecraft Target Concept Roadmap](../docs/architecture/minecraft-target-concept-roadmap.md). That roadmap and its matching internal catalog are documentation/model-only in this pass. They do not add runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry/content registration, data generation, networking, client support, or sandboxing.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation
