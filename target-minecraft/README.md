@@ -60,3 +60,19 @@ Target-3 remains analysis-only and nonfatal:
 - it does not imply sandboxing
 
 See [Target-3: Non-Invasive Known Minecraft Symbol Hook Validation](../docs/architecture/target-3-known-symbol-hook-validation.md).
+
+## Target-4 minimal hook installation proof
+
+Target-4 adds the first internal launch-boundary hook installation proof.
+
+It plans and installs exactly one wrapper around Minecraft `26.1.2` server `net.minecraft.server.Main.main(String[])`, writes `minecraft-hook-installation-plan.json`, passes that plan into the bootstrap child JVM, invokes Minecraft main through an internal bridge, and writes `minecraft-hook-installation-result.json`.
+
+Target-4 remains intentionally narrow:
+
+- no bytecode parsing or callsite inspection
+- no transformation, patching, remapping, or Java agents
+- no public hook API
+- no gameplay hooks
+- no sandbox claim for Java mod execution
+
+See [Target-4: Minimal Launch-Boundary Hook Installation Proof](../docs/architecture/target-4-minimal-hook-installation-proof.md).

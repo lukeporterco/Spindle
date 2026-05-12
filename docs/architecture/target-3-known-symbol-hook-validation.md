@@ -62,7 +62,9 @@ The report now includes:
 - contract counts and diagnostics
 - analysis-only execution flags
 
-If a required known symbol is missing, the report records an error diagnostic and marks validation as failed for the report. That failure is nonfatal in this pass. It does not stop dry-run planning, launch Minecraft, install hooks, or become a runtime gate yet.
+If a required known symbol is missing, the report records an error diagnostic and marks validation as failed for the report. That failure remains nonfatal for Target-3 diagnostics and planning-only flows.
+
+Target-4 reuses this report as its installation gate input. In explicit install mode, failed Target-3 validation now blocks hook installation before bootstrap proceeds.
 
 ## What Target-3 Does Not Do
 

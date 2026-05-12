@@ -9,10 +9,13 @@ public record MinecraftBootstrapArguments(
     Path boundaryPath,
     Path integrationPlanPath,
     Path executionPlanPath,
+    Path hookInstallationPlanPath,
     String expectedRuntimeFingerprint,
     String expectedBoundaryFingerprint,
     String expectedIntegrationFingerprint,
     String expectedExecutionFingerprint,
+    String expectedHookInstallationPlanFingerprint,
+    boolean installHooks,
     boolean verifyPlanFingerprints,
     boolean strictExecution,
     boolean offlineBootstrap) {
@@ -22,10 +25,13 @@ public record MinecraftBootstrapArguments(
     Path boundaryPath = null;
     Path integrationPlanPath = null;
     Path executionPlanPath = null;
+    Path hookInstallationPlanPath = null;
     String expectedRuntimeFingerprint = null;
     String expectedBoundaryFingerprint = null;
     String expectedIntegrationFingerprint = null;
     String expectedExecutionFingerprint = null;
+    String expectedHookInstallationPlanFingerprint = null;
+    boolean installHooks = false;
     boolean verifyPlanFingerprints = false;
     boolean strictExecution = false;
     boolean offlineBootstrap = false;
@@ -41,6 +47,8 @@ public record MinecraftBootstrapArguments(
             integrationPlanPath = Path.of(requireValue(argument, args, ++index));
         case "--execution-plan" ->
             executionPlanPath = Path.of(requireValue(argument, args, ++index));
+        case "--hook-installation-plan" ->
+            hookInstallationPlanPath = Path.of(requireValue(argument, args, ++index));
         case "--expected-runtime-fingerprint" ->
             expectedRuntimeFingerprint = requireValue(argument, args, ++index);
         case "--expected-boundary-fingerprint" ->
@@ -49,6 +57,9 @@ public record MinecraftBootstrapArguments(
             expectedIntegrationFingerprint = requireValue(argument, args, ++index);
         case "--expected-execution-fingerprint" ->
             expectedExecutionFingerprint = requireValue(argument, args, ++index);
+        case "--expected-hook-installation-plan-fingerprint" ->
+            expectedHookInstallationPlanFingerprint = requireValue(argument, args, ++index);
+        case "--install-hooks" -> installHooks = true;
         case "--verify-plan-fingerprints" -> verifyPlanFingerprints = true;
         case "--strict-execution" -> strictExecution = true;
         case "--offline-bootstrap" -> offlineBootstrap = true;
@@ -64,16 +75,25 @@ public record MinecraftBootstrapArguments(
       throw new LoaderException(
           "Minecraft bootstrap requires working directory plus runtime, boundary, integration, and execution plan paths.");
     }
+    if (installHooks && hookInstallationPlanPath == null) {
+      throw new LoaderException(
+          "Minecraft bootstrap requires --hook-installation-plan when --install-hooks is enabled.");
+    }
     return new MinecraftBootstrapArguments(
         workingDirectory.toAbsolutePath().normalize(),
         workingDirectory.resolve(runtimePlanPath).toAbsolutePath().normalize(),
         workingDirectory.resolve(boundaryPath).toAbsolutePath().normalize(),
         workingDirectory.resolve(integrationPlanPath).toAbsolutePath().normalize(),
         workingDirectory.resolve(executionPlanPath).toAbsolutePath().normalize(),
+        hookInstallationPlanPath == null
+            ? null
+            : workingDirectory.resolve(hookInstallationPlanPath).toAbsolutePath().normalize(),
         expectedRuntimeFingerprint,
         expectedBoundaryFingerprint,
         expectedIntegrationFingerprint,
         expectedExecutionFingerprint,
+        expectedHookInstallationPlanFingerprint,
+        installHooks,
         verifyPlanFingerprints,
         strictExecution,
         offlineBootstrap);

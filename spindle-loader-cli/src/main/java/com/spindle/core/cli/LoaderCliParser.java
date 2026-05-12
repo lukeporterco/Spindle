@@ -67,10 +67,12 @@ public final class LoaderCliParser {
     boolean minecraftExplainInterpretation = false;
     boolean minecraftHookContracts = false;
     boolean minecraftExplainHookContracts = false;
+    boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
     boolean minecraftBootstrapClassloaderGraph = false;
     boolean minecraftBootstrapServer = false;
+    boolean minecraftInstallHooks = false;
     boolean minecraftStrictExecution = false;
     boolean minecraftDenyLoaderInternals = false;
     boolean minecraftVerifyPlanFingerprints = false;
@@ -358,6 +360,16 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-hook-installation-plan".equals(argument)) {
+        minecraftHookInstallationPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-reproducibility-check".equals(argument)) {
         minecraftReproducibilityCheck = true;
         minecraftRuntimePlan = true;
@@ -366,6 +378,18 @@ public final class LoaderCliParser {
         continue;
       }
       if ("--minecraft-execution-plan".equals(argument)) {
+        minecraftExecutionPlan = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        continue;
+      }
+      if ("--minecraft-install-hooks".equals(argument)) {
+        minecraftInstallHooks = true;
+        minecraftBootstrapServer = true;
+        minecraftHookInstallationPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
         minecraftExecutionPlan = true;
         minecraftRuntimePlan = true;
         minecraftBoundaryReport = true;
@@ -478,10 +502,12 @@ public final class LoaderCliParser {
             minecraftExplainInterpretation,
             minecraftHookContracts,
             minecraftExplainHookContracts,
+            minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,
             minecraftBootstrapClassloaderGraph,
             minecraftBootstrapServer,
+            minecraftInstallHooks,
             minecraftStrictExecution,
             minecraftDenyLoaderInternals,
             minecraftVerifyPlanFingerprints,

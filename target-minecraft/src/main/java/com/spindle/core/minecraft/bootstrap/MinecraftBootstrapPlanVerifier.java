@@ -20,6 +20,8 @@ public final class MinecraftBootstrapPlanVerifier {
     JsonObject boundaryPlan = read(arguments.boundaryPath());
     JsonObject integrationPlan = read(arguments.integrationPlanPath());
     JsonObject executionPlan = read(arguments.executionPlanPath());
+    JsonObject hookInstallationPlan =
+        arguments.installHooks() ? read(arguments.hookInstallationPlanPath()) : null;
     List<String> failures = new ArrayList<>();
 
     verifySchema(runtimePlan, "runtime plan", 1, failures);
@@ -27,6 +29,10 @@ public final class MinecraftBootstrapPlanVerifier {
     verifySchema(integrationPlan, "integration plan", 1, failures);
     verifySchema(executionPlan, "execution plan", 1, failures);
     verifyMilestone(executionPlan, "Milestone 8", "execution plan", failures);
+    if (hookInstallationPlan != null) {
+      verifySchema(hookInstallationPlan, "hook installation plan", 1, failures);
+      verifyMilestone(hookInstallationPlan, "Target-4", "hook installation plan", failures);
+    }
 
     MinecraftPlanFingerprint runtimeFingerprint =
         MinecraftPlanFingerprint.fromFile("runtime-plan", arguments.runtimePlanPath());
@@ -36,6 +42,11 @@ public final class MinecraftBootstrapPlanVerifier {
         MinecraftPlanFingerprint.fromFile("integration-plan", arguments.integrationPlanPath());
     MinecraftPlanFingerprint executionFingerprint =
         MinecraftPlanFingerprint.fromFile("execution-plan", arguments.executionPlanPath());
+    MinecraftPlanFingerprint hookInstallationFingerprint =
+        arguments.installHooks()
+            ? MinecraftPlanFingerprint.fromFile(
+                "hook-installation-plan", arguments.hookInstallationPlanPath())
+            : null;
 
     if (arguments.verifyPlanFingerprints()) {
       verifyExpected(
@@ -59,6 +70,13 @@ public final class MinecraftBootstrapPlanVerifier {
           "execution plan",
           failures);
     }
+    if (arguments.installHooks()) {
+      verifyExpected(
+          arguments.expectedHookInstallationPlanFingerprint(),
+          hookInstallationFingerprint.sha256(),
+          "hook installation plan",
+          failures);
+    }
 
     verifyEmbeddedFingerprint(
         executionPlan, "runtimePlanFingerprint", runtimeFingerprint.sha256(), failures);
@@ -70,6 +88,9 @@ public final class MinecraftBootstrapPlanVerifier {
     failures.addAll(new MinecraftPlanDriftDetector().detect(integrationPlan, executionPlan));
     verifyRuntimeHashes(arguments.workingDirectory(), runtimePlan, failures);
     verifyModHashes(arguments.workingDirectory(), executionPlan, failures);
+    if (hookInstallationPlan != null) {
+      verifyHookInstallationPlan(hookInstallationPlan, executionPlan, failures);
+    }
 
     if (!failures.isEmpty()) {
       throw new PlanDriftException(
@@ -84,10 +105,12 @@ public final class MinecraftBootstrapPlanVerifier {
         boundaryPlan,
         integrationPlan,
         executionPlan,
+        hookInstallationPlan,
         runtimeFingerprint,
         boundaryFingerprint,
         integrationFingerprint,
-        executionFingerprint);
+        executionFingerprint,
+        hookInstallationFingerprint);
   }
 
   private JsonObject read(Path path) throws LoaderException {
@@ -191,6 +214,51 @@ public final class MinecraftBootstrapPlanVerifier {
     }
   }
 
+  private void verifyHookInstallationPlan(
+      JsonObject hookInstallationPlan, JsonObject executionPlan, List<String> failures) {
+    if (!hookInstallationPlan.has("gatePassed")
+        || !hookInstallationPlan.get("gatePassed").getAsBoolean()) {
+      failures.add("hook installation plan gate failed");
+    }
+    if (!hookInstallationPlan.has("installationPlanned")
+        || !hookInstallationPlan.get("installationPlanned").getAsBoolean()) {
+      failures.add("hook installation plan is not marked as planned");
+    }
+    if (!hookInstallationPlan.has("installationMode")
+        || !"launch-boundary-main-wrapper"
+            .equals(hookInstallationPlan.get("installationMode").getAsString())) {
+      failures.add("hook installation plan mode mismatch");
+    }
+    JsonArray plannedHooks = hookInstallationPlan.getAsJsonArray("plannedHooks");
+    if (plannedHooks == null || plannedHooks.size() != 1) {
+      failures.add("hook installation plan must contain exactly one hook");
+    }
+    if (!hookInstallationPlan.has("minecraftMainClass")
+        || !executionPlan.has("minecraftMainClass")
+        || !hookInstallationPlan
+            .get("minecraftMainClass")
+            .getAsString()
+            .equals(executionPlan.get("minecraftMainClass").getAsString())) {
+      failures.add("hook installation plan minecraft main class mismatch");
+    }
+    if (!hookInstallationPlan.has("minecraftVersion")
+        || !executionPlan.has("resolvedMinecraftVersion")
+        || !hookInstallationPlan
+            .get("minecraftVersion")
+            .getAsString()
+            .equals(executionPlan.get("resolvedMinecraftVersion").getAsString())) {
+      failures.add("hook installation plan minecraft version mismatch");
+    }
+    if (!hookInstallationPlan.has("side")
+        || !executionPlan.has("side")
+        || !hookInstallationPlan
+            .get("side")
+            .getAsString()
+            .equals(executionPlan.get("side").getAsString())) {
+      failures.add("hook installation plan side mismatch");
+    }
+  }
+
   private Path resolve(Path workingDirectory, String serializedPath) {
     Path path = Path.of(serializedPath);
     return path.isAbsolute()
@@ -212,10 +280,12 @@ public final class MinecraftBootstrapPlanVerifier {
       JsonObject boundaryPlan,
       JsonObject integrationPlan,
       JsonObject executionPlan,
+      JsonObject hookInstallationPlan,
       MinecraftPlanFingerprint runtimeFingerprint,
       MinecraftPlanFingerprint boundaryFingerprint,
       MinecraftPlanFingerprint integrationFingerprint,
-      MinecraftPlanFingerprint executionFingerprint) {}
+      MinecraftPlanFingerprint executionFingerprint,
+      MinecraftPlanFingerprint hookInstallationPlanFingerprint) {}
 
   public static final class PlanDriftException extends RuntimeException {
     private final MinecraftBootstrapFailure failure;

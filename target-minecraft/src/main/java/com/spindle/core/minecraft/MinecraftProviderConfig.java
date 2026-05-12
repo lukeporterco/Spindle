@@ -51,10 +51,12 @@ public record MinecraftProviderConfig(
     boolean explainInterpretation,
     boolean hookContracts,
     boolean explainHookContracts,
+    boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
     boolean bootstrapClassloaderGraph,
     boolean bootstrapServer,
+    boolean installHooks,
     boolean strictExecution,
     boolean denyLoaderInternals,
     boolean verifyPlanFingerprints,
@@ -149,10 +151,12 @@ public record MinecraftProviderConfig(
         false, // explainInterpretation
         false, // hookContracts
         false, // explainHookContracts
+        false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
         false, // bootstrapClassloaderGraph
         false, // bootstrapServer
+        false, // installHooks
         false, // strictExecution
         false, // denyLoaderInternals
         false, // verifyPlanFingerprints
@@ -275,10 +279,12 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
         bootstrapClassloaderGraph,
         bootstrapServer,
+        installHooks,
         strictExecution,
         denyLoaderInternals,
         verifyPlanFingerprints,
@@ -344,10 +350,12 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
         bootstrapClassloaderGraph,
         bootstrapServer,
+        installHooks,
         strictExecution,
         denyLoaderInternals,
         verifyPlanFingerprints,

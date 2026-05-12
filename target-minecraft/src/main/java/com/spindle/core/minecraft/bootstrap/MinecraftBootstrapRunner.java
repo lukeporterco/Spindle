@@ -18,6 +18,12 @@ import com.spindle.core.minecraft.MinecraftModExecutionResultWriter;
 import com.spindle.core.minecraft.MinecraftPlanFingerprint;
 import com.spindle.core.minecraft.MinecraftProtectedPackagePolicy;
 import com.spindle.core.minecraft.MinecraftRuntimeClassLoader;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationMode;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlan;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationResult;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationResultWriter;
+import com.spindle.core.minecraft.hook.install.MinecraftHookRuntimeBridge;
+import com.spindle.core.minecraft.hook.install.MinecraftPlannedHookInstallation;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -39,6 +45,8 @@ public final class MinecraftBootstrapRunner {
     Path graphPath = workingDirectory.resolve("minecraft-bootstrap-classloader-graph.json");
     Path executionResultPath = workingDirectory.resolve("minecraft-mod-execution-result.json");
     Path bootstrapResultPath = workingDirectory.resolve("minecraft-server-bootstrap-result.json");
+    Path hookInstallationResultPath =
+        workingDirectory.resolve("minecraft-hook-installation-result.json");
     Path driftReportPath = workingDirectory.resolve("minecraft-plan-drift-report.json");
     MinecraftBootstrapPlanVerifier.VerifiedPlans verifiedPlans;
     try {
@@ -78,6 +86,7 @@ public final class MinecraftBootstrapRunner {
     Map<String, String> markerOutputs = new TreeMap<>();
     boolean minecraftMainInvoked = false;
     Integer processOutcome = null;
+    MinecraftHookInstallationResult hookInstallationResult = null;
 
     try (MinecraftRuntimeClassLoader runtimeClassLoader =
         new MinecraftRuntimeClassLoader(
@@ -153,21 +162,52 @@ public final class MinecraftBootstrapRunner {
       }
 
       if (entrypointsFailed.isEmpty()) {
-        try {
-          Class<?> mainClass =
-              Class.forName(executionPlan.minecraftMainClass(), true, runtimeClassLoader);
-          mainClass
-              .getMethod("main", String[].class)
-              .invoke(null, (Object) executionPlan.minecraftMainArgs().toArray(String[]::new));
-          minecraftMainInvoked = true;
-          processOutcome = 0;
-        } catch (InvocationTargetException exception) {
-          failureReasons.add(
-              "minecraft main failure: " + exception.getTargetException().getMessage());
-          processOutcome = 1;
-        } catch (ReflectiveOperationException exception) {
-          failureReasons.add("minecraft main failure: " + exception.getMessage());
-          processOutcome = 1;
+        if (arguments.installHooks()) {
+          try {
+            hookInstallationResult =
+                new MinecraftHookRuntimeBridge()
+                    .installAndInvoke(
+                        parseHookInstallationPlan(verifiedPlans.hookInstallationPlan()),
+                        executionPlan,
+                        runtimeClassLoader);
+            new MinecraftHookInstallationResultWriter()
+                .write(hookInstallationResultPath, hookInstallationResult);
+            minecraftMainInvoked = hookInstallationResult.minecraftMainInvoked();
+            processOutcome =
+                hookInstallationResult.status()
+                        == com.spindle.core.minecraft.hook.install.MinecraftHookInstallationStatus
+                            .SUCCESS
+                    ? 0
+                    : 1;
+          } catch (MinecraftHookRuntimeBridge.HookInstallationException exception) {
+            hookInstallationResult = exception.result();
+            new MinecraftHookInstallationResultWriter()
+                .write(hookInstallationResultPath, hookInstallationResult);
+            failureReasons.add(
+                "minecraft main failure: "
+                    + (exception.getCause() == null
+                        ? hookInstallationResult.failureMessage()
+                        : exception.getCause().getMessage()));
+            minecraftMainInvoked = hookInstallationResult.minecraftMainInvoked();
+            processOutcome = 1;
+          }
+        } else {
+          try {
+            Class<?> mainClass =
+                Class.forName(executionPlan.minecraftMainClass(), true, runtimeClassLoader);
+            mainClass
+                .getMethod("main", String[].class)
+                .invoke(null, (Object) executionPlan.minecraftMainArgs().toArray(String[]::new));
+            minecraftMainInvoked = true;
+            processOutcome = 0;
+          } catch (InvocationTargetException exception) {
+            failureReasons.add(
+                "minecraft main failure: " + exception.getTargetException().getMessage());
+            processOutcome = 1;
+          } catch (ReflectiveOperationException exception) {
+            failureReasons.add("minecraft main failure: " + exception.getMessage());
+            processOutcome = 1;
+          }
         }
       }
     } catch (IOException exception) {
@@ -332,6 +372,7 @@ public final class MinecraftBootstrapRunner {
         1,
         "Milestone 8",
         List.of(
+            "--install-hooks=" + arguments.installHooks(),
             "--verify-plan-fingerprints=" + arguments.verifyPlanFingerprints(),
             "--strict-execution=" + arguments.strictExecution(),
             "--offline-bootstrap=" + arguments.offlineBootstrap()),
@@ -352,5 +393,66 @@ public final class MinecraftBootstrapRunner {
         false,
         false,
         false);
+  }
+
+  private MinecraftHookInstallationPlan parseHookInstallationPlan(JsonObject jsonObject) {
+    JsonArray plannedHooks = jsonObject.getAsJsonArray("plannedHooks");
+    List<MinecraftPlannedHookInstallation> hooks = new ArrayList<>();
+    if (plannedHooks != null) {
+      for (int index = 0; index < plannedHooks.size(); index++) {
+        JsonObject hook = plannedHooks.get(index).getAsJsonObject();
+        hooks.add(
+            new MinecraftPlannedHookInstallation(
+                string(hook, "id"),
+                string(hook, "sourceContractId"),
+                string(hook, "catalogId"),
+                string(hook, "kind"),
+                string(hook, "ownerInternalName"),
+                string(hook, "memberName"),
+                string(hook, "descriptor"),
+                hook.has("required") && hook.get("required").getAsBoolean(),
+                MinecraftHookInstallationMode.fromId(string(hook, "mode"))));
+      }
+    }
+    return new MinecraftHookInstallationPlan(
+        jsonObject.get("schema").getAsInt(),
+        string(jsonObject, "milestoneName"),
+        string(jsonObject, "target"),
+        string(jsonObject, "minecraftVersion"),
+        string(jsonObject, "side"),
+        string(jsonObject, "catalogId"),
+        jsonObject.has("sourceContractValidationPassed")
+            && jsonObject.get("sourceContractValidationPassed").getAsBoolean(),
+        jsonObject.has("sourceContractErrorCount")
+            ? jsonObject.get("sourceContractErrorCount").getAsInt()
+            : 0,
+        string(jsonObject, "minecraftMainClass"),
+        jsonObject.has("gatePassed") && jsonObject.get("gatePassed").getAsBoolean(),
+        string(jsonObject, "gateFailureReason"),
+        jsonObject.has("installationPlanned")
+            && jsonObject.get("installationPlanned").getAsBoolean(),
+        MinecraftHookInstallationMode.fromId(string(jsonObject, "installationMode")),
+        jsonObject.has("plannedHookCount")
+            ? jsonObject.get("plannedHookCount").getAsInt()
+            : hooks.size(),
+        hooks,
+        jsonObject.has("injectionOccurred") && jsonObject.get("injectionOccurred").getAsBoolean(),
+        jsonObject.has("transformationOccurred")
+            && jsonObject.get("transformationOccurred").getAsBoolean(),
+        jsonObject.has("patchingOccurred") && jsonObject.get("patchingOccurred").getAsBoolean(),
+        jsonObject.has("bytecodeModified") && jsonObject.get("bytecodeModified").getAsBoolean(),
+        jsonObject.has("javaAgentUsed") && jsonObject.get("javaAgentUsed").getAsBoolean(),
+        jsonObject.has("mixinUsed") && jsonObject.get("mixinUsed").getAsBoolean(),
+        jsonObject.has("remappingOccurred") && jsonObject.get("remappingOccurred").getAsBoolean(),
+        jsonObject.has("publicApiExposed") && jsonObject.get("publicApiExposed").getAsBoolean(),
+        jsonObject.has("javaModExecutionSandboxed")
+            && jsonObject.get("javaModExecutionSandboxed").getAsBoolean());
+  }
+
+  private String string(JsonObject object, String fieldName) {
+    if (!object.has(fieldName) || object.get(fieldName).isJsonNull()) {
+      return null;
+    }
+    return object.get(fieldName).getAsString();
   }
 }

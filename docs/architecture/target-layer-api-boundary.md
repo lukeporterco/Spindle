@@ -23,10 +23,10 @@ That model progresses through:
 1. Target-1 reads class-file structure from planned Minecraft runtime jars.
 2. Target-2 defines validation-only hook contracts.
 3. Target-3 selects the first internal known-symbol catalog and validates it non-invasively.
-4. Future Target-4 may inspect method bytecode placement.
-5. Future Target-5 may install a minimal controlled hook.
+4. Target-4 installs one minimal launch-boundary wrapper around `net.minecraft.server.Main.main(String[])`.
+5. Future passes may inspect bytecode placement and broader hook families.
 
-Target-3 still does not discover hook points, parse method instructions, inspect callsites, install hooks, or transform Minecraft.
+Target-4 still does not discover hook points broadly, parse method instructions, inspect callsites, transform Minecraft, or expose a public API.
 
 ## Target Layer API
 
@@ -58,4 +58,4 @@ This document is a boundary-prep note only.
 
 It names the first planned Minecraft Target Layer subsystem, the Injection Hook Subsystem, without implementing it.
 
-Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Real catalog growth, hook candidate classification, bytecode placement validation, and installation behavior are future passes.
+Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Target-4 adds one internal launch-boundary installation proof without crossing into bytecode injection, public hook APIs, or gameplay-facing modding surfaces.

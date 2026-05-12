@@ -48,6 +48,9 @@ import com.spindle.core.minecraft.hook.MinecraftHookContractCatalogProvider;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReport;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReportWriter;
 import com.spindle.core.minecraft.hook.MinecraftHookContractValidator;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlan;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlanWriter;
+import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlanner;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
@@ -86,10 +89,14 @@ public final class MinecraftDryRunFlow {
     MacheReferenceScanner macheReferenceScanner = new MacheReferenceScanner();
     MacheReferenceWriter macheReferenceWriter = new MacheReferenceWriter();
 
-    if ((config.interpretArtifact() || config.hookContracts() || config.explainHookContracts())
+    if ((config.interpretArtifact()
+            || config.hookContracts()
+            || config.explainHookContracts()
+            || config.hookInstallationPlan()
+            || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
       throw new LoaderException(
-          "Minecraft artifact interpretation and hook contract diagnostics currently support the server-side Minecraft runtime only.");
+          "Minecraft artifact interpretation, hook contract diagnostics, and hook installation planning currently support the server-side Minecraft runtime only.");
     }
 
     if (config.cacheInspect()) {
@@ -292,6 +299,7 @@ public final class MinecraftDryRunFlow {
     MinecraftRuntimeBoundary runtimeBoundary = null;
     MinecraftModIntegrationPlan integrationPlan = null;
     MinecraftModExecutionPlan executionPlan = null;
+    MinecraftHookContractReport hookContractReport = null;
     List<String> megaMilestoneReports = new ArrayList<>();
     boolean needsRuntimePlanning =
         config.side() == MinecraftSide.SERVER
@@ -302,6 +310,8 @@ public final class MinecraftDryRunFlow {
                 || config.interpretArtifact()
                 || config.hookContracts()
                 || config.explainHookContracts()
+                || config.hookInstallationPlan()
+                || config.installHooks()
                 || config.integrationPlan()
                 || config.preflight()
                 || config.reproducibilityCheck()
@@ -368,7 +378,11 @@ public final class MinecraftDryRunFlow {
       megaMilestoneReports.add("minecraft-runtime-provenance.json");
       MinecraftArtifactInterpretation interpretation = null;
       boolean shouldCreateInterpretation =
-          config.interpretArtifact() || config.hookContracts() || config.explainHookContracts();
+          config.interpretArtifact()
+              || config.hookContracts()
+              || config.explainHookContracts()
+              || config.hookInstallationPlan()
+              || config.installHooks();
       if (shouldCreateInterpretation) {
         interpretation =
             DiagnosticMeasurements.measure(
@@ -412,7 +426,10 @@ public final class MinecraftDryRunFlow {
           printMinecraftArtifactInterpretationExplain(interpretation);
         }
       }
-      if (config.hookContracts() || config.explainHookContracts()) {
+      if (config.hookContracts()
+          || config.explainHookContracts()
+          || config.hookInstallationPlan()
+          || config.installHooks()) {
         MinecraftArtifactInterpretation finalInterpretation =
             interpretation == null
                 ? DiagnosticMeasurements.measure(
@@ -437,7 +454,7 @@ public final class MinecraftDryRunFlow {
                             "methodCount",
                             Integer.toString(report.methodCount())))
                 : interpretation;
-        MinecraftHookContractReport hookContractReport =
+        hookContractReport =
             DiagnosticMeasurements.measure(
                 diagnosticSink,
                 "minecraft.hook_contracts.validate",
@@ -458,13 +475,15 @@ public final class MinecraftDryRunFlow {
                         Integer.toString(report.warningCount()),
                         "errorCount",
                         Integer.toString(report.errorCount())));
+        MinecraftHookContractReport finalHookContractReportForWrite = hookContractReport;
         DiagnosticMeasurements.measure(
             diagnosticSink,
             "minecraft.hook_contracts.write",
             LaunchPhase.COMPLETE,
             () -> {
               Path outputPath = context.workingDirectory().resolve("minecraft-hook-contracts.json");
-              new MinecraftHookContractReportWriter().write(outputPath, hookContractReport);
+              new MinecraftHookContractReportWriter()
+                  .write(outputPath, finalHookContractReportForWrite);
               return outputPath;
             },
             outputPath ->
@@ -482,6 +501,8 @@ public final class MinecraftDryRunFlow {
       if (config.boundaryReport()
           || config.planMods()
           || config.integrationPlan()
+          || config.hookInstallationPlan()
+          || config.installHooks()
           || config.preflight()
           || config.reproducibilityCheck()) {
         runtimeBoundary =
@@ -528,6 +549,8 @@ public final class MinecraftDryRunFlow {
 
       if ((config.integrationPlan()
               || config.planMods()
+              || config.hookInstallationPlan()
+              || config.installHooks()
               || config.preflight()
               || config.reproducibilityCheck()
               || config.executionPlan()
@@ -579,6 +602,8 @@ public final class MinecraftDryRunFlow {
       }
 
       if ((config.executionPlan()
+              || config.hookInstallationPlan()
+              || config.installHooks()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer()
               || config.reproducibilityCheck())
@@ -638,6 +663,45 @@ public final class MinecraftDryRunFlow {
                 DiagnosticMeasurements.details(
                     "modExecutionPlanOutputPath", DisplayPaths.displayPath(context, outputPath)));
         megaMilestoneReports.add("minecraft-mod-execution-plan.json");
+
+        if (config.hookInstallationPlan() || config.installHooks()) {
+          MinecraftHookContractReport finalHookContractReport = hookContractReport;
+          MinecraftHookInstallationPlan hookInstallationPlan =
+              DiagnosticMeasurements.measure(
+                  diagnosticSink,
+                  "minecraft.hook_installation.plan",
+                  LaunchPhase.COMPLETE,
+                  () ->
+                      new MinecraftHookInstallationPlanner()
+                          .plan(finalHookContractReport, finalExecutionPlan),
+                  plan ->
+                      DiagnosticMeasurements.details(
+                          "gatePassed",
+                          Boolean.toString(plan.gatePassed()),
+                          "installationPlanned",
+                          Boolean.toString(plan.installationPlanned()),
+                          "plannedHookCount",
+                          Integer.toString(plan.plannedHookCount())));
+          DiagnosticMeasurements.measure(
+              diagnosticSink,
+              "minecraft.hook_installation_plan.write",
+              LaunchPhase.COMPLETE,
+              () -> {
+                Path outputPath =
+                    context.workingDirectory().resolve("minecraft-hook-installation-plan.json");
+                new MinecraftHookInstallationPlanWriter().write(outputPath, hookInstallationPlan);
+                return outputPath;
+              },
+              outputPath ->
+                  DiagnosticMeasurements.details(
+                      "hookInstallationPlanOutputPath",
+                      DisplayPaths.displayPath(context, outputPath)));
+          megaMilestoneReports.add("minecraft-hook-installation-plan.json");
+          if (config.installHooks() && !hookInstallationPlan.gatePassed()) {
+            throw new LoaderException(
+                "Minecraft hook installation gate failed. See minecraft-hook-installation-plan.json and minecraft-hook-contracts.json for details.");
+          }
+        }
 
         if (config.bootstrapClassloaderGraph()) {
           MinecraftBootstrapClassLoaderGraph graph =
