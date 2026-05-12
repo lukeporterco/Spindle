@@ -85,6 +85,8 @@ public final class LoaderCliParser {
     boolean minecraftVerifyPlanFingerprints = false;
     boolean minecraftBootstrapOffline = false;
     boolean minecraftBootstrapFakeServer = false;
+    boolean minecraftSteelHookCompletionCheck = false;
+    boolean minecraftExplainSteelHookCompletionCheck = false;
     Path macheDirectory = null;
     String macheVersion = null;
     boolean macheReferenceScan = false;
@@ -460,6 +462,39 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-1-check".equals(argument)) {
+        minecraftSteelHookCompletionCheck = true;
+        minecraftBootstrapTransformHooks = true;
+        minecraftBootstrapFakeServer = true;
+        minecraftBootstrapServer = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-1-check".equals(argument)) {
+        minecraftExplainSteelHookCompletionCheck = true;
+        minecraftSteelHookCompletionCheck = true;
+        minecraftBootstrapTransformHooks = true;
+        minecraftBootstrapFakeServer = true;
+        minecraftBootstrapServer = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-reproducibility-check".equals(argument)) {
         minecraftReproducibilityCheck = true;
         minecraftRuntimePlan = true;
@@ -549,6 +584,10 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft bootstrap hook transformation cannot be combined with --minecraft-install-hooks.");
     }
+    if (minecraftSteelHookCompletionCheck && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.1 completion check cannot be combined with --minecraft-install-hooks.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -617,7 +656,9 @@ public final class LoaderCliParser {
             minecraftDenyLoaderInternals,
             minecraftVerifyPlanFingerprints,
             minecraftBootstrapOffline,
-            minecraftBootstrapFakeServer);
+            minecraftBootstrapFakeServer,
+            minecraftSteelHookCompletionCheck,
+            minecraftExplainSteelHookCompletionCheck);
 
     return new LaunchArguments(
         gameMainClass,

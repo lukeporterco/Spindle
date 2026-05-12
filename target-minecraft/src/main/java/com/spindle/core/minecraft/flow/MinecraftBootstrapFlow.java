@@ -13,6 +13,13 @@ import com.spindle.core.minecraft.MinecraftProviderConfig;
 import com.spindle.core.minecraft.bootstrap.MinecraftBootstrapExitCode;
 import com.spindle.core.minecraft.bootstrap.MinecraftBootstrapResult;
 import com.spindle.core.minecraft.bootstrap.MinecraftServerBootstrapMain;
+import com.spindle.core.minecraft.hook.verify.SteelHookCompletionInput;
+import com.spindle.core.minecraft.hook.verify.SteelHookCompletionReport;
+import com.spindle.core.minecraft.hook.verify.SteelHookCompletionReportWriter;
+import com.spindle.core.minecraft.hook.verify.SteelHookCompletionStatus;
+import com.spindle.core.minecraft.hook.verify.SteelHookCompletionVerifier;
+import com.spindle.core.minecraft.hook.verify.SteelHookSafetyInvariant;
+import com.spindle.core.minecraft.hook.verify.SteelHookStageVerification;
 import com.spindle.core.process.JavaExecutableResolver;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
@@ -155,6 +162,8 @@ public final class MinecraftBootstrapFlow {
     }
     Path bootstrapResultPath =
         context.workingDirectory().resolve("minecraft-server-bootstrap-result.json");
+    SteelHookCompletionReport steelHookCompletionReport =
+        maybeWriteSteelHookCompletionReport(context, config, diagnosticSink);
     if (!Files.isRegularFile(bootstrapResultPath)) {
       throw new LoaderException(
           "Minecraft bootstrap child JVM did not write minecraft-server-bootstrap-result.json");
@@ -175,7 +184,82 @@ public final class MinecraftBootstrapFlow {
                 Integer.toString(stderr.getBytes(StandardCharsets.UTF_8).length),
                 "bootstrapResultOutputPath",
                 DisplayPaths.displayPath(context, bootstrapResultPath))));
-    return gson.fromJson(
-        ProcessOutputReader.readFile(bootstrapResultPath), MinecraftBootstrapResult.class);
+    MinecraftBootstrapResult bootstrapResult =
+        gson.fromJson(
+            ProcessOutputReader.readFile(bootstrapResultPath), MinecraftBootstrapResult.class);
+    if (config.steelHookCompletionCheck()
+        && steelHookCompletionReport != null
+        && steelHookCompletionReport.status() != SteelHookCompletionStatus.PASSED
+        && bootstrapResult.exitCode() == MinecraftBootstrapExitCode.SUCCESS.code()) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.1 completion check failed. See minecraft-steelhook-0.1-report.json for details.");
+    }
+    return bootstrapResult;
+  }
+
+  private SteelHookCompletionReport maybeWriteSteelHookCompletionReport(
+      LaunchContext context, MinecraftProviderConfig config, DiagnosticSink diagnosticSink)
+      throws LoaderException {
+    if (!config.steelHookCompletionCheck()) {
+      return null;
+    }
+    SteelHookCompletionInput input =
+        SteelHookCompletionInput.fromWorkingDirectory(context.workingDirectory());
+    SteelHookCompletionReport report =
+        DiagnosticMeasurements.measure(
+            diagnosticSink,
+            "minecraft.steelhook_0_1.verify",
+            LaunchPhase.COMPLETE,
+            () -> new SteelHookCompletionVerifier().verify(input),
+            completionReport ->
+                DiagnosticMeasurements.details(
+                    "status",
+                    completionReport.status().id(),
+                    "stageFailureCount",
+                    Integer.toString(completionReport.stageFailureCount()),
+                    "safetyInvariantFailureCount",
+                    Integer.toString(completionReport.safetyInvariantFailureCount())));
+    Path reportPath = SteelHookCompletionInput.reportPath(context.workingDirectory());
+    DiagnosticMeasurements.measure(
+        diagnosticSink,
+        "minecraft.steelhook_0_1_report.write",
+        LaunchPhase.COMPLETE,
+        () -> {
+          new SteelHookCompletionReportWriter().write(reportPath, report);
+          return reportPath;
+        },
+        outputPath ->
+            DiagnosticMeasurements.details(
+                "status",
+                report.status().id(),
+                "steelHookCompletionReportOutputPath",
+                DisplayPaths.displayPath(context, outputPath)));
+    if (config.explainSteelHookCompletionCheck()) {
+      printSteelHookCompletionExplain(report, reportPath.getFileName().toString());
+    }
+    return report;
+  }
+
+  private void printSteelHookCompletionExplain(
+      SteelHookCompletionReport report, String reportFileName) {
+    List<String> failedStages =
+        report.stageVerifications().stream()
+            .filter(stage -> !stage.passed())
+            .map(SteelHookStageVerification::stageId)
+            .toList();
+    List<String> failedInvariants =
+        report.safetyInvariants().stream()
+            .filter(invariant -> !invariant.passed())
+            .map(SteelHookSafetyInvariant::id)
+            .toList();
+    System.out.println(
+        "SteelHook 0.1 check: "
+            + report.status().id()
+            + " stages="
+            + (failedStages.isEmpty() ? "none" : String.join(",", failedStages))
+            + " invariants="
+            + (failedInvariants.isEmpty() ? "none" : String.join(",", failedInvariants))
+            + " report="
+            + reportFileName);
   }
 }

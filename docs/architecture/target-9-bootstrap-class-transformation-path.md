@@ -2,6 +2,8 @@
 
 Target-9 wires the validated Target-7 patch plan and the Target-8 bytecode rewrite proof into bootstrap classloading, but only for fake-server bootstrap execution.
 
+Target-10 now sits behind this path as the explicit SteelHook 0.1 completion verifier. Target-9 remains the execution step; Target-10 verifies the full report chain after the child bootstrap process completes.
+
 It supports exactly one bootstrap transform target:
 
 - `binaryName`: `net.minecraft.server.Main`
@@ -22,6 +24,7 @@ When `--minecraft-bootstrap-transform-hooks --minecraft-bootstrap-fake-server` i
 - transforms that class before definition
 - invokes `Main.main(String[])` through the normal bootstrap path
 - records dispatcher invocation and writes `minecraft-hook-bootstrap-transformation-result.json`
+- may be followed by Target-10 completion verification writing `minecraft-steelhook-0.1-report.json`
 
 Every other class keeps the existing parent-first bootstrap classloading behavior.
 

@@ -71,7 +71,18 @@ public final class MinecraftMethodCodeReader {
       input.readUnsignedShort();
       ConstantPool constantPool = readConstantPool(input);
       input.readUnsignedShort();
-      input.readUnsignedShort();
+      int thisClassIndex = input.readUnsignedShort();
+      String actualOwnerInternalName = constantPool.className(thisClassIndex);
+      if (!ownerInternalName.equals(actualOwnerInternalName)) {
+        throw new LoaderException(
+            "Class internal name mismatch while reading method "
+                + ownerInternalName
+                + "."
+                + memberName
+                + descriptor
+                + ": found "
+                + actualOwnerInternalName);
+      }
       input.readUnsignedShort();
 
       int interfaceCount = input.readUnsignedShort();
@@ -337,6 +348,19 @@ public final class MinecraftMethodCodeReader {
             "Invalid Utf8 constant pool index " + index + " while reading method code.");
       }
       return (String) values[index];
+    }
+
+    private String className(int index) throws LoaderException {
+      if (index <= 0 || index >= tags.length || tags[index] != CONSTANT_CLASS) {
+        throw new LoaderException(
+            "Invalid Class constant pool index " + index + " while reading method code.");
+      }
+      Object value = values[index];
+      if (!(value instanceof Integer nameIndex)) {
+        throw new LoaderException(
+            "Malformed Class constant pool entry " + index + " while reading method code.");
+      }
+      return utf8(nameIndex);
     }
   }
 }

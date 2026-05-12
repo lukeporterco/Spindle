@@ -18,6 +18,8 @@ Target-8 now adds the first internal transformed-class proof on top of Target-7.
 
 Target-9 now wires that single validated SteelHook transform into bootstrap classloading for fake-server execution only. That pass transforms exactly `net.minecraft.server.Main` inside the bootstrap runtime classloader, records dispatcher invocation, writes a deterministic bootstrap transformation result, and still does not transform real Minecraft runtime artifacts, rewrite `StackMapTable`, use Java agents or Mixin, expose public APIs, add gameplay hooks, or imply Java mod execution is sandboxed.
 
+Target-10 now hardens that chain with one explicit SteelHook 0.1 completion check. That pass does not add new hook kinds or new mutation modes. It reuses the existing fake-server transformation path, verifies the report chain from Target-3 through Target-9, writes `minecraft-steelhook-0.1-report.json`, and proves the current spine is deterministic, bounded, fake-server-only, and not a public API.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -39,9 +41,23 @@ That model progresses through:
 7. Target-7 plans one internal method-entry static-dispatch patch candidate without rewriting class bytes.
 8. Target-8 rewrites fixture-only class bytes for one internal method-entry proof and rejects `StackMapTable`.
 9. Target-9 applies that same proof inside fake-server bootstrap classloading for one exact class target.
-10. Future passes may expand runtime-safe bytecode rewriting and broader hook families.
+10. Target-10 verifies the full fake-server-only SteelHook 0.1 chain.
+11. Future passes may expand runtime-safe bytecode rewriting and broader hook families.
 
-Target-9 is still not real Minecraft runtime integration work. It does not transform real Minecraft runtime artifacts, rewrite `StackMapTable`, install hooks in production, expose a public API, add gameplay hooks, use Mixin or Java agents, or imply Java mod execution is sandboxed.
+SteelHook 0.1 now means the internal chain is proven through completion verification:
+
+```text
+known contract
+-> method-entry placement
+-> instruction-aware bytecode analysis
+-> dry-run patch planning
+-> fixture transform primitive
+-> fake-server bootstrap transformation
+-> dispatcher invocation
+-> completion verification
+```
+
+It still does not transform real Minecraft runtime artifacts, rewrite `StackMapTable`, install hooks in production outside Target-4, expose a public API, add gameplay hooks, use Mixin or Java agents, or imply Java mod execution is sandboxed.
 
 ## Target Layer API
 
@@ -73,4 +89,4 @@ This document is a boundary-prep note only.
 
 It names the first planned Minecraft Target Layer subsystem, the Injection Hook Subsystem, without implementing it.
 
-Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Target-4 adds one internal launch-boundary installation proof. Target-5 adds one internal method-entry placement analysis scaffold. Target-6 adds one internal instruction-aware decode layer. Target-7 adds one internal dry-run patch-planning layer. Target-8 adds one fixture-only transformed-class proof. Target-9 adds one fake-server-only bootstrap classloading application path without crossing into real Minecraft runtime transformation, public hook APIs, gameplay-facing modding surfaces, or sandbox claims.
+Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Target-4 adds one internal launch-boundary installation proof. Target-5 adds one internal method-entry placement analysis scaffold. Target-6 adds one internal instruction-aware decode layer. Target-7 adds one internal dry-run patch-planning layer. Target-8 adds one fixture-only transformed-class proof. Target-9 adds one fake-server-only bootstrap classloading application path. Target-10 verifies that whole narrow chain without crossing into real Minecraft runtime transformation, public hook APIs, gameplay-facing modding surfaces, or sandbox claims.

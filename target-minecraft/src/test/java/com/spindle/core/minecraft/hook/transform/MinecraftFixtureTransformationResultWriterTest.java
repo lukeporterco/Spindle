@@ -1,6 +1,7 @@
 package com.spindle.core.minecraft.hook.transform;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -40,5 +41,7 @@ class MinecraftFixtureTransformationResultWriterTest {
     assertTrue(firstJson.contains("\"status\": \"transformed\""));
     assertTrue(firstJson.contains("\"failureReason\": null"));
     assertTrue(firstJson.contains("\"dispatcherMethodrefIndex\""));
+    assertTrue(firstJson.contains("\"transformedClassBytesProduced\": true"));
+    assertFalse(firstJson.contains("\"transformedClassBytes\""));
   }
 }

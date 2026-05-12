@@ -1,6 +1,7 @@
 package com.spindle.core.minecraft.hook.bootstrap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -47,5 +48,6 @@ class MinecraftBootstrapHookTransformationResultWriterTest {
             "\"transformationMode\": \"bootstrap-fake-server-method-entry-transform\""));
     assertTrue(firstJson.contains("\"dispatcherInvocationCount\": 1"));
     assertTrue(firstJson.contains("\"dispatcherInvocationObserved\": true"));
+    assertFalse(firstJson.contains("transformedClassBytes"));
   }
 }

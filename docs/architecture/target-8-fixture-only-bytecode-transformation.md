@@ -56,4 +56,4 @@ Target-8 does not:
 - use Mixin or Java agents
 - imply Java mod execution is sandboxed
 
-Target-8 is a fixture/test proof only. Target-9 may reuse that validated rewrite inside fake-server bootstrap classloading, but Target-8 itself still does not transform real Minecraft runtime artifacts, rewrite `StackMapTable`, expose public APIs, add gameplay hooks, use Java agents or Mixin, or imply Java mod execution is sandboxed.
+Target-8 is a fixture/test proof only. Target-9 reuses that validated rewrite inside fake-server bootstrap classloading, and Target-10 verifies that Target-8 was only consumed through that bounded fake-server path. Target-8 itself still does not transform real Minecraft runtime artifacts, rewrite `StackMapTable`, expose public APIs, add gameplay hooks, use Java agents or Mixin, or imply Java mod execution is sandboxed.

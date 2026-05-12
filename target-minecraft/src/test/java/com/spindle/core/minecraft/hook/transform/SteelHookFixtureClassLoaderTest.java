@@ -19,7 +19,7 @@ class SteelHookFixtureClassLoaderTest {
                 "net/minecraft/server/Main", "([Ljava/lang/String;)V", true, false, false),
             MinecraftFixtureBytecodeTransformerTest.validPatchPlan());
 
-    SteelHookDispatcher.reset();
+    SteelHookDispatcher.resetForBootstrap();
     SteelHookFixtureClassLoader classLoader =
         new SteelHookFixtureClassLoader(
             SteelHookFixtureClassLoaderTest.class.getClassLoader(),
@@ -31,6 +31,6 @@ class SteelHookFixtureClassLoaderTest {
 
     assertNotSame(
         SteelHookFixtureClassLoaderTest.class.getClassLoader(), mainClass.getClassLoader());
-    assertEquals(1, SteelHookDispatcher.invocationCount());
+    assertEquals(1, SteelHookDispatcher.beforeMinecraftServerMainInvocationCount());
   }
 }

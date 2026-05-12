@@ -157,6 +157,27 @@ Target-9 remains intentionally narrow:
 
 See [Target-9: Bootstrap Class Transformation Path](../docs/architecture/target-9-bootstrap-class-transformation-path.md).
 
+## Target-10 SteelHook 0.1 completion verification
+
+Target-10 completes SteelHook 0.1 only in the narrow sense of proving the existing internal hook spine:
+
+```text
+known contract
+-> method-entry placement
+-> instruction-aware bytecode analysis
+-> dry-run patch planning
+-> fixture transform primitive
+-> fake-server bootstrap transformation
+-> dispatcher invocation
+-> completion verification
+```
+
+It adds `--minecraft-steelhook-0-1-check`, `--minecraft-explain-steelhook-0-1-check`, and the deterministic `minecraft-steelhook-0.1-report.json` completion report.
+
+Target-10 does not add new hook kinds, real Minecraft runtime transformation, `StackMapTable` rewriting, public APIs, gameplay hooks, Mixin, Java agents, or sandbox claims.
+
+See [Target-10: SteelHook Hardening Caboose](../docs/architecture/target-10-steelhook-hardening-caboose.md) and [SteelHook 0.1 Capability Boundary](../docs/architecture/steelhook-0.1-capability-boundary.md).
+
 ## Target-4 minimal hook installation proof
 
 Target-4 adds the first internal launch-boundary hook installation proof.

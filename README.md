@@ -193,6 +193,21 @@ Target-9: Bootstrap class transformation path
 
 Target-9 remains fake-server only. It does not transform real Minecraft runtime artifacts, does not rewrite `StackMapTable`, does not expose public APIs, does not add gameplay hooks, does not use Java agents or Mixin, and does not imply Java mod execution is sandboxed.
 
+Target-10 now completes SteelHook 0.1 in a narrow verification sense. It adds one explicit completion check and `minecraft-steelhook-0.1-report.json` to prove the existing internal chain:
+
+```text
+known contract
+-> method-entry placement
+-> instruction-aware bytecode analysis
+-> dry-run patch planning
+-> fixture transform primitive
+-> fake-server bootstrap transformation
+-> dispatcher invocation
+-> completion verification
+```
+
+That does not change the capability boundary. SteelHook 0.1 still does not transform real Minecraft runtime artifacts, rewrite `StackMapTable`, support arbitrary hooks, expose public APIs, add gameplay hooks, use Mixin or Java agents, or imply Java mod execution is sandboxed.
+
 ## Repository layout
 
 ```text

@@ -68,7 +68,9 @@ public record MinecraftProviderConfig(
     boolean denyLoaderInternals,
     boolean verifyPlanFingerprints,
     boolean bootstrapOffline,
-    boolean bootstrapFakeServer) {
+    boolean bootstrapFakeServer,
+    boolean steelHookCompletionCheck,
+    boolean explainSteelHookCompletionCheck) {
   public MinecraftProviderConfig {
     side = side == null ? MinecraftSide.CLIENT : side;
     cacheDirectory =
@@ -175,7 +177,9 @@ public record MinecraftProviderConfig(
         false, // denyLoaderInternals
         false, // verifyPlanFingerprints
         false, // bootstrapOffline
-        false // bootstrapFakeServer
+        false, // bootstrapFakeServer
+        false, // steelHookCompletionCheck
+        false // explainSteelHookCompletionCheck
         );
   }
 
@@ -310,7 +314,9 @@ public record MinecraftProviderConfig(
         denyLoaderInternals,
         verifyPlanFingerprints,
         bootstrapOffline,
-        bootstrapFakeServer);
+        bootstrapFakeServer,
+        steelHookCompletionCheck,
+        explainSteelHookCompletionCheck);
   }
 
   private MinecraftProviderConfig copy(
@@ -388,7 +394,9 @@ public record MinecraftProviderConfig(
         denyLoaderInternals,
         verifyPlanFingerprints,
         bootstrapOffline,
-        bootstrapFakeServer);
+        bootstrapFakeServer,
+        steelHookCompletionCheck,
+        explainSteelHookCompletionCheck);
   }
 
   private static Path resolveNullablePath(Path workingDirectory, Path path) {
@@ -468,7 +476,9 @@ public record MinecraftProviderConfig(
       boolean denyLoaderInternals,
       boolean verifyPlanFingerprints,
       boolean bootstrapOffline,
-      boolean bootstrapFakeServer) {
+      boolean bootstrapFakeServer,
+      boolean steelHookCompletionCheck,
+      boolean explainSteelHookCompletionCheck) {
     this(
         requestedVersion,
         minecraftDirectory,
@@ -535,6 +545,8 @@ public record MinecraftProviderConfig(
         denyLoaderInternals,
         verifyPlanFingerprints,
         bootstrapOffline,
-        bootstrapFakeServer);
+        bootstrapFakeServer,
+        steelHookCompletionCheck,
+        explainSteelHookCompletionCheck);
   }
 }
