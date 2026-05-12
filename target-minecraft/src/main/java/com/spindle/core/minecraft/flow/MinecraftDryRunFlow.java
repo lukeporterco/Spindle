@@ -51,6 +51,9 @@ import com.spindle.core.minecraft.hook.MinecraftHookContractValidator;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlan;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlanWriter;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlanner;
+import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlan;
+import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanWriter;
+import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanner;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
@@ -92,6 +95,8 @@ public final class MinecraftDryRunFlow {
     if ((config.interpretArtifact()
             || config.hookContracts()
             || config.explainHookContracts()
+            || config.hookPlacementPlan()
+            || config.explainHookPlacement()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -310,6 +315,8 @@ public final class MinecraftDryRunFlow {
                 || config.interpretArtifact()
                 || config.hookContracts()
                 || config.explainHookContracts()
+                || config.hookPlacementPlan()
+                || config.explainHookPlacement()
                 || config.hookInstallationPlan()
                 || config.installHooks()
                 || config.integrationPlan()
@@ -381,6 +388,8 @@ public final class MinecraftDryRunFlow {
           config.interpretArtifact()
               || config.hookContracts()
               || config.explainHookContracts()
+              || config.hookPlacementPlan()
+              || config.explainHookPlacement()
               || config.hookInstallationPlan()
               || config.installHooks();
       if (shouldCreateInterpretation) {
@@ -428,6 +437,8 @@ public final class MinecraftDryRunFlow {
       }
       if (config.hookContracts()
           || config.explainHookContracts()
+          || config.hookPlacementPlan()
+          || config.explainHookPlacement()
           || config.hookInstallationPlan()
           || config.installHooks()) {
         MinecraftArtifactInterpretation finalInterpretation =
@@ -501,6 +512,7 @@ public final class MinecraftDryRunFlow {
       if (config.boundaryReport()
           || config.planMods()
           || config.integrationPlan()
+          || config.hookPlacementPlan()
           || config.hookInstallationPlan()
           || config.installHooks()
           || config.preflight()
@@ -554,6 +566,7 @@ public final class MinecraftDryRunFlow {
               || config.preflight()
               || config.reproducibilityCheck()
               || config.executionPlan()
+              || config.hookPlacementPlan()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer())
           && runtimeBoundary != null) {
@@ -603,6 +616,7 @@ public final class MinecraftDryRunFlow {
 
       if ((config.executionPlan()
               || config.hookInstallationPlan()
+              || config.hookPlacementPlan()
               || config.installHooks()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer()
@@ -663,6 +677,48 @@ public final class MinecraftDryRunFlow {
                 DiagnosticMeasurements.details(
                     "modExecutionPlanOutputPath", DisplayPaths.displayPath(context, outputPath)));
         megaMilestoneReports.add("minecraft-mod-execution-plan.json");
+
+        if (config.hookPlacementPlan()) {
+          MinecraftHookContractReport finalHookContractReport = hookContractReport;
+          MinecraftHookPlacementPlan hookPlacementPlan =
+              DiagnosticMeasurements.measure(
+                  diagnosticSink,
+                  "minecraft.hook_placement.plan",
+                  LaunchPhase.COMPLETE,
+                  () ->
+                      new MinecraftHookPlacementPlanner()
+                          .plan(
+                              finalHookContractReport,
+                              finalExecutionPlan,
+                              minecraftHookPlacementRuntimePlan(
+                                  context, executionPlannedRuntime.plan())),
+                  plan ->
+                      DiagnosticMeasurements.details(
+                          "gatePassed",
+                          Boolean.toString(plan.gatePassed()),
+                          "placementPlanned",
+                          Boolean.toString(plan.placementPlanned()),
+                          "plannedPlacementCount",
+                          Integer.toString(plan.plannedPlacementCount())));
+          DiagnosticMeasurements.measure(
+              diagnosticSink,
+              "minecraft.hook_placement_plan.write",
+              LaunchPhase.COMPLETE,
+              () -> {
+                Path outputPath =
+                    context.workingDirectory().resolve("minecraft-hook-placement-plan.json");
+                new MinecraftHookPlacementPlanWriter().write(outputPath, hookPlacementPlan);
+                return outputPath;
+              },
+              outputPath ->
+                  DiagnosticMeasurements.details(
+                      "hookPlacementPlanOutputPath",
+                      DisplayPaths.displayPath(context, outputPath)));
+          megaMilestoneReports.add("minecraft-hook-placement-plan.json");
+          if (config.explainHookPlacement()) {
+            printMinecraftHookPlacementExplain(hookPlacementPlan);
+          }
+        }
 
         if (config.hookInstallationPlan() || config.installHooks()) {
           MinecraftHookContractReport finalHookContractReport = hookContractReport;
@@ -856,6 +912,69 @@ public final class MinecraftDryRunFlow {
     return List.copyOf(inputs);
   }
 
+  private static MinecraftServerRuntimePlan minecraftHookPlacementRuntimePlan(
+      LaunchContext context, MinecraftServerRuntimePlan runtimePlan) {
+    return new MinecraftServerRuntimePlan(
+        runtimePlan.schema(),
+        runtimePlan.milestoneName(),
+        runtimePlan.projectJavaBaseline(),
+        runtimePlan.projectTargetMinecraft(),
+        runtimePlan.resolvedMinecraftVersion(),
+        runtimePlan.selectorUsed(),
+        runtimePlan.selectorResolutionReason(),
+        runtimePlan.manifestSource(),
+        runtimePlan.versionJsonSource(),
+        absoluteDisplayPath(context, runtimePlan.serverJarPath()),
+        runtimePlan.serverJarSource(),
+        runtimePlan.serverJarSha1(),
+        runtimePlan.serverJarSha256(),
+        runtimePlan.serverJarSize(),
+        runtimePlan.launchMode(),
+        runtimePlan.launchModeReason(),
+        runtimePlan.mainClass(),
+        runtimePlan.classpathEntries().stream()
+            .map(
+                entry ->
+                    new com.spindle.core.minecraft.MinecraftServerRuntimeClasspath.Entry(
+                        absoluteDisplayPath(context, entry.path()),
+                        entry.ownership(),
+                        entry.origin(),
+                        entry.sha256()))
+            .toList(),
+        runtimePlan.bundledRuntimeFiles(),
+        runtimePlan.jvmArgs(),
+        runtimePlan.serverArgs(),
+        runtimePlan.workingDirectory(),
+        runtimePlan.javaExecutable(),
+        runtimePlan.commandPreview(),
+        runtimePlan.cacheDirectory(),
+        runtimePlan.runtimeCacheDirectory(),
+        runtimePlan.offline(),
+        runtimePlan.strict(),
+        runtimePlan.networkRequestCount(),
+        runtimePlan.generatedFromCacheOnly(),
+        runtimePlan.replayableOffline(),
+        runtimePlan.modJarsOnMinecraftRuntimeClasspath(),
+        runtimePlan.injectionOccurred(),
+        runtimePlan.minecraftModClassesLoaded(),
+        runtimePlan.minecraftModClassLoaderAttachedToMinecraft(),
+        runtimePlan.minecraftEntrypointsInvoked(),
+        runtimePlan.transformationsOccurred(),
+        runtimePlan.remappingOccurred(),
+        runtimePlan.mixinOccurred(),
+        runtimePlan.patchingOccurred(),
+        runtimePlan.provenance());
+  }
+
+  private static String absoluteDisplayPath(LaunchContext context, String pathValue) {
+    if (pathValue == null || pathValue.isBlank()) {
+      return pathValue;
+    }
+    Path path = Path.of(pathValue);
+    Path resolved = path.isAbsolute() ? path : context.workingDirectory().resolve(path);
+    return resolved.toAbsolutePath().normalize().toString().replace('\\', '/');
+  }
+
   private static void printMinecraftBoundaryExplain(MinecraftRuntimeBoundary boundary) {
     System.out.println("[spindle] explain-boundary: Mega-Milestone 7 boundary is analysis-only");
     System.out.println(
@@ -929,5 +1048,16 @@ public final class MinecraftDryRunFlow {
     System.out.println("[spindle] explain-hook-contracts: warnings " + report.warningCount());
     System.out.println("[spindle] explain-hook-contracts: errors " + report.errorCount());
     System.out.println("[spindle] explain-hook-contracts: wrote minecraft-hook-contracts.json");
+  }
+
+  private static void printMinecraftHookPlacementExplain(MinecraftHookPlacementPlan plan) {
+    System.out.println(
+        "[spindle] explain-hook-placement: Target-5 hook placement analysis is analysis-only");
+    System.out.println("[spindle] explain-hook-placement: catalog " + plan.catalogId());
+    System.out.println("[spindle] explain-hook-placement: gatePassed " + plan.gatePassed());
+    System.out.println(
+        "[spindle] explain-hook-placement: planned placements " + plan.plannedPlacementCount());
+    System.out.println(
+        "[spindle] explain-hook-placement: wrote minecraft-hook-placement-plan.json");
   }
 }

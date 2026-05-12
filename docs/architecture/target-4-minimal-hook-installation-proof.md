@@ -6,6 +6,8 @@ Its scope is deliberately narrow. Spindle validates the Target-3 known-symbol co
 
 This is not bytecode injection.
 
+Target-5 now sits beside this pass as an analysis-only scaffold. It reads the selected `Main.main(String[])` method `Code` attribute as opaque bytecode, fingerprints the method body, and writes one deterministic placement candidate to `minecraft-hook-placement-plan.json`. That report does not install hooks and it does not change Target-4 behavior.
+
 ## Exact Target-4 Hook
 
 The only supported hook in this pass is:
@@ -64,5 +66,7 @@ Target-4 does not:
 - imply Java mod sandboxing
 - change normal bootstrap behavior when hooks are disabled
 - put mods on the Minecraft runtime classpath
+
+Target-4 also does not depend on Target-5 placement planning. Target-5 does not decode instructions, inspect callsites, modify bytecode, use Mixin or Java agents, or imply Java mod execution is sandboxed.
 
 This pass proves a single internal launch-boundary wrapper around the validated server entrypoint and nothing more.

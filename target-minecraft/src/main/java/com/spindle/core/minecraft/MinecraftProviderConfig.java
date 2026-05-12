@@ -51,6 +51,8 @@ public record MinecraftProviderConfig(
     boolean explainInterpretation,
     boolean hookContracts,
     boolean explainHookContracts,
+    boolean hookPlacementPlan,
+    boolean explainHookPlacement,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -151,6 +153,8 @@ public record MinecraftProviderConfig(
         false, // explainInterpretation
         false, // hookContracts
         false, // explainHookContracts
+        false, // hookPlacementPlan
+        false, // explainHookPlacement
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -279,6 +283,8 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        hookPlacementPlan,
+        explainHookPlacement,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -350,6 +356,8 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        hookPlacementPlan,
+        explainHookPlacement,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

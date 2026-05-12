@@ -67,6 +67,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainInterpretation = false;
     boolean minecraftHookContracts = false;
     boolean minecraftExplainHookContracts = false;
+    boolean minecraftHookPlacementPlan = false;
+    boolean minecraftExplainHookPlacement = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -360,6 +362,27 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-hook-placement-plan".equals(argument)) {
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-hook-placement".equals(argument)) {
+        minecraftExplainHookPlacement = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -502,6 +525,8 @@ public final class LoaderCliParser {
             minecraftExplainInterpretation,
             minecraftHookContracts,
             minecraftExplainHookContracts,
+            minecraftHookPlacementPlan,
+            minecraftExplainHookPlacement,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,

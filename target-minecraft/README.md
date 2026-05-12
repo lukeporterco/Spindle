@@ -61,6 +61,25 @@ Target-3 remains analysis-only and nonfatal:
 
 See [Target-3: Non-Invasive Known Minecraft Symbol Hook Validation](../docs/architecture/target-3-known-symbol-hook-validation.md).
 
+## Target-5 hook placement analysis scaffold
+
+Target-5 adds the first internal hook placement analysis layer after Target-4.
+
+It reuses the validated Minecraft `26.1.2` server entrypoint contract, locates `net.minecraft.server.Main.main(String[])`, reads that selected method's `Code` attribute as opaque bytecode, fingerprints the method body, and writes one deterministic `minecraft-hook-placement-plan.json` candidate at bytecode offset `0`.
+
+Target-5 remains analysis-only:
+
+- it does not decode instructions
+- it does not inspect callsites
+- it does not modify bytecode
+- it does not install hooks
+- it does not expose a public hook API
+- it does not add gameplay hooks
+- it does not use Mixin or Java agents
+- it does not imply Java mod execution is sandboxed
+
+See [Target-5: Hook Placement Analysis Scaffold](../docs/architecture/target-5-hook-placement-analysis-scaffold.md).
+
 ## Target-4 minimal hook installation proof
 
 Target-4 adds the first internal launch-boundary hook installation proof.
