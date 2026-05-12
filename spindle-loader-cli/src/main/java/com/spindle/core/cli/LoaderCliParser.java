@@ -71,6 +71,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainHookPlacement = false;
     boolean minecraftHookBytecodeAnalysis = false;
     boolean minecraftExplainHookBytecodeAnalysis = false;
+    boolean minecraftHookPatchPlan = false;
+    boolean minecraftExplainHookPatchPlan = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -408,6 +410,31 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-hook-patch-plan".equals(argument)) {
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-hook-patch-plan".equals(argument)) {
+        minecraftExplainHookPatchPlan = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -554,6 +581,8 @@ public final class LoaderCliParser {
             minecraftExplainHookPlacement,
             minecraftHookBytecodeAnalysis,
             minecraftExplainHookBytecodeAnalysis,
+            minecraftHookPatchPlan,
+            minecraftExplainHookPatchPlan,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,

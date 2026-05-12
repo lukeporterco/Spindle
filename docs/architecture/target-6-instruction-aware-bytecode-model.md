@@ -45,4 +45,4 @@ Target-6 does not:
 - use Mixin or Java agents
 - imply Java mod execution is sandboxed
 
-Target-6 remains an internal analysis layer. Target-7 is the earliest pass that should consider any patch-planning work.
+Target-6 remains an internal analysis layer. Target-7 is the earliest pass that may plan one internal method-entry static-dispatch patch for `net.minecraft.server.Main.main(String[])`, but it still must not generate transformed class bytes, rewrite the constant pool, rewrite `Code`, update `StackMapTable`, install hooks, expose public APIs, add gameplay hooks, use Mixin or Java agents, or imply Java mod execution is sandboxed.

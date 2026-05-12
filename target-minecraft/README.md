@@ -100,6 +100,26 @@ Target-6 remains analysis-only:
 
 See [Target-6: Instruction-Aware Bytecode Model](../docs/architecture/target-6-instruction-aware-bytecode-model.md).
 
+## Target-7 injection patch planning dry-run
+
+Target-7 adds the first internal injection patch-planning layer after Target-6.
+
+It reuses the validated Minecraft `26.1.2` server `net.minecraft.server.Main.main(String[])` Target-5 placement and Target-6 bytecode analysis, plans one internal method-entry static-dispatch `invokestatic`, records symbolic constant-pool requirements plus rewrite impacts, and writes `minecraft-hook-patch-plan.json`.
+
+Target-7 remains planning-only:
+
+- it does not generate transformed class bytes
+- it does not rewrite the constant pool
+- it does not rewrite `Code`
+- it does not update `StackMapTable`
+- it does not install hooks
+- it does not expose a public hook API
+- it does not add gameplay hooks
+- it does not use Mixin or Java agents
+- it does not imply Java mod execution is sandboxed
+
+See [Target-7: Injection Patch Planning Dry-Run](../docs/architecture/target-7-injection-patch-planning-dry-run.md).
+
 ## Target-4 minimal hook installation proof
 
 Target-4 adds the first internal launch-boundary hook installation proof.

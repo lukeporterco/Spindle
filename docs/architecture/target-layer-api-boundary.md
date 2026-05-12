@@ -12,6 +12,8 @@ Target-5 now adds an internal hook placement analysis scaffold on top of Target-
 
 Target-6 now adds an internal instruction-aware bytecode model on top of Target-5. That pass decodes the selected method `Code` bytes into a deterministic instruction stream, validates instruction, branch, switch, and exception-table boundaries, preserves nested `Code` attribute metadata, and writes one deterministic bytecode analysis report without modifying Minecraft.
 
+Target-7 now adds an internal injection patch-planning dry-run on top of Target-6. That pass plans exactly one internal method-entry static-dispatch `invokestatic` insertion for `net.minecraft.server.Main.main(String[])`, records symbolic constant-pool requirements and rewrite impacts, and writes one deterministic patch-plan report without modifying Minecraft.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -30,9 +32,10 @@ That model progresses through:
 4. Target-4 installs one minimal launch-boundary wrapper around `net.minecraft.server.Main.main(String[])`.
 5. Target-5 reads one selected method `Code` attribute as opaque bytes and plans one method-entry placement candidate.
 6. Target-6 decodes that selected method into an internal instruction model and validates boundary metadata.
-7. Future passes may expand patch planning and broader hook families.
+7. Target-7 plans one internal method-entry static-dispatch patch candidate without rewriting class bytes.
+8. Future passes may expand real bytecode rewriting and broader hook families.
 
-Target-6 still does not modify bytecode, update stack maps, compute full control flow, generate patches, install hooks, expose a public API, add gameplay hooks, use Mixin or Java agents, or imply Java mod execution is sandboxed.
+Target-7 still does not generate transformed class bytes, rewrite the constant pool, rewrite `Code`, update `StackMapTable`, install hooks, expose a public API, add gameplay hooks, use Mixin or Java agents, or imply Java mod execution is sandboxed.
 
 ## Target Layer API
 
@@ -64,4 +67,4 @@ This document is a boundary-prep note only.
 
 It names the first planned Minecraft Target Layer subsystem, the Injection Hook Subsystem, without implementing it.
 
-Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Target-4 adds one internal launch-boundary installation proof. Target-5 adds one internal method-entry placement analysis scaffold. Target-6 adds one internal instruction-aware decode layer without crossing into bytecode injection, patch generation, public hook APIs, gameplay-facing modding surfaces, or sandbox claims.
+Target-2 and Target-3 remain analysis-only scaffolding inside that boundary. Target-4 adds one internal launch-boundary installation proof. Target-5 adds one internal method-entry placement analysis scaffold. Target-6 adds one internal instruction-aware decode layer. Target-7 adds one internal dry-run patch-planning layer without crossing into bytecode rewriting, public hook APIs, gameplay-facing modding surfaces, or sandbox claims.
