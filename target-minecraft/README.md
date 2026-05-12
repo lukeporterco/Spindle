@@ -120,6 +120,25 @@ Target-7 remains planning-only:
 
 See [Target-7: Injection Patch Planning Dry-Run](../docs/architecture/target-7-injection-patch-planning-dry-run.md).
 
+## Target-8 fixture-only bytecode transformation
+
+Target-8 adds the first real transformed-class proof after Target-7.
+
+It reuses the validated Target-7 patch plan, applies exactly one method-entry `invokestatic` dispatcher insertion to fixture `net.minecraft.server.Main.main(String[])` class bytes in tests, appends the required constant-pool entries, updates `Code` length metadata, shifts exception-table offsets by `+3`, and returns deterministic transformation results.
+
+Target-8 remains fixture-only:
+
+- it does not transform real Minecraft runtime artifacts
+- it does not wire transformation into bootstrap or runtime classloading
+- it does not update `StackMapTable`
+- it does not install hooks in production
+- it does not expose a public hook API
+- it does not add gameplay hooks
+- it does not use Mixin or Java agents
+- it does not imply Java mod execution is sandboxed
+
+See [Target-8: Fixture-Only Bytecode Transformation](../docs/architecture/target-8-fixture-only-bytecode-transformation.md).
+
 ## Target-4 minimal hook installation proof
 
 Target-4 adds the first internal launch-boundary hook installation proof.

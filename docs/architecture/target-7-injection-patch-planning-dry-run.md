@@ -65,4 +65,4 @@ Target-7 does not:
 - use Mixin or Java agents
 - imply Java mod execution is sandboxed
 
-Target-7 remains planning-only. Target-8 is the earliest pass that should consider any real bytecode rewrite work.
+Target-7 remains planning-only. Target-8 is the first pass that may produce transformed class bytes, but only for fixture/test proof. Target-8 still must not transform real Minecraft runtime artifacts, wire transformation into bootstrap, install hooks in production, expose public APIs, add gameplay hooks, use Mixin or Java agents, update `StackMapTable`, or imply Java mod execution is sandboxed.
