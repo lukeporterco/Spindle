@@ -10,11 +10,14 @@ public record MinecraftBootstrapArguments(
     Path integrationPlanPath,
     Path executionPlanPath,
     Path hookInstallationPlanPath,
+    Path hookPatchPlanPath,
     String expectedRuntimeFingerprint,
     String expectedBoundaryFingerprint,
     String expectedIntegrationFingerprint,
     String expectedExecutionFingerprint,
+    String expectedHookPatchPlanFingerprint,
     String expectedHookInstallationPlanFingerprint,
+    boolean transformHooks,
     boolean installHooks,
     boolean verifyPlanFingerprints,
     boolean strictExecution,
@@ -26,11 +29,14 @@ public record MinecraftBootstrapArguments(
     Path integrationPlanPath = null;
     Path executionPlanPath = null;
     Path hookInstallationPlanPath = null;
+    Path hookPatchPlanPath = null;
     String expectedRuntimeFingerprint = null;
     String expectedBoundaryFingerprint = null;
     String expectedIntegrationFingerprint = null;
     String expectedExecutionFingerprint = null;
+    String expectedHookPatchPlanFingerprint = null;
     String expectedHookInstallationPlanFingerprint = null;
+    boolean transformHooks = false;
     boolean installHooks = false;
     boolean verifyPlanFingerprints = false;
     boolean strictExecution = false;
@@ -49,6 +55,8 @@ public record MinecraftBootstrapArguments(
             executionPlanPath = Path.of(requireValue(argument, args, ++index));
         case "--hook-installation-plan" ->
             hookInstallationPlanPath = Path.of(requireValue(argument, args, ++index));
+        case "--hook-patch-plan" ->
+            hookPatchPlanPath = Path.of(requireValue(argument, args, ++index));
         case "--expected-runtime-fingerprint" ->
             expectedRuntimeFingerprint = requireValue(argument, args, ++index);
         case "--expected-boundary-fingerprint" ->
@@ -57,8 +65,11 @@ public record MinecraftBootstrapArguments(
             expectedIntegrationFingerprint = requireValue(argument, args, ++index);
         case "--expected-execution-fingerprint" ->
             expectedExecutionFingerprint = requireValue(argument, args, ++index);
+        case "--expected-hook-patch-plan-fingerprint" ->
+            expectedHookPatchPlanFingerprint = requireValue(argument, args, ++index);
         case "--expected-hook-installation-plan-fingerprint" ->
             expectedHookInstallationPlanFingerprint = requireValue(argument, args, ++index);
+        case "--transform-hooks" -> transformHooks = true;
         case "--install-hooks" -> installHooks = true;
         case "--verify-plan-fingerprints" -> verifyPlanFingerprints = true;
         case "--strict-execution" -> strictExecution = true;
@@ -79,6 +90,14 @@ public record MinecraftBootstrapArguments(
       throw new LoaderException(
           "Minecraft bootstrap requires --hook-installation-plan when --install-hooks is enabled.");
     }
+    if (transformHooks && hookPatchPlanPath == null) {
+      throw new LoaderException(
+          "Minecraft bootstrap requires --hook-patch-plan when --transform-hooks is enabled.");
+    }
+    if (transformHooks && installHooks) {
+      throw new LoaderException(
+          "Minecraft bootstrap transform hooks cannot be combined with --install-hooks.");
+    }
     return new MinecraftBootstrapArguments(
         workingDirectory.toAbsolutePath().normalize(),
         workingDirectory.resolve(runtimePlanPath).toAbsolutePath().normalize(),
@@ -88,11 +107,16 @@ public record MinecraftBootstrapArguments(
         hookInstallationPlanPath == null
             ? null
             : workingDirectory.resolve(hookInstallationPlanPath).toAbsolutePath().normalize(),
+        hookPatchPlanPath == null
+            ? null
+            : workingDirectory.resolve(hookPatchPlanPath).toAbsolutePath().normalize(),
         expectedRuntimeFingerprint,
         expectedBoundaryFingerprint,
         expectedIntegrationFingerprint,
         expectedExecutionFingerprint,
+        expectedHookPatchPlanFingerprint,
         expectedHookInstallationPlanFingerprint,
+        transformHooks,
         installHooks,
         verifyPlanFingerprints,
         strictExecution,

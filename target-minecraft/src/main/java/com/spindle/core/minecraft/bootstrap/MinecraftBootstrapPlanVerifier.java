@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spindle.core.diagnostics.LoaderException;
 import com.spindle.core.minecraft.MinecraftPlanFingerprint;
+import com.spindle.core.minecraft.hook.patch.MinecraftHookPatchPlanner;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,6 +21,8 @@ public final class MinecraftBootstrapPlanVerifier {
     JsonObject boundaryPlan = read(arguments.boundaryPath());
     JsonObject integrationPlan = read(arguments.integrationPlanPath());
     JsonObject executionPlan = read(arguments.executionPlanPath());
+    JsonObject hookPatchPlan =
+        arguments.transformHooks() ? read(arguments.hookPatchPlanPath()) : null;
     JsonObject hookInstallationPlan =
         arguments.installHooks() ? read(arguments.hookInstallationPlanPath()) : null;
     List<String> failures = new ArrayList<>();
@@ -29,6 +32,10 @@ public final class MinecraftBootstrapPlanVerifier {
     verifySchema(integrationPlan, "integration plan", 1, failures);
     verifySchema(executionPlan, "execution plan", 1, failures);
     verifyMilestone(executionPlan, "Milestone 8", "execution plan", failures);
+    if (hookPatchPlan != null) {
+      verifySchema(hookPatchPlan, "hook patch plan", 1, failures);
+      verifyMilestone(hookPatchPlan, "Target-7", "hook patch plan", failures);
+    }
     if (hookInstallationPlan != null) {
       verifySchema(hookInstallationPlan, "hook installation plan", 1, failures);
       verifyMilestone(hookInstallationPlan, "Target-4", "hook installation plan", failures);
@@ -42,6 +49,10 @@ public final class MinecraftBootstrapPlanVerifier {
         MinecraftPlanFingerprint.fromFile("integration-plan", arguments.integrationPlanPath());
     MinecraftPlanFingerprint executionFingerprint =
         MinecraftPlanFingerprint.fromFile("execution-plan", arguments.executionPlanPath());
+    MinecraftPlanFingerprint hookPatchPlanFingerprint =
+        arguments.transformHooks()
+            ? MinecraftPlanFingerprint.fromFile("hook-patch-plan", arguments.hookPatchPlanPath())
+            : null;
     MinecraftPlanFingerprint hookInstallationFingerprint =
         arguments.installHooks()
             ? MinecraftPlanFingerprint.fromFile(
@@ -77,6 +88,13 @@ public final class MinecraftBootstrapPlanVerifier {
           "hook installation plan",
           failures);
     }
+    if (arguments.transformHooks()) {
+      verifyExpected(
+          arguments.expectedHookPatchPlanFingerprint(),
+          hookPatchPlanFingerprint.sha256(),
+          "hook patch plan",
+          failures);
+    }
 
     verifyEmbeddedFingerprint(
         executionPlan, "runtimePlanFingerprint", runtimeFingerprint.sha256(), failures);
@@ -88,6 +106,9 @@ public final class MinecraftBootstrapPlanVerifier {
     failures.addAll(new MinecraftPlanDriftDetector().detect(integrationPlan, executionPlan));
     verifyRuntimeHashes(arguments.workingDirectory(), runtimePlan, failures);
     verifyModHashes(arguments.workingDirectory(), executionPlan, failures);
+    if (hookPatchPlan != null) {
+      verifyHookPatchPlan(hookPatchPlan, executionPlan, failures);
+    }
     if (hookInstallationPlan != null) {
       verifyHookInstallationPlan(hookInstallationPlan, executionPlan, failures);
     }
@@ -105,11 +126,13 @@ public final class MinecraftBootstrapPlanVerifier {
         boundaryPlan,
         integrationPlan,
         executionPlan,
+        hookPatchPlan,
         hookInstallationPlan,
         runtimeFingerprint,
         boundaryFingerprint,
         integrationFingerprint,
         executionFingerprint,
+        hookPatchPlanFingerprint,
         hookInstallationFingerprint);
   }
 
@@ -259,6 +282,105 @@ public final class MinecraftBootstrapPlanVerifier {
     }
   }
 
+  private void verifyHookPatchPlan(
+      JsonObject hookPatchPlan, JsonObject executionPlan, List<String> failures) {
+    if (!hookPatchPlan.has("gatePassed") || !hookPatchPlan.get("gatePassed").getAsBoolean()) {
+      failures.add("hook patch plan gate failed");
+    }
+    if (!hookPatchPlan.has("patchPlanningSucceeded")
+        || !hookPatchPlan.get("patchPlanningSucceeded").getAsBoolean()) {
+      failures.add("hook patch plan planning did not succeed");
+    }
+    if (!hookPatchPlan.has("patchPlanned") || !hookPatchPlan.get("patchPlanned").getAsBoolean()) {
+      failures.add("hook patch plan is not marked as planned");
+    }
+    if (!hookPatchPlan.has("plannedPatchCount")
+        || hookPatchPlan.get("plannedPatchCount").getAsInt() != 1) {
+      failures.add("hook patch plan must contain exactly one planned patch");
+    }
+    if (!hookPatchPlan.has("minecraftVersion")
+        || !executionPlan.has("resolvedMinecraftVersion")
+        || !hookPatchPlan
+            .get("minecraftVersion")
+            .getAsString()
+            .equals(executionPlan.get("resolvedMinecraftVersion").getAsString())) {
+      failures.add("hook patch plan minecraft version mismatch");
+    }
+    if (!hookPatchPlan.has("side")
+        || !executionPlan.has("side")
+        || !hookPatchPlan
+            .get("side")
+            .getAsString()
+            .equals(executionPlan.get("side").getAsString())) {
+      failures.add("hook patch plan side mismatch");
+    }
+    if (!hookPatchPlan.has("minecraftMainClass")
+        || !executionPlan.has("minecraftMainClass")
+        || !hookPatchPlan
+            .get("minecraftMainClass")
+            .getAsString()
+            .equals(executionPlan.get("minecraftMainClass").getAsString())) {
+      failures.add("hook patch plan minecraft main class mismatch");
+    }
+    if (!hookPatchPlan.has("targetClass")
+        || !"net/minecraft/server/Main".equals(hookPatchPlan.get("targetClass").getAsString())) {
+      failures.add("hook patch plan target class mismatch");
+    }
+    if (!hookPatchPlan.has("targetMethod")
+        || !"main".equals(hookPatchPlan.get("targetMethod").getAsString())) {
+      failures.add("hook patch plan target method mismatch");
+    }
+    if (!hookPatchPlan.has("targetDescriptor")
+        || !"([Ljava/lang/String;)V".equals(hookPatchPlan.get("targetDescriptor").getAsString())) {
+      failures.add("hook patch plan target descriptor mismatch");
+    }
+    if (!hookPatchPlan.has("transformReadyForFixtureOnly")
+        || !hookPatchPlan.get("transformReadyForFixtureOnly").getAsBoolean()) {
+      failures.add("hook patch plan must be fixture-only ready");
+    }
+    if (!hookPatchPlan.has("transformReadyForMinecraftRuntime")
+        || hookPatchPlan.get("transformReadyForMinecraftRuntime").getAsBoolean()) {
+      failures.add("hook patch plan must not be runtime-ready");
+    }
+    JsonArray plannedPatches = hookPatchPlan.getAsJsonArray("plannedPatches");
+    if (plannedPatches == null || plannedPatches.size() != 1) {
+      failures.add("hook patch plan planned patch details mismatch");
+      return;
+    }
+    JsonObject patch = plannedPatches.get(0).getAsJsonObject();
+    if (!patch.has("id")
+        || !MinecraftHookPatchPlanner.SUPPORTED_PATCH_ID.equals(patch.get("id").getAsString())) {
+      failures.add("hook patch plan patch id mismatch");
+    }
+    if (!patch.has("ownerInternalName")
+        || !"net/minecraft/server/Main".equals(patch.get("ownerInternalName").getAsString())) {
+      failures.add("hook patch plan owner mismatch");
+    }
+    if (!patch.has("memberName") || !"main".equals(patch.get("memberName").getAsString())) {
+      failures.add("hook patch plan member mismatch");
+    }
+    if (!patch.has("descriptor")
+        || !"([Ljava/lang/String;)V".equals(patch.get("descriptor").getAsString())) {
+      failures.add("hook patch plan descriptor mismatch");
+    }
+    if (!patch.has("transformReadyForFixtureOnly")
+        || !patch.get("transformReadyForFixtureOnly").getAsBoolean()) {
+      failures.add("hook patch plan patch fixture-only flag mismatch");
+    }
+    if (!patch.has("transformReadyForMinecraftRuntime")
+        || patch.get("transformReadyForMinecraftRuntime").getAsBoolean()) {
+      failures.add("hook patch plan patch runtime-ready flag mismatch");
+    }
+    if (!executionPlan.has("executionPolicy")
+        || !executionPlan.getAsJsonObject("executionPolicy").has("bootstrapFakeServer")
+        || !executionPlan
+            .getAsJsonObject("executionPolicy")
+            .get("bootstrapFakeServer")
+            .getAsBoolean()) {
+      failures.add("hook patch plan requires bootstrap fake server execution policy");
+    }
+  }
+
   private Path resolve(Path workingDirectory, String serializedPath) {
     Path path = Path.of(serializedPath);
     return path.isAbsolute()
@@ -280,11 +402,13 @@ public final class MinecraftBootstrapPlanVerifier {
       JsonObject boundaryPlan,
       JsonObject integrationPlan,
       JsonObject executionPlan,
+      JsonObject hookPatchPlan,
       JsonObject hookInstallationPlan,
       MinecraftPlanFingerprint runtimeFingerprint,
       MinecraftPlanFingerprint boundaryFingerprint,
       MinecraftPlanFingerprint integrationFingerprint,
       MinecraftPlanFingerprint executionFingerprint,
+      MinecraftPlanFingerprint hookPatchPlanFingerprint,
       MinecraftPlanFingerprint hookInstallationPlanFingerprint) {}
 
   public static final class PlanDriftException extends RuntimeException {

@@ -106,6 +106,7 @@ public final class MinecraftDryRunFlow {
             || config.hookBytecodeAnalysis()
             || config.explainHookBytecodeAnalysis()
             || config.hookPatchPlan()
+            || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.hookInstallationPlan()
             || config.installHooks())
@@ -330,6 +331,7 @@ public final class MinecraftDryRunFlow {
                 || config.hookBytecodeAnalysis()
                 || config.explainHookBytecodeAnalysis()
                 || config.hookPatchPlan()
+                || config.bootstrapTransformHooks()
                 || config.explainHookPatchPlan()
                 || config.hookInstallationPlan()
                 || config.installHooks()
@@ -407,6 +409,7 @@ public final class MinecraftDryRunFlow {
               || config.hookBytecodeAnalysis()
               || config.explainHookBytecodeAnalysis()
               || config.hookPatchPlan()
+              || config.bootstrapTransformHooks()
               || config.explainHookPatchPlan()
               || config.hookInstallationPlan()
               || config.installHooks();
@@ -706,7 +709,10 @@ public final class MinecraftDryRunFlow {
                     "modExecutionPlanOutputPath", DisplayPaths.displayPath(context, outputPath)));
         megaMilestoneReports.add("minecraft-mod-execution-plan.json");
 
-        if (config.hookPlacementPlan() || config.hookBytecodeAnalysis() || config.hookPatchPlan()) {
+        if (config.hookPlacementPlan()
+            || config.hookBytecodeAnalysis()
+            || config.hookPatchPlan()
+            || config.bootstrapTransformHooks()) {
           MinecraftHookContractReport finalHookContractReport = hookContractReport;
           MinecraftHookPlacementPlan hookPlacementPlan =
               DiagnosticMeasurements.measure(
@@ -748,7 +754,9 @@ public final class MinecraftDryRunFlow {
           }
 
           MinecraftHookBytecodeAnalysisReport hookBytecodeAnalysisReport = null;
-          if (config.hookBytecodeAnalysis() || config.hookPatchPlan()) {
+          if (config.hookBytecodeAnalysis()
+              || config.hookPatchPlan()
+              || config.bootstrapTransformHooks()) {
             hookBytecodeAnalysisReport =
                 DiagnosticMeasurements.measure(
                     diagnosticSink,
@@ -792,7 +800,7 @@ public final class MinecraftDryRunFlow {
             }
           }
 
-          if (config.hookPatchPlan()) {
+          if (config.hookPatchPlan() || config.bootstrapTransformHooks()) {
             MinecraftHookBytecodeAnalysisReport finalHookBytecodeAnalysisReport =
                 hookBytecodeAnalysisReport;
             MinecraftHookPatchPlan hookPatchPlan =

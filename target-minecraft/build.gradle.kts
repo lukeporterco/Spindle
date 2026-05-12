@@ -13,3 +13,7 @@ dependencies {
     testImplementation(project(":sample-server-fixture"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+tasks.named<JavaCompile>("compileTestJava") {
+    options.debugOptions.debugLevel = "source,lines"
+}

@@ -45,6 +45,7 @@ public final class MinecraftBootstrapFlow {
         context.workingDirectory().resolve("minecraft-mod-execution-plan.json");
     Path hookInstallationPlanPath =
         context.workingDirectory().resolve("minecraft-hook-installation-plan.json");
+    Path hookPatchPlanPath = context.workingDirectory().resolve("minecraft-hook-patch-plan.json");
     MinecraftPlanFingerprint runtimeFingerprint =
         MinecraftPlanFingerprint.fromFile("runtime-plan", runtimePlanPath);
     MinecraftPlanFingerprint boundaryFingerprint =
@@ -54,6 +55,7 @@ public final class MinecraftBootstrapFlow {
     MinecraftPlanFingerprint executionFingerprint =
         MinecraftPlanFingerprint.fromFile("execution-plan", executionPlanPath);
     MinecraftPlanFingerprint hookInstallationFingerprint = null;
+    MinecraftPlanFingerprint hookPatchPlanFingerprint = null;
 
     List<String> command = new ArrayList<>();
     Path javaExecutable = new JavaExecutableResolver().resolve();
@@ -79,6 +81,19 @@ public final class MinecraftBootstrapFlow {
     command.add(integrationFingerprint.sha256());
     command.add("--expected-execution-fingerprint");
     command.add(executionFingerprint.sha256());
+    if (config.bootstrapTransformHooks()) {
+      if (!Files.isRegularFile(hookPatchPlanPath)) {
+        throw new LoaderException(
+            "Minecraft bootstrap hook transformation requires a generated minecraft-hook-patch-plan.json");
+      }
+      hookPatchPlanFingerprint =
+          MinecraftPlanFingerprint.fromFile("hook-patch-plan", hookPatchPlanPath);
+      command.add("--transform-hooks");
+      command.add("--hook-patch-plan");
+      command.add("minecraft-hook-patch-plan.json");
+      command.add("--expected-hook-patch-plan-fingerprint");
+      command.add(hookPatchPlanFingerprint.sha256());
+    }
     if (config.installHooks()) {
       if (!Files.isRegularFile(hookInstallationPlanPath)) {
         throw new LoaderException(

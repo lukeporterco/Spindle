@@ -13,4 +13,16 @@ public enum MinecraftHookPatchEligibility {
   public String id() {
     return id;
   }
+
+  public static MinecraftHookPatchEligibility fromId(String id) {
+    if (id == null || id.isBlank()) {
+      return null;
+    }
+    for (MinecraftHookPatchEligibility value : values()) {
+      if (value.id.equals(id)) {
+        return value;
+      }
+    }
+    throw new IllegalArgumentException("Unknown Minecraft hook patch eligibility: " + id);
+  }
 }

@@ -139,6 +139,24 @@ Target-8 remains fixture-only:
 
 See [Target-8: Fixture-Only Bytecode Transformation](../docs/architecture/target-8-fixture-only-bytecode-transformation.md).
 
+## Target-9 bootstrap class transformation path
+
+Target-9 wires the validated SteelHook method-entry transform into bootstrap classloading for fake-server execution only.
+
+It reuses the Target-7 patch plan plus the Target-8 rewrite proof, passes `minecraft-hook-patch-plan.json` into the bootstrap child JVM, transforms exactly `net.minecraft.server.Main` before definition, invokes `Main.main(String[])`, and writes `minecraft-hook-bootstrap-transformation-result.json`.
+
+Target-9 remains intentionally narrow:
+
+- it requires `--minecraft-bootstrap-transform-hooks --minecraft-bootstrap-fake-server`
+- it does not transform real Minecraft runtime artifacts
+- it does not rewrite `StackMapTable`
+- it does not use Java agents or Mixin
+- it does not expose a public hook API
+- it does not add gameplay hooks
+- it does not imply Java mod execution is sandboxed
+
+See [Target-9: Bootstrap Class Transformation Path](../docs/architecture/target-9-bootstrap-class-transformation-path.md).
+
 ## Target-4 minimal hook installation proof
 
 Target-4 adds the first internal launch-boundary hook installation proof.

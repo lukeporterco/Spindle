@@ -78,6 +78,7 @@ public final class LoaderCliParser {
     boolean minecraftExecutionPlan = false;
     boolean minecraftBootstrapClassloaderGraph = false;
     boolean minecraftBootstrapServer = false;
+    boolean minecraftBootstrapTransformHooks = false;
     boolean minecraftInstallHooks = false;
     boolean minecraftStrictExecution = false;
     boolean minecraftDenyLoaderInternals = false;
@@ -445,6 +446,20 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-bootstrap-transform-hooks".equals(argument)) {
+        minecraftBootstrapTransformHooks = true;
+        minecraftBootstrapServer = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-reproducibility-check".equals(argument)) {
         minecraftReproducibilityCheck = true;
         minecraftRuntimePlan = true;
@@ -526,6 +541,14 @@ public final class LoaderCliParser {
     if (gameMainClass == null) {
       throw new LoaderException("Missing required argument --game-main");
     }
+    if (minecraftBootstrapTransformHooks && !minecraftBootstrapFakeServer) {
+      throw new LoaderException(
+          "Minecraft bootstrap hook transformation requires --minecraft-bootstrap-fake-server.");
+    }
+    if (minecraftBootstrapTransformHooks && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft bootstrap hook transformation cannot be combined with --minecraft-install-hooks.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -588,6 +611,7 @@ public final class LoaderCliParser {
             minecraftExecutionPlan,
             minecraftBootstrapClassloaderGraph,
             minecraftBootstrapServer,
+            minecraftBootstrapTransformHooks,
             minecraftInstallHooks,
             minecraftStrictExecution,
             minecraftDenyLoaderInternals,

@@ -8,6 +8,11 @@ public final class Main {
   private Main() {}
 
   public static void main(String[] args) {
+    writeMarker(args);
+    failIfRequested(args);
+  }
+
+  private static void writeMarker(String[] args) {
     try {
       if (args.length > 0 && args[0] != null && !args[0].isBlank()) {
         Path markerPath = Path.of(args[0]);
@@ -20,6 +25,9 @@ public final class Main {
     } catch (Exception exception) {
       throw new RuntimeException("failed to write main marker", exception);
     }
+  }
+
+  private static void failIfRequested(String[] args) {
     if (args.length > 1 && "--fail".equals(args[1])) {
       throw new IllegalStateException("hook-installed main failed intentionally");
     }

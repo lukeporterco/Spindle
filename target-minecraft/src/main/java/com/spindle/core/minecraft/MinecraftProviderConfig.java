@@ -62,6 +62,7 @@ public record MinecraftProviderConfig(
     boolean executionPlan,
     boolean bootstrapClassloaderGraph,
     boolean bootstrapServer,
+    boolean bootstrapTransformHooks,
     boolean installHooks,
     boolean strictExecution,
     boolean denyLoaderInternals,
@@ -168,6 +169,7 @@ public record MinecraftProviderConfig(
         false, // executionPlan
         false, // bootstrapClassloaderGraph
         false, // bootstrapServer
+        false, // bootstrapTransformHooks
         false, // installHooks
         false, // strictExecution
         false, // denyLoaderInternals
@@ -302,6 +304,7 @@ public record MinecraftProviderConfig(
         executionPlan,
         bootstrapClassloaderGraph,
         bootstrapServer,
+        bootstrapTransformHooks,
         installHooks,
         strictExecution,
         denyLoaderInternals,
@@ -379,6 +382,7 @@ public record MinecraftProviderConfig(
         executionPlan,
         bootstrapClassloaderGraph,
         bootstrapServer,
+        bootstrapTransformHooks,
         installHooks,
         strictExecution,
         denyLoaderInternals,
@@ -525,6 +529,7 @@ public record MinecraftProviderConfig(
         executionPlan,
         bootstrapClassloaderGraph,
         bootstrapServer,
+        false,
         installHooks,
         strictExecution,
         denyLoaderInternals,

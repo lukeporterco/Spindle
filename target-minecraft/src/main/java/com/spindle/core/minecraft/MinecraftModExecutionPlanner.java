@@ -183,7 +183,7 @@ public final class MinecraftModExecutionPlanner {
             false,
             false,
             false,
-            false,
+            config.bootstrapTransformHooks(),
             false,
             false,
             false,

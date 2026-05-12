@@ -12,4 +12,16 @@ public enum MinecraftHookPatchMode {
   public String id() {
     return id;
   }
+
+  public static MinecraftHookPatchMode fromId(String id) {
+    if (id == null || id.isBlank()) {
+      return null;
+    }
+    for (MinecraftHookPatchMode value : values()) {
+      if (value.id.equals(id)) {
+        return value;
+      }
+    }
+    throw new IllegalArgumentException("Unknown Minecraft hook patch mode: " + id);
+  }
 }

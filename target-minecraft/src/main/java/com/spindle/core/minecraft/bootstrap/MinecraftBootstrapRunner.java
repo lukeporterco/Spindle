@@ -18,12 +18,19 @@ import com.spindle.core.minecraft.MinecraftModExecutionResultWriter;
 import com.spindle.core.minecraft.MinecraftPlanFingerprint;
 import com.spindle.core.minecraft.MinecraftProtectedPackagePolicy;
 import com.spindle.core.minecraft.MinecraftRuntimeClassLoader;
+import com.spindle.core.minecraft.hook.bootstrap.MinecraftBootstrapHookTransformationResult;
+import com.spindle.core.minecraft.hook.bootstrap.MinecraftBootstrapHookTransformationResultWriter;
+import com.spindle.core.minecraft.hook.bootstrap.MinecraftBootstrapHookTransformer;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationMode;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationPlan;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationResult;
 import com.spindle.core.minecraft.hook.install.MinecraftHookInstallationResultWriter;
 import com.spindle.core.minecraft.hook.install.MinecraftHookRuntimeBridge;
 import com.spindle.core.minecraft.hook.install.MinecraftPlannedHookInstallation;
+import com.spindle.core.minecraft.hook.patch.MinecraftHookPatchEligibility;
+import com.spindle.core.minecraft.hook.patch.MinecraftHookPatchMode;
+import com.spindle.core.minecraft.hook.patch.MinecraftHookPatchPlan;
+import com.spindle.core.minecraft.hook.runtime.SteelHookDispatcher;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -47,6 +54,8 @@ public final class MinecraftBootstrapRunner {
     Path bootstrapResultPath = workingDirectory.resolve("minecraft-server-bootstrap-result.json");
     Path hookInstallationResultPath =
         workingDirectory.resolve("minecraft-hook-installation-result.json");
+    Path hookTransformationResultPath =
+        workingDirectory.resolve("minecraft-hook-bootstrap-transformation-result.json");
     Path driftReportPath = workingDirectory.resolve("minecraft-plan-drift-report.json");
     MinecraftBootstrapPlanVerifier.VerifiedPlans verifiedPlans;
     try {
@@ -87,13 +96,25 @@ public final class MinecraftBootstrapRunner {
     boolean minecraftMainInvoked = false;
     Integer processOutcome = null;
     MinecraftHookInstallationResult hookInstallationResult = null;
+    MinecraftBootstrapHookTransformer hookTransformer = null;
+    MinecraftBootstrapHookTransformationResult hookTransformationResult = null;
+
+    if (arguments.transformHooks()) {
+      SteelHookDispatcher.resetForBootstrap();
+      hookTransformer =
+          new MinecraftBootstrapHookTransformer(
+              gson.fromJson(
+                  normalizeHookPatchPlanEnums(verifiedPlans.hookPatchPlan()),
+                  MinecraftHookPatchPlan.class));
+    }
 
     try (MinecraftRuntimeClassLoader runtimeClassLoader =
         new MinecraftRuntimeClassLoader(
             "minecraft-runtime",
             runtimeUrls.toArray(URL[]::new),
             MinecraftBootstrapRunner.class.getClassLoader(),
-            audit)) {
+            audit,
+            hookTransformer)) {
       for (var executableMod :
           executionPlan.acceptedExecutableMods().stream()
               .sorted(Comparator.comparing(mod -> mod.modId()))
@@ -195,16 +216,22 @@ public final class MinecraftBootstrapRunner {
           try {
             Class<?> mainClass =
                 Class.forName(executionPlan.minecraftMainClass(), true, runtimeClassLoader);
+            minecraftMainInvoked = true;
             mainClass
                 .getMethod("main", String[].class)
                 .invoke(null, (Object) executionPlan.minecraftMainArgs().toArray(String[]::new));
-            minecraftMainInvoked = true;
             processOutcome = 0;
           } catch (InvocationTargetException exception) {
+            hookTransformationResult =
+                writeHookTransformationResult(
+                    hookTransformationResultPath, hookTransformer, minecraftMainInvoked);
             failureReasons.add(
                 "minecraft main failure: " + exception.getTargetException().getMessage());
             processOutcome = 1;
           } catch (ReflectiveOperationException exception) {
+            hookTransformationResult =
+                writeHookTransformationResult(
+                    hookTransformationResultPath, hookTransformer, minecraftMainInvoked);
             failureReasons.add("minecraft main failure: " + exception.getMessage());
             processOutcome = 1;
           }
@@ -212,6 +239,12 @@ public final class MinecraftBootstrapRunner {
       }
     } catch (IOException exception) {
       throw new LoaderException("Failed to close bootstrap classloaders", exception);
+    }
+
+    if (arguments.transformHooks() && hookTransformationResult == null) {
+      hookTransformationResult =
+          writeHookTransformationResult(
+              hookTransformationResultPath, hookTransformer, minecraftMainInvoked);
     }
 
     MinecraftModExecutionResult executionResult =
@@ -263,6 +296,19 @@ public final class MinecraftBootstrapRunner {
             minecraftMainInvoked);
     new MinecraftBootstrapResultWriter().write(bootstrapResultPath, bootstrapResult);
     return bootstrapResult;
+  }
+
+  private MinecraftBootstrapHookTransformationResult writeHookTransformationResult(
+      Path outputPath, MinecraftBootstrapHookTransformer transformer, boolean minecraftMainInvoked)
+      throws LoaderException {
+    if (transformer == null || transformer.currentResult() == null) {
+      return null;
+    }
+    MinecraftBootstrapHookTransformationResult result =
+        transformer.withRuntimeObservation(
+            SteelHookDispatcher.beforeMinecraftServerMainInvocationCount(), minecraftMainInvoked);
+    new MinecraftBootstrapHookTransformationResultWriter().write(outputPath, result);
+    return result;
   }
 
   private List<URL> runtimeUrls(Path workingDirectory, JsonObject runtimePlan)
@@ -373,6 +419,7 @@ public final class MinecraftBootstrapRunner {
         "Milestone 8",
         List.of(
             "--install-hooks=" + arguments.installHooks(),
+            "--transform-hooks=" + arguments.transformHooks(),
             "--verify-plan-fingerprints=" + arguments.verifyPlanFingerprints(),
             "--strict-execution=" + arguments.strictExecution(),
             "--offline-bootstrap=" + arguments.offlineBootstrap()),
@@ -388,8 +435,8 @@ public final class MinecraftBootstrapRunner {
         failure == null ? null : failure.message(),
         false,
         false,
-        false,
-        false,
+        arguments.transformHooks(),
+        arguments.transformHooks(),
         false,
         false,
         false);
@@ -447,6 +494,32 @@ public final class MinecraftBootstrapRunner {
         jsonObject.has("publicApiExposed") && jsonObject.get("publicApiExposed").getAsBoolean(),
         jsonObject.has("javaModExecutionSandboxed")
             && jsonObject.get("javaModExecutionSandboxed").getAsBoolean());
+  }
+
+  private JsonObject normalizeHookPatchPlanEnums(JsonObject jsonObject) {
+    JsonObject copy = jsonObject.deepCopy();
+    normalizePatchEligibility(copy, "patchEligibility");
+    JsonArray plannedPatches = copy.getAsJsonArray("plannedPatches");
+    if (plannedPatches != null) {
+      for (int index = 0; index < plannedPatches.size(); index++) {
+        JsonObject patch = plannedPatches.get(index).getAsJsonObject();
+        normalizePatchEligibility(patch, "patchEligibility");
+        if (patch.has("mode") && !patch.get("mode").isJsonNull()) {
+          patch.addProperty(
+              "mode", MinecraftHookPatchMode.fromId(patch.get("mode").getAsString()).name());
+        }
+      }
+    }
+    return copy;
+  }
+
+  private void normalizePatchEligibility(JsonObject object, String fieldName) {
+    if (!object.has(fieldName) || object.get(fieldName).isJsonNull()) {
+      return;
+    }
+    object.addProperty(
+        fieldName,
+        MinecraftHookPatchEligibility.fromId(object.get(fieldName).getAsString()).name());
   }
 
   private String string(JsonObject object, String fieldName) {
