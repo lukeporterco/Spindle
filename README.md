@@ -1,117 +1,115 @@
 # Spindle
 
-Spindle is a custom Minecraft mod loader project built around a simple long-term rule: Minecraft is the target, not the foundation.
+Spindle is a forward-only Java 25 Minecraft mod loader project. Its current architecture keeps Minecraft as a target layer, not as the foundation of the loader itself.
 
-The current repository contains the Spindle Loader. It is the completed loader subsystem inside the broader Spindle ecosystem. It discovers mods, validates metadata and trust state, resolves dependencies, compiles deterministic runtime contracts, prepares runtime state, creates classloaders, executes lifecycle handlers, and hands off toward Minecraft target integration.
+The repository contains four main implementation areas:
 
-Spindle is not currently a full Minecraft gameplay API, a replacement for Fabric API, a performance mod suite, or a custom injection framework. Those belong to future ecosystem layers that should build around the loader rather than being folded into the loader core.
+1. `spindle-loader-api`, the stable runtime-facing Loader API available to mods today.
+2. `spindle-loader-core`, the target-neutral loader runtime, planning, diagnostics, security, classloading, and lifecycle implementation.
+3. `spindle-loader-cli`, the executable entrypoint and provider wiring.
+4. `target-minecraft`, the Minecraft Target Layer, including runtime planning, bootstrap execution, and the internal SteelHook hook subsystem work.
+
+Spindle is not currently a complete Minecraft gameplay API, a Fabric API replacement, a general compatibility layer, or a finished performance mod suite. Those belong to later ecosystem layers built on top of the loader and target foundation.
 
 Minimum Java version: Java 25
 
-First intended Minecraft target: 26.1.2
+Current baseline Minecraft target: 26.1.2
 
 ## Current status
 
-The loader spine is considered complete for the current scope. The Minecraft target layer has a partial foundation. The broad developer-facing API layer, performance layer, and real third-party ecosystem are future work.
+The loader spine is complete for the current scope. The Minecraft Target Layer is partially implemented and now includes a narrow internal SteelHook proof chain through fake-server bootstrap class transformation.
 
 ```text
 Spindle Ecosystem
- |-- Spindle Loader [DONE]
- |   |-- Mod Intake [DONE]
- |   |-- Resolution and Planning [DONE]
- |   |-- Runtime Contract System [DONE]
- |   |-- Security and Diagnostics [DONE]
- |   |-- Runtime Execution [DONE]
- |   `-- Runtime-facing Loader API [DONE]
- |
+|
+|-- Spindle Loader [DONE]
+|   |-- Mod discovery and metadata intake [DONE]
+|   |-- Dependency resolution and frozen planning [DONE]
+|   |-- Runtime contract system [DONE]
+|   |-- Security diagnostics and fatal gates [DONE]
+|   |-- Runtime classloading and lifecycle execution [DONE]
+|   `-- Runtime-facing Loader API [DONE]
+|
 |-- Minecraft Target Layer [PART]
-|   |-- Minecraft Target Model [PART]
-|   |-- Artifact, Version, and Mapping Integration [PART]
-|   |-- Target Launch and Attachment [PART]
-|   |-- Target Lifecycle Bridge [PART]
-|   |-- Injection Hook Subsystem [TODO]
-|   |-- Target Diagnostics [PART]
-|   `-- Target API Bridge [PART]
- |
- |-- Spindle API Layer [TODO]
- |   |-- API Contract Foundation [TODO]
- |   |-- Event API [TODO]
- |   |-- Registry API [TODO]
- |   |-- Resource and Data API [TODO]
- |   |-- Networking API [TODO]
- |   |-- Command API [TODO]
- |   |-- Client API [TODO]
- |   |-- World and Gameplay API [TODO]
- |   `-- Developer Utilities [PART]
- |
- |-- Spindle Performance Layer [TODO]
- |   |-- Performance Control Plane [TODO]
- |   |-- Renderer Optimizations [TODO]
- |   |-- Chunk and World Optimizations [TODO]
- |   |-- Lighting Optimizations [TODO]
- |   |-- Entity and Tick Optimizations [TODO]
- |   |-- Networking Optimizations [TODO]
- |   `-- Memory Optimizations [TODO]
- |
- `-- Third-Party Mods [PART]
-     |-- Runtime-only mods [PART]
-     |-- Minecraft API mods [TODO]
-     |-- Resource/data mods [TODO]
-     |-- Client-side mods [TODO]
-     |-- Server-side mods [TODO]
-     |-- Optimization-dependent mods [TODO]
-     `-- Full gameplay/content mods [TODO]
+|   |-- Minecraft artifact and version planning [PART]
+|   |-- Server runtime planning and boundary reports [PART]
+|   |-- Bootstrap child-JVM execution [PART]
+|   |-- Fake-server bootstrap proof path [PART]
+|   |-- SteelHook internal hook subsystem [PART]
+|   `-- Target Layer API boundary [DESIGNED]
+|
+|-- Minecraft Modding API [TODO]
+|   |-- Events [TODO]
+|   |-- Registries [TODO]
+|   |-- Commands [TODO]
+|   |-- Networking [TODO]
+|   |-- Resources and data [TODO]
+|   |-- Client APIs [TODO]
+|   `-- World and gameplay abstractions [TODO]
+|
+|-- Performance Layer [TODO]
+|   |-- Renderer, chunk, lighting, entity, tick, networking, and memory work [TODO]
+|
+`-- Third-Party Mod Ecosystem [PART]
+    |-- Runtime-only mods [PART]
+    |-- Minecraft-targeted bootstrap fixtures [PART]
+    `-- Full Minecraft gameplay/content mods [TODO]
 ```
 
 Status labels:
 
 ```text
-[DONE] The subsystem is implemented for the current intended scope.
-[PART] A foundation exists, but the subsystem is not complete.
-[TODO] The subsystem is not implemented yet.
+[DONE] Implemented for the current intended scope.
+[PART] Foundation exists, but the subsystem is not complete.
+[DESIGNED] Architecture boundary exists, implementation is still constrained.
+[TODO] Not implemented yet.
 ```
 
-## What this repository is
+## What Spindle is today
 
-This repository contains the Spindle Loader.
+Spindle currently provides a deterministic loader runtime and a growing Minecraft target foundation.
 
-Its job is to provide a deterministic backend runtime for mods:
+The loader side can:
 
 - discover mod artifacts
 - parse and validate `loader.mod.json`
 - resolve dependencies and version requirements
-- produce a frozen mod graph
+- produce frozen mod graphs and lockfiles
 - plan classpaths and ownership indexes
 - collect trust, risk, quality, and diagnostics reports
-- compile a deterministic runtime profile
+- compile deterministic runtime profiles
 - enforce runtime contract gates before lifecycle execution
 - materialize mod-owned storage and config
-- expose a stable runtime-facing loader API
+- expose the stable runtime-facing Loader API
 - execute loader-controlled lifecycle handlers
-- prepare the boundary that future Minecraft target work consumes
 
-The loader should stay narrow. It should not absorb broad gameplay APIs, Minecraft registries, event systems, networking APIs, commands, resource overlays, performance optimizations, ECS, threading systems, or custom injection behavior.
+The Minecraft target side can:
 
-## What this repository is not
+- plan Minecraft launch and runtime artifacts
+- inspect and verify server-side runtime files
+- produce boundary, integration, preflight, reproducibility, and execution reports
+- run fake-server bootstrap smoke flows
+- validate known Minecraft hook symbols
+- analyze selected method bytecode for hook placement
+- plan one internal method-entry patch without modifying classes
+- transform fixture class bytes in tests
+- apply that transform through bootstrap classloading for fake-server execution only
 
-Spindle currently does not provide a complete Minecraft modding ecosystem.
+## What Spindle is not yet
 
-Not implemented yet:
+Spindle does not yet provide:
 
-- full Minecraft gameplay API
-- event API
-- registry API
-- command API
-- networking API
-- resource and data overlay API
-- client API
-- world and gameplay API
-- renderer, chunk, lighting, entity, networking, or memory optimization modules
-- general-purpose target hook system
-- custom injection hooker
-- Mixin, ASM, access widener, Fabric, Forge, NeoForge, Quilt, Bukkit, Paper, or Sponge compatibility
+- a full Minecraft gameplay API
+- event, registry, command, networking, resource, client, world, block, item, entity, or packet APIs
+- a public Minecraft hook API
+- a general-purpose bytecode transformer
+- arbitrary injection points
+- StackMapTable rewriting
+- real Minecraft runtime transformation readiness
+- Fabric, Forge, NeoForge, Quilt, Paper, Bukkit, Sponge, Mixin, access widener, remapping, or compatibility-layer support
+- Java sandboxing for mods
 
-Spindle Java mod execution is not sandboxed. The current runtime honesty contract is:
+Java mod execution is explicitly not sandboxed:
 
 ```text
 execution: in-process-unrestricted-java
@@ -119,71 +117,113 @@ sandboxed: false
 sandboxClaim: not-sandboxed
 ```
 
-Security features in this repository are validation, reporting, trust classification, warning-only static risk signals, restricted child-JVM static tooling, and fatal gates for declared runtime contracts. They are not a Java sandbox.
+Spindle security currently means validation, deterministic reports, trust classification, warning-only static risk signals, restricted child-JVM static tooling, and fatal gates for declared runtime contracts. It is not a Java security sandbox.
 
-## Ecosystem direction
+## Architecture split
 
-Spindle should grow around the loader, not by bloating it.
-
-The intended long-term split is:
+Spindle is intentionally layered.
 
 ```text
 Spindle Loader
-  Owns discovery, validation, resolution, runtime contracts, classloading,
-  lifecycle execution, security diagnostics, and the runtime-facing loader API.
+  Owns target-neutral mod discovery, metadata validation, resolution,
+  runtime contracts, diagnostics, classloading, lifecycle execution, and
+  the stable runtime-facing Loader API.
 
 Minecraft Target Layer
-  Owns Minecraft launch integration, version and mapping handling, target
-  lifecycle bridging, target diagnostics, and future injection hook subsystem work.
+  Owns Minecraft-specific artifact planning, runtime boundaries, bootstrap
+  execution, target diagnostics, and internal SteelHook machinery.
 
-Spindle API Layer
-  Owns developer-facing Minecraft APIs such as events, registries, resources,
-  networking, commands, client APIs, world hooks, and developer utilities.
+Target Layer API
+  Future low-abstraction Minecraft-facing escape hatch. This should expose
+  target facts and target operations, not ergonomic gameplay APIs.
 
-Spindle Performance Layer
-  Owns first-party optimization modules. These modules may integrate deeply with
-  the target and API layers, but should not become loader-core responsibilities.
+Modding API
+  Future developer-facing Minecraft API surface for events, registries,
+  commands, resources, networking, client behavior, and gameplay features.
 
-Third-Party Mods
-  Depend on stable Spindle contracts and API surfaces. Mods should declare their
-  needs clearly rather than relying on hidden Minecraft internals.
+Performance Layer
+  Future first-party optimization modules. These may integrate deeply with
+  target and API layers, but should not become loader-core responsibilities.
 ```
+
+The stable Loader API remains loader-focused. `com.spindle.api.minecraft.*` remains deferred and intentionally excluded from the stable Loader API.
+
+## SteelHook status
+
+SteelHook is Spindle's internal custom injection hook subsystem inside `target-minecraft`. It is not a public hook API and not a Mixin replacement.
+
+SteelHook currently has a narrow proof chain:
+
+```text
+Target-1: Artifact interpretation
+  Reads planned server-side Minecraft runtime jars as class files and writes
+  minecraft-artifact-interpretation.json.
+
+Target-2: Hook contract diagnostics
+  Validates explicit hook contracts against interpreted symbols and writes
+  minecraft-hook-contracts.json.
+
+Target-3: Known-symbol hook catalog
+  Selects the first internal Minecraft 26.1.2 server known-symbol catalog for
+  net/minecraft/server/Main.main([Ljava/lang/String;)V.
+
+Target-4: Launch-boundary hook installation proof
+  Installs one internal launch-boundary wrapper around Main.main and writes
+  minecraft-hook-installation-plan.json plus minecraft-hook-installation-result.json.
+
+Target-5: Hook placement analysis scaffold
+  Reads the selected method Code attribute as opaque bytes and writes
+  minecraft-hook-placement-plan.json.
+
+Target-6: Instruction-aware bytecode model
+  Decodes selected method bytecode, validates instruction, branch, switch, and
+  exception-table boundaries, and writes minecraft-hook-bytecode-analysis.json.
+
+Target-7: Injection patch planning dry-run
+  Plans one symbolic method-entry invokestatic dispatcher patch and writes
+  minecraft-hook-patch-plan.json.
+
+Target-8: Fixture-only bytecode transformation
+  Produces transformed fixture class bytes in tests only.
+
+Target-9: Bootstrap class transformation path
+  Applies the validated transform through fake-server bootstrap classloading and
+  writes minecraft-hook-bootstrap-transformation-result.json.
+```
+
+Target-9 remains fake-server only. It does not transform real Minecraft runtime artifacts, does not rewrite `StackMapTable`, does not expose public APIs, does not add gameplay hooks, does not use Java agents or Mixin, and does not imply Java mod execution is sandboxed.
 
 ## Repository layout
 
 ```text
 .
 |-- spindle-loader-api
-|   `-- Public runtime-facing Spindle Loader API used by mods today.
+|   `-- Stable runtime-facing public Loader API.
 |
 |-- spindle-loader-core
 |   `-- Target-neutral loader implementation, runtime contracts, diagnostics,
-|       security, classloading, and lifecycle execution.
+|       security gates, classloading, and lifecycle execution.
 |
 |-- spindle-loader-cli
-|   `-- Loader entrypoint, CLI parsing, and application wiring for the
-|       completed Spindle Loader subsystem.
+|   `-- Loader entrypoint, CLI parsing, and provider wiring.
 |
 |-- target-minecraft
-|   `-- Partial Minecraft Target Layer implementation that consumes loader
-|       contracts without expanding the stable loader API.
+|   `-- Minecraft Target Layer implementation and internal SteelHook work.
 |
 |-- sample-mod
-|   `-- Basic sample mod for the sample provider.
+|   `-- Basic non-Minecraft sample mod.
 |
 |-- sample-runtime-mod
-|   `-- Sample mod that exercises runtime-facing config, services, storage,
-       and capability behavior.
+|   `-- Runtime API sample for config, services, storage, and capabilities.
 |
 |-- sample-minecraft-mod
-|   `-- Sample Minecraft-targeted bootstrap mod. This uses deferred
-       Minecraft-facing API surfaces and is not a stable Minecraft API example.
+|   `-- Minecraft-targeted bootstrap mod fixture. Not a stable gameplay API example.
 |
 |-- sample-game
-|   `-- Fake sample game provider used for deterministic loader smoke tests.
+|   `-- Fake game provider used for deterministic loader smoke tests.
 |
 |-- sample-server-fixture
-|   `-- Fake server fixture used by Minecraft server planning and bootstrap tests.
+|   `-- Fake server fixture used by Minecraft planning and bootstrap tests.
 |
 |-- docs
 |   |-- architecture
@@ -193,101 +233,32 @@ Third-Party Mods
 |   `-- Longer-term direction notes.
 |
 `-- runtime
-    `-- Generated local runtime outputs. This directory is ignored by Git.
+    `-- Generated local runtime outputs. Ignored by Git.
 ```
 
-## Loader subsystem breakdown
+## Public API today
 
-The current repository should be evaluated as these completed loader categories.
-
-### Mod Intake
-
-Handles the input side of mod loading:
-
-- mod discovery
-- metadata parsing
-- artifact identity
-- artifact trust state
-- static risk signal collection
-
-### Resolution and Planning
-
-Turns discovered artifacts into deterministic loader plans:
-
-- dependency resolution
-- version requirement handling
-- frozen mod graph generation
-- classpath planning
-- ownership indexing
-- resource conflict indexing
-
-### Runtime Contract System
-
-Compiles mod declarations into deterministic runtime behavior:
-
-- compiled runtime profile
-- capability grants
-- storage grants
-- config schema runtime
-- deterministic service registry
-- lifecycle contract
-- runtime closure contract
-- target handoff boundary
-
-### Security and Diagnostics
-
-Reports loader trust and failure state without pretending Java execution is sandboxed:
-
-- trust boundary report
-- security gates
-- warning-only risk signals
-- restricted static tooling
-- runtime honesty disclosures
-- developer and user diagnostics
-
-### Runtime Execution
-
-Executes loader-controlled runtime behavior after validation gates:
-
-- runtime config materialization
-- runtime service planning
-- classloader creation
-- `ModContext` materialization
-- lifecycle execution
-- failure translation into public API exceptions
-
-### Runtime-facing Loader API
-
-Provides the stable public API surface for loader runtime behavior:
-
-- `LoaderApi`
-- `ModInitializer`
-- `ModContext`
-- capability checks
-- storage access
-- config access
-- service access
-- public loader exceptions
-
-## Stable Loader API
-
-Loader API-0 stabilizes only the runtime-facing `spindle-loader-api` surface.
+The stabilized runtime-facing Loader API lives in `spindle-loader-api`.
 
 Stable today:
 
-- `com.spindle.api.LoaderApi`
-- `com.spindle.api.ModContext`
-- `com.spindle.api.ModInitializer`
-- `com.spindle.api.config.ModConfig`
-- `com.spindle.api.exception.*`
-- `com.spindle.api.lifecycle.LifecyclePhase`
-- `com.spindle.api.service.ServiceRegistry`
+```text
+com.spindle.api.LoaderApi
+com.spindle.api.ModContext
+com.spindle.api.ModInitializer
+com.spindle.api.config.ModConfig
+com.spindle.api.exception.*
+com.spindle.api.lifecycle.LifecyclePhase
+com.spindle.api.service.ServiceRegistry
+```
 
 Deferred:
 
-- `com.spindle.api.minecraft.*`
+```text
+com.spindle.api.minecraft.*
+```
 
-The public API metadata currently reports:
+Public API metadata currently reports:
 
 ```text
 RUNTIME_API_VERSION = 1
@@ -298,15 +269,13 @@ SANDBOXED = false
 SANDBOX_CLAIM = not-sandboxed
 ```
 
-`com.spindle.api.minecraft.*` exists only as a deferred Minecraft bootstrap surface. It is not part of the stabilized runtime-facing Loader API.
-
 ## Runtime contracts
 
 The current compiled profile schema is schema `6`.
 
 The runtime contract system includes:
 
-- capability grant contract
+- capability grants
 - mod-owned storage grants
 - config schema runtime
 - deterministic service registry
@@ -315,18 +284,7 @@ The runtime contract system includes:
 - unavailable resource capability declarations
 - deterministic gate order
 
-Current resource capabilities remain intentionally unavailable:
-
-```text
-resource.declare
-resource.overlay
-```
-
-Those belong to future Resource and Data API work, not the completed loader spine.
-
-## Capabilities
-
-The current grantable runtime capabilities include loader-owned runtime surfaces such as:
+Grantable runtime capabilities include:
 
 ```text
 storage.config
@@ -339,11 +297,18 @@ service.provide
 service.consume
 ```
 
-Broad Java behaviors such as process execution, native access, network access, and reflection are visibility or risk-reporting concerns. They are not treated as sandbox-enforced grants in the current loader.
+Current resource capabilities remain intentionally unavailable:
 
-## Config
+```text
+resource.declare
+resource.overlay
+```
 
-Mods may declare flat schema-2 config entries in `loader.mod.json`. The runtime config system supports primitive config types:
+Broad Java behaviors such as process execution, native access, network access, and reflection are visibility or risk-reporting concerns. They are not sandbox-enforced grants in the current loader.
+
+## Config and services
+
+Mods may declare flat schema-2 config entries in `loader.mod.json`. Supported primitive config types are:
 
 ```text
 boolean
@@ -360,57 +325,11 @@ runtime/config/<modId>/config.json
 
 The public `ModConfig` API exposes declared keys only. Writes require the appropriate runtime grant and must pass schema validation. Integer config is signed 32-bit end-to-end.
 
-## Services
-
-Mods may declare deterministic service providers and service consumers in metadata. The loader compiles those declarations into the runtime service contract and exposes per-mod service views through `context.services()`.
-
-Service providers are planned before classloading gates and instantiated lazily after fatal gates pass. Mods only see services they declared as consumed.
-
-## Security posture
-
-Spindle security is explicit about what it does and does not do.
-
-It does:
-
-- validate metadata and runtime contracts
-- report artifact trust state
-- emit warning-only static risk signals
-- run restricted static tooling in child JVMs
-- gate standard runtime lifecycle execution on fatal validation failures
-- document runtime honesty fields
-- expose developer and user diagnostics
-
-It does not:
-
-- sandbox Java mod execution
-- claim process, network, native, or reflection access is blocked
-- transform arbitrary Java code into safe code
-- guarantee third-party mod safety
-- make warning-only static risk signals fatal unless a future contract explicitly does so
-
-## Minecraft target foundation
-
-The repository contains a partial Minecraft target foundation under `target-minecraft`.
-
-Current target work includes:
-
-- Minecraft version planning
-- vanilla server artifact handling
-- cache inspection and repair flows
-- runtime boundary reports
-- mod integration planning
-- preflight reports
-- reproducibility checks
-- server bootstrap fixture tests
-- a narrow server-side bootstrap path for approved Spindle Minecraft server entrypoints
-
-This is not yet a completed Minecraft Target Layer. In particular, the injection hook subsystem is not implemented yet. Full Minecraft gameplay APIs are also not implemented.
-
-The next boundary-prep step is the Target Layer API boundary, which keeps internal hook work inside the Minecraft Target Layer while deferring any ergonomic Modding API surface above it. The first planned subsystem in that boundary is the injection hook subsystem.
-
-The target layer should eventually become a first-class subsystem around the loader. It should consume loader contracts and lower them into Minecraft-specific behavior without making `spindle-loader-core` responsible for every Minecraft concern.
+Mods may also declare deterministic service providers and consumers in metadata. The loader compiles those declarations into the runtime service contract and exposes per-mod service views through `context.services()`. Service providers are planned before classloading gates and instantiated lazily after fatal gates pass.
 
 ## Build and verification
+
+Use the Gradle wrapper.
 
 Run all tests:
 
@@ -430,7 +349,15 @@ Apply formatting:
 ./gradlew spotlessApply
 ```
 
-Run focused loader smoke flows:
+Run focused module tests:
+
+```bash
+./gradlew :spindle-loader-api:test
+./gradlew :spindle-loader-core:test
+./gradlew :target-minecraft:test
+```
+
+Run current loader smoke flows:
 
 ```bash
 ./gradlew runMilestone0
@@ -445,126 +372,58 @@ Run focused Minecraft planning and bootstrap checks:
 ./gradlew minecraftMilestone8Check
 ```
 
-Run current runtime and loader API tests through the normal Gradle test task:
+Run focused SteelHook test groups:
 
 ```bash
-./gradlew :spindle-loader-core:test
-./gradlew :spindle-loader-api:test
+./gradlew :target-minecraft:test --tests "*MinecraftHookContract*"
+./gradlew :target-minecraft:test --tests "*MinecraftHookPlacement*"
+./gradlew :target-minecraft:test --tests "*MinecraftHookBytecodeAnalysis*"
+./gradlew :target-minecraft:test --tests "*MinecraftHookPatch*"
+./gradlew :target-minecraft:test --tests "*MinecraftFixture*"
+./gradlew :target-minecraft:test --tests "*MinecraftBootstrapHook*"
+./gradlew :target-minecraft:test --tests "*MinecraftRuntimeClassLoaderTransformationTest"
 ```
 
-## Common tasks
+On Windows, use `gradlew.bat` instead of `./gradlew`.
 
-Sample launch:
+## Common Gradle tasks
+
+Loader sample flows:
 
 ```bash
 ./gradlew runMilestone0
-```
-
-Validation-only sample run:
-
-```bash
 ./gradlew validateMilestone0
-```
-
-Validation with explain summary:
-
-```bash
 ./gradlew explainMilestone0
 ```
 
-Minecraft client dry run:
+Minecraft planning flows:
 
 ```bash
 ./gradlew minecraftDryRun
-```
-
-Minecraft server dry run:
-
-```bash
 ./gradlew minecraftServerDryRun
-```
-
-Minecraft server runtime plan:
-
-```bash
 ./gradlew minecraftServerRuntimePlan
-```
-
-Minecraft runtime boundary report:
-
-```bash
 ./gradlew minecraftServerRuntimeBoundary
-```
-
-Minecraft mod integration plan:
-
-```bash
 ./gradlew minecraftModIntegrationPlan
-```
-
-Minecraft preflight:
-
-```bash
 ./gradlew minecraftPreflight
-```
-
-Minecraft reproducibility check:
-
-```bash
 ./gradlew minecraftReproducibilityCheck
 ```
 
-Milestone 8 Minecraft mod execution plan:
+Minecraft bootstrap fixture flows:
 
 ```bash
 ./gradlew minecraftModExecutionPlan
-```
-
-Milestone 8 bootstrap classloader graph:
-
-```bash
 ./gradlew minecraftBootstrapClassloaderGraph
-```
-
-Milestone 8 fake Minecraft bootstrap smoke:
-
-```bash
 ./gradlew minecraftServerBootstrapFakeSmoke
-```
-
-Milestone 8 approved Minecraft server mod execution smoke:
-
-```bash
 ./gradlew minecraftServerModExecutionFakeSmoke
-```
-
-Milestone 8 offline bootstrap replay smoke:
-
-```bash
 ./gradlew minecraftServerModExecutionOfflineReplay
 ```
 
-Real vanilla server baseline acquire:
+Real vanilla server helper flows:
 
 ```bash
 ./gradlew minecraftRealServerAcquire -PmcRealVersion=latest-release
-```
-
-Real vanilla server smoke:
-
-```bash
 ./gradlew minecraftRealServerSmoke -PmcRealVersion=latest-release
-```
-
-Real vanilla server offline replay:
-
-```bash
 ./gradlew minecraftRealServerOfflineReplay -PmcRealVersion=latest-release
-```
-
-Optional real vanilla server EULA smoke:
-
-```bash
 ./gradlew minecraftRealServerEulaSmoke -PmcRealVersion=latest-release
 ```
 
@@ -574,50 +433,13 @@ Optional Mache reference scan:
 ./gradlew macheReferenceScan -PmacheDir=C:\path\to\mache
 ```
 
-If `-PmacheDir` is not provided, `macheReferenceScan` prints a skip message and does nothing else.
+When `-PmacheDir` is omitted, `macheReferenceScan` prints a skip message.
 
-## Generated outputs
+## Useful Minecraft CLI flags
 
-Typical validation and runtime flows write reports under `runtime/`.
+Use `--game-provider sample` for the fake sample provider and `--game-provider minecraft` for Minecraft target flows.
 
-Common loader outputs:
-
-```text
-runtime/spindle.profile.json
-runtime/spindle.report.json
-runtime/spindle.graph.json
-runtime/spindle.lock.json
-runtime/spindle.security-report.json
-runtime/spindle.lifecycle-report.json
-runtime/spindle.quality-report.json
-runtime/diagnostics/startup-trace.json
-runtime/diagnostics/startup-profile.json
-```
-
-Common Minecraft target foundation outputs:
-
-```text
-runtime/minecraft-launch-plan.json
-runtime/minecraft-artifacts.json
-runtime/minecraft-server-runtime-plan.json
-runtime/minecraft-runtime-boundary.json
-runtime/minecraft-mod-integration-plan.json
-runtime/spindle.preflight.json
-runtime/minecraft-runtime-provenance.json
-runtime/minecraft-reproducibility-check.json
-runtime/minecraft-mod-execution-plan.json
-runtime/minecraft-bootstrap-classloader-graph.json
-runtime/minecraft-server-bootstrap-result.json
-runtime/minecraft-mod-execution-result.json
-```
-
-`runtime/` is generated local state and is ignored by Git.
-
-## CLI notes
-
-Use `--game-provider sample` for the fake sample provider and `--game-provider minecraft` for Minecraft planning and target foundation flows.
-
-Useful Minecraft flags include:
+Core Minecraft flags:
 
 ```text
 --minecraft-version <version>
@@ -634,7 +456,81 @@ Useful Minecraft flags include:
 --offline
 ```
 
+SteelHook report flags:
+
+```text
+--minecraft-interpret-artifact
+--minecraft-hook-contracts
+--minecraft-hook-installation-plan
+--minecraft-install-hooks
+--minecraft-hook-placement-plan
+--minecraft-hook-bytecode-analysis
+--minecraft-hook-patch-plan
+--minecraft-bootstrap-transform-hooks
+```
+
+Target-9 bootstrap transformation requires:
+
+```text
+--minecraft-bootstrap-transform-hooks
+--minecraft-bootstrap-fake-server
+```
+
+Target-9 intentionally rejects combination with:
+
+```text
+--minecraft-install-hooks
+```
+
 Use `--strict-resources` to fail on duplicate non-class resources. Use `--strict-packages` to fail on split packages. Without those flags, duplicate resources and split packages are recorded as diagnostics only.
+
+## Generated outputs
+
+Typical loader outputs:
+
+```text
+runtime/spindle.profile.json
+runtime/spindle.report.json
+runtime/spindle.graph.json
+runtime/spindle.lock.json
+runtime/spindle.security-report.json
+runtime/spindle.lifecycle-report.json
+runtime/spindle.quality-report.json
+runtime/diagnostics/startup-trace.json
+runtime/diagnostics/startup-profile.json
+```
+
+Minecraft target outputs:
+
+```text
+runtime/minecraft-launch-plan.json
+runtime/minecraft-artifacts.json
+runtime/minecraft-server-runtime-plan.json
+runtime/minecraft-runtime-boundary.json
+runtime/minecraft-mod-integration-plan.json
+runtime/spindle.preflight.json
+runtime/minecraft-runtime-provenance.json
+runtime/minecraft-reproducibility-check.json
+runtime/minecraft-mod-execution-plan.json
+runtime/minecraft-bootstrap-classloader-graph.json
+runtime/minecraft-server-bootstrap-result.json
+runtime/minecraft-mod-execution-result.json
+```
+
+SteelHook outputs:
+
+```text
+runtime/minecraft-artifact-interpretation.json
+runtime/minecraft-hook-contracts.json
+runtime/minecraft-hook-installation-plan.json
+runtime/minecraft-hook-installation-result.json
+runtime/minecraft-hook-placement-plan.json
+runtime/minecraft-hook-bytecode-analysis.json
+runtime/minecraft-hook-patch-plan.json
+runtime/minecraft-hook-bootstrap-transformation-result.json
+```
+
+`runtime/` is generated local state and is ignored by Git.
 
 ## Expected sample output
 
@@ -660,9 +556,9 @@ Game starting
 [spindle] startup complete
 ```
 
-## Documentation
+## Documentation map
 
-Architecture docs:
+Important architecture docs:
 
 ```text
 docs/architecture/security-posture.md
@@ -676,7 +572,15 @@ docs/architecture/runtime-5-runtime-contract-closure.md
 docs/architecture/loader-api-0-public-runtime-api-boundary.md
 docs/architecture/loader-api-hardening.md
 docs/architecture/target-layer-api-boundary.md
-docs/architecture/foundation-hardening-loader-runtime.md
+docs/architecture/target-1-minecraft-artifact-interpretation.md
+docs/architecture/target-2-hook-point-contract-model.md
+docs/architecture/target-3-known-symbol-hook-validation.md
+docs/architecture/target-4-minimal-hook-installation-proof.md
+docs/architecture/target-5-hook-placement-analysis-scaffold.md
+docs/architecture/target-6-instruction-aware-bytecode-model.md
+docs/architecture/target-7-injection-patch-planning-dry-run.md
+docs/architecture/target-8-fixture-only-bytecode-transformation.md
+docs/architecture/target-9-bootstrap-class-transformation-path.md
 ```
 
 Mod-facing docs:
@@ -692,27 +596,37 @@ docs/mods/security-and-trust-boundaries.md
 docs/mods/security-scenarios.md
 ```
 
+Module READMEs:
+
+```text
+spindle-loader-api/README.md
+spindle-loader-core/README.md
+spindle-loader-cli/README.md
+target-minecraft/README.md
+```
+
 ## Development guidance
 
-Keep loader changes small and local. The current loader spine is intended to be stable enough to build around.
-
-Prefer future work to land in the correct layer:
+Keep changes in the right layer.
 
 ```text
 Loader problem
   Put it in Spindle Loader.
 
 Minecraft integration problem
-  Put it in Minecraft Target Layer.
+  Put it in the Minecraft Target Layer.
+
+Internal hook machinery problem
+  Put it under target-minecraft, usually under com.spindle.core.minecraft.hook.
 
 Developer-facing gameplay API problem
-  Put it in Spindle API Layer.
+  Put it in a future Modding API layer, not in loader-core.
 
 Optimization problem
-  Put it in Spindle Performance Layer.
+  Put it in a future Performance Layer.
 ```
 
-Do not add unrelated ECS, threading, injection, simulation, compatibility, or optimization features to the loader core. Do not imply Java mod execution is sandboxed. Do not stabilize `com.spindle.api.minecraft.*` until the Minecraft Target Layer and API Layer are intentionally ready for that boundary.
+Do not add unrelated ECS, threading, simulation, compatibility, or optimization features to the loader core. Do not imply Java mod execution is sandboxed. Do not stabilize `com.spindle.api.minecraft.*` until the Minecraft Target Layer and future Modding API boundary are intentionally ready.
 
 ## License
 
