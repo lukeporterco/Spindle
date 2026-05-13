@@ -258,7 +258,7 @@ public final class MinecraftCommandDispatcherSymbolAnalyzer {
         interpretedClass.internalName(),
         field.name(),
         field.descriptor(),
-        field.accessFlags().contains("STATIC"),
+        field.accessFlags().contains("static"),
         field.accessFlags(),
         !brigadierOwned && !spindleOwned,
         brigadierOwned

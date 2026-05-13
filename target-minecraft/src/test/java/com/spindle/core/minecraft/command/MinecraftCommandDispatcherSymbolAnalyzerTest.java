@@ -68,7 +68,7 @@ class MinecraftCommandDispatcherSymbolAnalyzerTest {
                     "net/minecraft/server/CommandsHolder",
                     List.of(
                         new MinecraftInterpretedField(
-                            "dispatcher", DISPATCHER_DESCRIPTOR, 8, List.of("STATIC"))),
+                            "dispatcher", DISPATCHER_DESCRIPTOR, 8, List.of("static"))),
                     List.of())),
             commandRegistrationAnalysis(true));
 
@@ -78,7 +78,27 @@ class MinecraftCommandDispatcherSymbolAnalyzerTest {
     assertEquals(1, analysis.fieldCandidateCount());
     assertEquals(0, analysis.methodCandidateCount());
     assertEquals("dispatcher", analysis.candidates().getFirst().memberName());
+    assertEquals(List.of("static"), analysis.candidates().getFirst().accessFlags());
     assertTrue(analysis.candidates().getFirst().staticMember());
+  }
+
+  @Test
+  void nonStaticDispatcherFieldCandidateReportsStaticMemberFalse() {
+    MinecraftCommandDispatcherSymbolAnalysis analysis =
+        analyzer.analyze(
+            interpretation(
+                interpretedClass(
+                    "net/minecraft/server/CommandsHolder",
+                    List.of(
+                        new MinecraftInterpretedField(
+                            "dispatcher", DISPATCHER_DESCRIPTOR, 1, List.of("public"))),
+                    List.of())),
+            commandRegistrationAnalysis(true));
+
+    assertEquals(
+        MinecraftCommandDispatcherSymbolSelectionStatus.STABLE_TARGET_SELECTED,
+        analysis.selectionStatus());
+    assertFalse(analysis.candidates().getFirst().staticMember());
   }
 
   @Test
@@ -217,7 +237,7 @@ class MinecraftCommandDispatcherSymbolAnalyzerTest {
                     "net/minecraft/server/CommandsHolder",
                     List.of(
                         new MinecraftInterpretedField(
-                            "dispatcher", DISPATCHER_DESCRIPTOR, 8, List.of("STATIC"))),
+                            "dispatcher", DISPATCHER_DESCRIPTOR, 8, List.of("static"))),
                     List.of())),
             commandRegistrationAnalysis(true));
 
