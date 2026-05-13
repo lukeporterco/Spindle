@@ -67,6 +67,8 @@ Target-13 now adds one deterministic analysis-only report for this family. It wr
 
 Target-14 now adds the next deterministic analysis-only report for this family. It writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only Target-1 interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable non-library target is discovered. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, or imply sandboxing. See [Target-14: Command Dispatcher Symbol Analysis](target-14-command-dispatcher-symbol-analysis.md).
 
+Target-15 now adds the next deterministic analysis-only report for this family. It writes `minecraft-command-dispatcher-binding-analysis.json`, consumes the Target-14 symbol selection result, classifies whether the selected candidate would require method descriptor interpretation, static field access, instance field owner capture, or instance method receiver capture, and makes explicit that SteelHook 0.1 method-entry dispatch is still insufficient for live dispatcher value access. It does not register commands, add Brigadier, add public APIs, add new SteelHook primitives, or imply sandboxing. See [Target-15: Command Dispatcher Binding Analysis](target-15-command-dispatcher-binding-analysis.md).
+
 ### 3. Data, Resources, Reload, and Future Data Generation
 
 Purpose:

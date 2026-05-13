@@ -1,0 +1,9 @@
+package com.spindle.core.minecraft.command;
+
+public enum MinecraftCommandDispatcherAccessStrategy {
+  NONE,
+  METHOD_DESCRIPTOR_REFERENCE_ONLY,
+  STATIC_FIELD_ACCESS_REQUIRED,
+  INSTANCE_FIELD_OWNER_CAPTURE_REQUIRED,
+  INSTANCE_METHOD_RECEIVER_CAPTURE_REQUIRED
+}

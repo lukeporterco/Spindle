@@ -75,6 +75,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainCommandRegistrationAnalysis = false;
     boolean minecraftCommandDispatcherSymbolAnalysis = false;
     boolean minecraftExplainCommandDispatcherSymbolAnalysis = false;
+    boolean minecraftCommandDispatcherBindingAnalysis = false;
+    boolean minecraftExplainCommandDispatcherBindingAnalysis = false;
     boolean minecraftHookPlacementPlan = false;
     boolean minecraftExplainHookPlacement = false;
     boolean minecraftHookBytecodeAnalysis = false;
@@ -449,6 +451,29 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-command-dispatcher-binding-analysis".equals(argument)) {
+        minecraftCommandDispatcherBindingAnalysis = true;
+        minecraftCommandDispatcherSymbolAnalysis = true;
+        minecraftCommandRegistrationAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-command-dispatcher-binding-analysis".equals(argument)) {
+        minecraftExplainCommandDispatcherBindingAnalysis = true;
+        minecraftCommandDispatcherBindingAnalysis = true;
+        minecraftCommandDispatcherSymbolAnalysis = true;
+        minecraftCommandRegistrationAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
       if ("--minecraft-hook-placement-plan".equals(argument)) {
         minecraftHookPlacementPlan = true;
         minecraftHookContracts = true;
@@ -727,6 +752,8 @@ public final class LoaderCliParser {
             minecraftExplainCommandRegistrationAnalysis,
             minecraftCommandDispatcherSymbolAnalysis,
             minecraftExplainCommandDispatcherSymbolAnalysis,
+            minecraftCommandDispatcherBindingAnalysis,
+            minecraftExplainCommandDispatcherBindingAnalysis,
             minecraftHookPlacementPlan,
             minecraftExplainHookPlacement,
             minecraftHookBytecodeAnalysis,

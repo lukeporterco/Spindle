@@ -263,6 +263,8 @@ Avoid broad scope jumps. A pass should have clear non-goals.
 
 Future Target Layer, SteelHook, and Modding API planning should inspect `docs/architecture/minecraft-target-concept-roadmap.md` before adding new Minecraft-facing concept families or names.
 
+`com.spindle.api.minecraft.*` currently contains deferred/bootstrap-facing placeholder interfaces used by guarded Minecraft bootstrap fixtures. It is not part of the stabilized Runtime API-0 boundary and is not the public Minecraft Modding API.
+
 Boundary-prep passes are documentation-only unless the task explicitly says otherwise; do not implement the injection hook subsystem, Modding API surfaces, ECS, threading, or simulation work as part of a boundary-prep pass.
 
 ## Before finalizing a change

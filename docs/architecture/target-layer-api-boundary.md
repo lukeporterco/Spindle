@@ -28,6 +28,8 @@ Target-13 now adds the second concept-grounding pass above Target-12. It reads t
 
 Target-14 now adds the next concept-grounding pass above Target-13. It reads the Target-1 artifact interpretation plus the Target-13 command registration analysis, writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable target is discovered. It remains analysis-only and does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, add real runtime transformation support, or imply sandboxing.
 
+Target-15 now adds the next concept-grounding pass above Target-14. It reads the Target-14 command dispatcher symbol analysis, writes `minecraft-command-dispatcher-binding-analysis.json`, and classifies what future binding or access strategy a selected dispatcher candidate would require. It remains analysis-only and makes explicit that SteelHook 0.1 method-entry dispatch does not provide live dispatcher value access. It does not register commands, add Brigadier dependencies, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, add real runtime transformation support, or imply sandboxing.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -78,6 +80,8 @@ Advanced developers may eventually use it as an escape hatch when they need dire
 The ordered concept vocabulary for that future layer now lives in [Minecraft Target Concept Roadmap](minecraft-target-concept-roadmap.md). Target-11 now adds the first analysis-only grounding report for that vocabulary by binding only `minecraft.server.lifecycle.starting` to the known Minecraft `26.1.2` server entrypoint contract. Target-12 then adds an analysis-only symbolic dispatch plan for that same starting phase without implementing runtime callbacks or public listeners. The boundary still does not add runtime callbacks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry/content registration, data generation tooling, networking support, client support, or sandboxing.
 
 Target-13 then adds an analysis-only command registration concept report above that symbolic lifecycle anchor. It names the future boundaries around dispatcher discovery, registration timing, application timing, and reload reapplication while keeping every command-facing boundary unbound except for the upstream lifecycle anchor itself. The boundary still does not bind a Minecraft command dispatcher symbol, add Brigadier integration, register commands, execute commands, read or mutate a command tree, expose public command APIs, expose a public Modding API, add runtime callbacks, add real Minecraft runtime transformation, or imply sandboxing.
+
+Target-15 then narrows the interpretation of Target-14 selection. A unique metadata candidate is still only a selected symbol candidate, not proof of dispatcher access or command registration readiness. The boundary still does not add Brigadier integration, public command APIs, runtime callbacks, new SteelHook primitives, real Minecraft runtime transformation, or sandboxing.
 
 ## Modding API
 

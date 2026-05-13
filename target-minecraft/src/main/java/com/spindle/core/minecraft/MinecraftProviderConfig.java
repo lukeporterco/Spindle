@@ -59,6 +59,8 @@ public record MinecraftProviderConfig(
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
     boolean explainCommandDispatcherSymbolAnalysis,
+    boolean commandDispatcherBindingAnalysis,
+    boolean explainCommandDispatcherBindingAnalysis,
     boolean hookPlacementPlan,
     boolean explainHookPlacement,
     boolean hookBytecodeAnalysis,
@@ -176,6 +178,8 @@ public record MinecraftProviderConfig(
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
         false, // explainCommandDispatcherSymbolAnalysis
+        false, // commandDispatcherBindingAnalysis
+        false, // explainCommandDispatcherBindingAnalysis
         false, // hookPlacementPlan
         false, // explainHookPlacement
         false, // hookBytecodeAnalysis
@@ -321,6 +325,8 @@ public record MinecraftProviderConfig(
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
         explainCommandDispatcherSymbolAnalysis,
+        commandDispatcherBindingAnalysis,
+        explainCommandDispatcherBindingAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -409,6 +415,8 @@ public record MinecraftProviderConfig(
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
         explainCommandDispatcherSymbolAnalysis,
+        commandDispatcherBindingAnalysis,
+        explainCommandDispatcherBindingAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -502,6 +510,8 @@ public record MinecraftProviderConfig(
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
       boolean explainCommandDispatcherSymbolAnalysis,
+      boolean commandDispatcherBindingAnalysis,
+      boolean explainCommandDispatcherBindingAnalysis,
       boolean hookPlacementPlan,
       boolean explainHookPlacement,
       boolean hookBytecodeAnalysis,
@@ -576,6 +586,8 @@ public record MinecraftProviderConfig(
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
         explainCommandDispatcherSymbolAnalysis,
+        commandDispatcherBindingAnalysis,
+        explainCommandDispatcherBindingAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,

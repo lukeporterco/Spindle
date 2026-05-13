@@ -44,6 +44,9 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
+import com.spindle.core.minecraft.command.MinecraftCommandDispatcherBindingAnalysis;
+import com.spindle.core.minecraft.command.MinecraftCommandDispatcherBindingAnalysisWriter;
+import com.spindle.core.minecraft.command.MinecraftCommandDispatcherBindingAnalyzer;
 import com.spindle.core.minecraft.command.MinecraftCommandDispatcherSymbolAnalysis;
 import com.spindle.core.minecraft.command.MinecraftCommandDispatcherSymbolAnalysisWriter;
 import com.spindle.core.minecraft.command.MinecraftCommandDispatcherSymbolAnalyzer;
@@ -122,6 +125,8 @@ public final class MinecraftDryRunFlow {
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
             || config.explainCommandDispatcherSymbolAnalysis()
+            || config.commandDispatcherBindingAnalysis()
+            || config.explainCommandDispatcherBindingAnalysis()
             || config.hookPlacementPlan()
             || config.explainHookPlacement()
             || config.hookBytecodeAnalysis()
@@ -355,6 +360,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
                 || config.explainCommandDispatcherSymbolAnalysis()
+                || config.commandDispatcherBindingAnalysis()
+                || config.explainCommandDispatcherBindingAnalysis()
                 || config.hookPlacementPlan()
                 || config.explainHookPlacement()
                 || config.hookBytecodeAnalysis()
@@ -495,6 +502,8 @@ public final class MinecraftDryRunFlow {
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
           || config.explainCommandDispatcherSymbolAnalysis()
+          || config.commandDispatcherBindingAnalysis()
+          || config.explainCommandDispatcherBindingAnalysis()
           || config.hookPlacementPlan()
           || config.explainHookPlacement()
           || config.hookBytecodeAnalysis()
@@ -573,7 +582,9 @@ public final class MinecraftDryRunFlow {
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
-            || config.explainCommandDispatcherSymbolAnalysis()) {
+            || config.explainCommandDispatcherSymbolAnalysis()
+            || config.commandDispatcherBindingAnalysis()
+            || config.explainCommandDispatcherBindingAnalysis()) {
           MinecraftHookContractReport finalHookContractReportForLifecycle = hookContractReport;
           MinecraftServerLifecycleBindingReport lifecycleBindingReport =
               DiagnosticMeasurements.measure(
@@ -692,7 +703,9 @@ public final class MinecraftDryRunFlow {
                 printMinecraftCommandRegistrationAnalysisExplain(commandRegistrationAnalysis);
               }
               if (config.commandDispatcherSymbolAnalysis()
-                  || config.explainCommandDispatcherSymbolAnalysis()) {
+                  || config.explainCommandDispatcherSymbolAnalysis()
+                  || config.commandDispatcherBindingAnalysis()
+                  || config.explainCommandDispatcherBindingAnalysis()) {
                 MinecraftArtifactInterpretation symbolAnalysisInterpretation = interpretation;
                 MinecraftCommandDispatcherSymbolAnalysis commandDispatcherSymbolAnalysis =
                     DiagnosticMeasurements.measure(
@@ -733,6 +746,50 @@ public final class MinecraftDryRunFlow {
                 if (config.explainCommandDispatcherSymbolAnalysis()) {
                   printMinecraftCommandDispatcherSymbolAnalysisExplain(
                       commandDispatcherSymbolAnalysis);
+                }
+                if (config.commandDispatcherBindingAnalysis()
+                    || config.explainCommandDispatcherBindingAnalysis()) {
+                  MinecraftCommandDispatcherBindingAnalysis commandDispatcherBindingAnalysis =
+                      DiagnosticMeasurements.measure(
+                          diagnosticSink,
+                          "minecraft.command_dispatcher_binding_analysis.analyze",
+                          LaunchPhase.COMPLETE,
+                          () ->
+                              new MinecraftCommandDispatcherBindingAnalyzer()
+                                  .analyze(commandDispatcherSymbolAnalysis),
+                          analysis ->
+                              DiagnosticMeasurements.details(
+                                  "gatePassed",
+                                  Boolean.toString(analysis.gatePassed()),
+                                  "bindingStatus",
+                                  analysis.bindingStatus().name(),
+                                  "accessStrategy",
+                                  analysis.accessStrategy().name(),
+                                  "minimalCommandRegistrationProofRecommended",
+                                  Boolean.toString(
+                                      analysis.minimalCommandRegistrationProofRecommended())));
+                  DiagnosticMeasurements.measure(
+                      diagnosticSink,
+                      "minecraft.command_dispatcher_binding_analysis.write",
+                      LaunchPhase.COMPLETE,
+                      () -> {
+                        Path outputPath =
+                            context
+                                .workingDirectory()
+                                .resolve("minecraft-command-dispatcher-binding-analysis.json");
+                        new MinecraftCommandDispatcherBindingAnalysisWriter()
+                            .write(outputPath, commandDispatcherBindingAnalysis);
+                        return outputPath;
+                      },
+                      outputPath ->
+                          DiagnosticMeasurements.details(
+                              "commandDispatcherBindingAnalysisOutputPath",
+                              DisplayPaths.displayPath(context, outputPath)));
+                  megaMilestoneReports.add("minecraft-command-dispatcher-binding-analysis.json");
+                  if (config.explainCommandDispatcherBindingAnalysis()) {
+                    printMinecraftCommandDispatcherBindingAnalysisExplain(
+                        commandDispatcherBindingAnalysis);
+                  }
                 }
               }
             }
@@ -1466,6 +1523,32 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-command-dispatcher-symbol-analysis: wrote minecraft-command-dispatcher-symbol-analysis.json");
+  }
+
+  private static void printMinecraftCommandDispatcherBindingAnalysisExplain(
+      MinecraftCommandDispatcherBindingAnalysis analysis) {
+    switch (analysis.bindingStatus()) {
+      case UPSTREAM_GATE_BLOCKED ->
+          System.out.println(
+              "[spindle] explain-command-dispatcher-binding-analysis: Command dispatcher binding analysis gate failed: "
+                  + analysis.gateFailureReason());
+      case NO_SYMBOL_TARGET ->
+          System.out.println(
+              "[spindle] explain-command-dispatcher-binding-analysis: Command dispatcher binding analysis: no selectable dispatcher symbol target is known. Command registration is not recommended in this pass.");
+      case AMBIGUOUS_SYMBOL_TARGETS ->
+          System.out.println(
+              "[spindle] explain-command-dispatcher-binding-analysis: Command dispatcher binding analysis: multiple selectable dispatcher symbol targets remain. Command registration is not recommended in this pass.");
+      case SELECTED_SYMBOL_ANALYZED ->
+          System.out.println(
+              "[spindle] explain-command-dispatcher-binding-analysis: Command dispatcher binding analysis: selected symbol requires "
+                  + analysis.accessStrategy().name()
+                  + ". Command registration is still not recommended in this pass because dispatcher access requires a future primitive.");
+      case UNSUPPORTED_SYMBOL_KIND ->
+          System.out.println(
+              "[spindle] explain-command-dispatcher-binding-analysis: Command dispatcher binding analysis: selected symbol kind is unsupported for Target-15 planning.");
+    }
+    System.out.println(
+        "[spindle] explain-command-dispatcher-binding-analysis: wrote minecraft-command-dispatcher-binding-analysis.json");
   }
 
   private static void printMinecraftHookPlacementExplain(MinecraftHookPlacementPlan plan) {

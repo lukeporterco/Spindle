@@ -18,6 +18,8 @@ Target-13 now adds the next analysis-only layer above Target-12. It writes `mine
 
 Target-14 now adds the next analysis-only layer above Target-13. It writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only Target-1 interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable non-library symbol target is discovered. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public command APIs or a public Modding API, add runtime callbacks, and does not imply sandboxing.
 
+Target-15 now adds the next analysis-only layer above Target-14. It writes `minecraft-command-dispatcher-binding-analysis.json`, consumes the Target-14 symbol analysis result, classifies the future binding/access strategy a selected dispatcher candidate would require, and makes explicit that SteelHook 0.1 method-entry dispatch is not enough to access a live dispatcher value. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, and does not imply sandboxing.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation
@@ -70,6 +72,22 @@ Target-3 remains analysis-only and nonfatal:
 - it does not imply sandboxing
 
 See [Target-3: Non-Invasive Known Minecraft Symbol Hook Validation](../docs/architecture/target-3-known-symbol-hook-validation.md).
+
+## Target-4 minimal hook installation proof
+
+Target-4 adds the first internal launch-boundary hook installation proof.
+
+It plans and installs exactly one wrapper around Minecraft `26.1.2` server `net.minecraft.server.Main.main(String[])`, writes `minecraft-hook-installation-plan.json`, passes that plan into the bootstrap child JVM, invokes Minecraft main through an internal bridge, and writes `minecraft-hook-installation-result.json`.
+
+Target-4 remains intentionally narrow:
+
+- no bytecode parsing or callsite inspection
+- no transformation, patching, remapping, or Java agents
+- no public hook API
+- no gameplay hooks
+- no sandbox claim for Java mod execution
+
+See [Target-4: Minimal Launch-Boundary Hook Installation Proof](../docs/architecture/target-4-minimal-hook-installation-proof.md).
 
 ## Target-5 hook placement analysis scaffold
 
@@ -225,19 +243,3 @@ Target-12 remains analysis-only:
 - Java mod execution is not sandboxed
 
 See [Target-12: Server Lifecycle Dispatch Plan](../docs/architecture/target-12-server-lifecycle-dispatch-plan.md).
-
-## Target-4 minimal hook installation proof
-
-Target-4 adds the first internal launch-boundary hook installation proof.
-
-It plans and installs exactly one wrapper around Minecraft `26.1.2` server `net.minecraft.server.Main.main(String[])`, writes `minecraft-hook-installation-plan.json`, passes that plan into the bootstrap child JVM, invokes Minecraft main through an internal bridge, and writes `minecraft-hook-installation-result.json`.
-
-Target-4 remains intentionally narrow:
-
-- no bytecode parsing or callsite inspection
-- no transformation, patching, remapping, or Java agents
-- no public hook API
-- no gameplay hooks
-- no sandbox claim for Java mod execution
-
-See [Target-4: Minimal Launch-Boundary Hook Installation Proof](../docs/architecture/target-4-minimal-hook-installation-proof.md).
