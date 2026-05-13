@@ -1,0 +1,9 @@
+package com.spindle.core.minecraft.resource;
+
+public enum MinecraftResourceReloadRepresentationKind {
+  SERVER_LIFECYCLE_ANCHOR,
+  RESOURCE_RELOAD_SYMBOL_BOUNDARY,
+  RESOURCE_RELOAD_TIMING_BOUNDARY,
+  RUNTIME_RESOURCE_VIEW_BOUNDARY,
+  OFFLINE_DATA_GENERATION_BOUNDARY
+}

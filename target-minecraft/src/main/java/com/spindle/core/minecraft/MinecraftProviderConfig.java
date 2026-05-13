@@ -55,6 +55,8 @@ public record MinecraftProviderConfig(
     boolean explainServerLifecycleBindings,
     boolean serverLifecycleDispatchPlan,
     boolean explainServerLifecycleDispatchPlan,
+    boolean resourceReloadAnalysis,
+    boolean explainResourceReloadAnalysis,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
@@ -174,6 +176,8 @@ public record MinecraftProviderConfig(
         false, // explainServerLifecycleBindings
         false, // serverLifecycleDispatchPlan
         false, // explainServerLifecycleDispatchPlan
+        false, // resourceReloadAnalysis
+        false, // explainResourceReloadAnalysis
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
@@ -321,6 +325,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleBindings,
         serverLifecycleDispatchPlan,
         explainServerLifecycleDispatchPlan,
+        resourceReloadAnalysis,
+        explainResourceReloadAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -411,6 +417,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleBindings,
         serverLifecycleDispatchPlan,
         explainServerLifecycleDispatchPlan,
+        resourceReloadAnalysis,
+        explainResourceReloadAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -506,6 +514,8 @@ public record MinecraftProviderConfig(
       boolean explainServerLifecycleBindings,
       boolean serverLifecycleDispatchPlan,
       boolean explainServerLifecycleDispatchPlan,
+      boolean resourceReloadAnalysis,
+      boolean explainResourceReloadAnalysis,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
@@ -582,6 +592,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleBindings,
         serverLifecycleDispatchPlan,
         explainServerLifecycleDispatchPlan,
+        resourceReloadAnalysis,
+        explainResourceReloadAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,

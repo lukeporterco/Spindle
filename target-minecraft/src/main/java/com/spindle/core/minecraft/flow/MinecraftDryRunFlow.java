@@ -79,6 +79,9 @@ import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleBindingRepor
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlan;
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanWriter;
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanner;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysis;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysisWriter;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalyzer;
 import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
@@ -121,6 +124,8 @@ public final class MinecraftDryRunFlow {
             || config.explainServerLifecycleBindings()
             || config.serverLifecycleDispatchPlan()
             || config.explainServerLifecycleDispatchPlan()
+            || config.resourceReloadAnalysis()
+            || config.explainResourceReloadAnalysis()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
@@ -356,6 +361,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainServerLifecycleBindings()
                 || config.serverLifecycleDispatchPlan()
                 || config.explainServerLifecycleDispatchPlan()
+                || config.resourceReloadAnalysis()
+                || config.explainResourceReloadAnalysis()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
@@ -498,6 +505,8 @@ public final class MinecraftDryRunFlow {
           || config.explainServerLifecycleBindings()
           || config.serverLifecycleDispatchPlan()
           || config.explainServerLifecycleDispatchPlan()
+          || config.resourceReloadAnalysis()
+          || config.explainResourceReloadAnalysis()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
@@ -660,6 +669,47 @@ public final class MinecraftDryRunFlow {
             megaMilestoneReports.add("minecraft-server-lifecycle-dispatch-plan.json");
             if (config.explainServerLifecycleDispatchPlan()) {
               printMinecraftServerLifecycleDispatchPlanExplain(dispatchPlan);
+            }
+            if (config.resourceReloadAnalysis() || config.explainResourceReloadAnalysis()) {
+              MinecraftResourceReloadAnalysis resourceReloadAnalysis =
+                  DiagnosticMeasurements.measure(
+                      diagnosticSink,
+                      "minecraft.resource_reload_analysis.analyze",
+                      LaunchPhase.COMPLETE,
+                      () ->
+                          new MinecraftResourceReloadAnalyzer()
+                              .analyze(new MinecraftTargetConceptCatalog(), dispatchPlan),
+                      analysis ->
+                          DiagnosticMeasurements.details(
+                              "gatePassed",
+                              Boolean.toString(analysis.gatePassed()),
+                              "availableBoundaryCount",
+                              Integer.toString(analysis.availableBoundaryCount()),
+                              "declaredUnboundBoundaryCount",
+                              Integer.toString(analysis.declaredUnboundBoundaryCount()),
+                              "upstreamBlockedBoundaryCount",
+                              Integer.toString(analysis.upstreamBlockedBoundaryCount())));
+              DiagnosticMeasurements.measure(
+                  diagnosticSink,
+                  "minecraft.resource_reload_analysis.write",
+                  LaunchPhase.COMPLETE,
+                  () -> {
+                    Path outputPath =
+                        context
+                            .workingDirectory()
+                            .resolve("minecraft-resource-reload-analysis.json");
+                    new MinecraftResourceReloadAnalysisWriter()
+                        .write(outputPath, resourceReloadAnalysis);
+                    return outputPath;
+                  },
+                  outputPath ->
+                      DiagnosticMeasurements.details(
+                          "resourceReloadAnalysisOutputPath",
+                          DisplayPaths.displayPath(context, outputPath)));
+              megaMilestoneReports.add("minecraft-resource-reload-analysis.json");
+              if (config.explainResourceReloadAnalysis()) {
+                printMinecraftResourceReloadAnalysisExplain(resourceReloadAnalysis);
+              }
             }
             if (config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()) {
@@ -1496,6 +1546,30 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-command-registration-analysis: wrote minecraft-command-registration-analysis.json");
+  }
+
+  private static void printMinecraftResourceReloadAnalysisExplain(
+      MinecraftResourceReloadAnalysis analysis) {
+    if (analysis.gatePassed()) {
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: Target-16 resource/reload analysis is analysis-only.");
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: The lifecycle anchor is available only as a coarse server lifecycle anchor when Target-12 starting dispatch exists.");
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: Reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation remain declared unbound.");
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: No reload handling, resource access, datapack access, data generation, registry mutation, public API, runtime dispatch, hook installation, or transformation occurred.");
+    } else {
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: Target-16 resource/reload analysis gate failed: "
+              + analysis.gateFailureReason());
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: Reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation remain declared unbound.");
+      System.out.println(
+          "[spindle] explain-resource-reload-analysis: No reload handling, resource access, datapack access, data generation, registry mutation, public API, runtime dispatch, hook installation, or transformation occurred.");
+    }
+    System.out.println(
+        "[spindle] explain-resource-reload-analysis: wrote minecraft-resource-reload-analysis.json");
   }
 
   private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(

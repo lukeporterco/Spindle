@@ -168,6 +168,8 @@ Target-14 now adds the next concept-grounding report above Target-13. It is stil
 
 Target-15 now adds the next concept-grounding report above Target-14. It is still analysis-only. It writes `minecraft-command-dispatcher-binding-analysis.json`, consumes the Target-14 symbol result, classifies the future binding/access strategy that a selected candidate would require, and makes explicit that SteelHook 0.1 method-entry dispatch is not enough to access a live dispatcher value. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, expose public Minecraft command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, and does not imply Java mod execution is sandboxed.
 
+Target-16 now adds the first concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-analysis.json`, uses the symbolic Target-12 starting lifecycle dispatch only as a coarse lifecycle anchor, and leaves reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation declared unbound. It does not perform reload handling, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed.
+
 SteelHook currently has a narrow proof chain:
 
 ```text
@@ -564,6 +566,8 @@ runtime/minecraft-server-lifecycle-dispatch-plan.json
 runtime/minecraft-command-registration-analysis.json
 runtime/minecraft-command-dispatcher-symbol-analysis.json
 runtime/minecraft-command-dispatcher-binding-analysis.json
+runtime/minecraft-resource-reload-analysis.json
+runtime/minecraft-steelhook-0.1-report.json
 ```
 
 `runtime/` is generated local state and is ignored by Git.
@@ -618,10 +622,13 @@ docs/architecture/target-6-instruction-aware-bytecode-model.md
 docs/architecture/target-7-injection-patch-planning-dry-run.md
 docs/architecture/target-8-fixture-only-bytecode-transformation.md
 docs/architecture/target-9-bootstrap-class-transformation-path.md
+docs/architecture/target-10-steelhook-hardening-caboose.md
 docs/architecture/target-11-server-lifecycle-binding-analysis.md
 docs/architecture/target-12-server-lifecycle-dispatch-plan.md
 docs/architecture/target-13-command-registration-concept-analysis.md
 docs/architecture/target-14-command-dispatcher-symbol-analysis.md
+docs/architecture/target-15-command-dispatcher-binding-analysis.md
+docs/architecture/target-16-resource-reload-boundary-analysis.md
 ```
 
 Mod-facing docs:

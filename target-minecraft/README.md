@@ -20,6 +20,8 @@ Target-14 now adds the next analysis-only layer above Target-13. It writes `mine
 
 Target-15 now adds the next analysis-only layer above Target-14. It writes `minecraft-command-dispatcher-binding-analysis.json`, consumes the Target-14 symbol analysis result, classifies the future binding/access strategy a selected dispatcher candidate would require, and makes explicit that SteelHook 0.1 method-entry dispatch is not enough to access a live dispatcher value. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, and does not imply sandboxing.
 
+Target-16 now adds the first analysis-only layer for data, resources, reload, and future data generation. It writes `minecraft-resource-reload-analysis.json`, uses the Target-12 starting lifecycle dispatch only as a coarse lifecycle anchor, keeps reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation declared unbound, and intentionally separates future offline data generation from runtime reload. It does not perform reload handling, access resources or datapacks, generate data, mutate registries, expose public APIs, add new SteelHook primitives, or imply sandboxing.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation

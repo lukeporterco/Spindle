@@ -86,6 +86,8 @@ Future internal hooks must respect deterministic reload boundaries and should no
 Initial caution:
 This pass does not implement reload handling, resource APIs, or data generation tooling.
 
+Target-16 now adds the first deterministic analysis-only report for this family. It writes `minecraft-resource-reload-analysis.json`, consumes only the Target-12 starting lifecycle dispatch as a coarse anchor, and leaves reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation declared unbound. The lifecycle anchor is not a reload hook. Future data generation remains intentionally offline/future-facing and separate from runtime reload. No resource reload, resource access, datapack access, data generation, registry mutation, public API, new SteelHook primitive, real runtime artifact transformation, or sandboxing is added. See [Target-16: Resource and Reload Boundary Analysis](target-16-resource-reload-boundary-analysis.md).
+
 ### 4. Registry Bootstrap and Content Registration
 
 Purpose:
