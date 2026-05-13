@@ -66,26 +66,64 @@ Status labels:
 ```
 
 ```mermaid
-flowchart TD
+flowchart TB
   Spindle["Spindle Ecosystem"]
 
-  Spindle --> Loader["Mod Loader"]
-  Spindle --> ModdingAPI["Modding API"]
-  Spindle --> OtherAPIs["Other First/Third-Party APIs"]
+  subgraph SurfaceBox[" "]
+    direction TB
+    SurfaceTitle["Ecosystem surface"]
 
-  Loader --> ThirdPartyMods["Third-Party Mods"]
-  Loader --> FirstPartyMods["First-Party Mods"]
+    subgraph SurfaceRow[" "]
+      direction LR
+      ModdingAPI["Modding API"]
+      Loader["Mod Loader"]
+      OtherAPIs["Other First/Third-Party APIs"]
+    end
+  end
 
-  FirstPartyMods --> Performance["Performance Layer"]
-  ThirdPartyMods --> Performance
-  Performance --> FirstPartyMods
-  Performance --> ThirdPartyMods
+  subgraph LowerLayer[" "]
+    direction LR
 
-  ModdingAPI --> TargetAPI["Target Layer API"]
-  TargetAPI --> SteelHook["SteelHook"]
+    subgraph InternalBox[" "]
+      direction TB
+      InternalTitle["Internal target machinery"]
+      TargetAPI["Target Layer API"]
+      SteelHook["SteelHook"]
+    end
+
+    subgraph ModsBox[" "]
+      direction TB
+      ModsTitle["Mods and performance"]
+
+      subgraph ModsRow[" "]
+        direction LR
+        ThirdPartyMods["Third-Party Mods"]
+        FirstPartyMods["First-Party Mods"]
+      end
+
+      Performance["Performance Layer"]
+    end
+  end
+
+  Spindle --> SurfaceTitle
+  SurfaceTitle --> ModdingAPI
+  SurfaceTitle --> Loader
+  SurfaceTitle --> OtherAPIs
+
+  ModdingAPI --> TargetAPI
+  TargetAPI --> SteelHook
+
+  Loader --> ThirdPartyMods
+  Loader --> FirstPartyMods
 
   OtherAPIs --> ThirdPartyMods
   OtherAPIs --> FirstPartyMods
+
+  ThirdPartyMods <--> Performance
+  FirstPartyMods <--> Performance
+
+  classDef title fill:transparent,stroke:transparent,color:#dddddd,font-weight:bold;
+  class SurfaceTitle,InternalTitle,ModsTitle title;
 ```
 
 ## What Spindle is today
