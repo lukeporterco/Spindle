@@ -65,7 +65,7 @@ Status labels:
 [TODO] Not implemented yet.
 ```
 
-```
+```mermaid
 flowchart TD
   Spindle["Spindle Ecosystem"]
 
