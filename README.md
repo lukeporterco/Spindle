@@ -19,6 +19,8 @@ Current baseline Minecraft target: 26.1.2
 
 The loader spine is complete for the current scope. The Minecraft Target Layer is partially implemented and now includes a narrow internal SteelHook proof chain through fake-server bootstrap class transformation.
 
+### Text Graph
+
 ```text
 Spindle Ecosystem
 ├── Ecosystem Surface
@@ -79,6 +81,8 @@ Status labels:
 [DESIGNED] Architecture boundary exists, implementation is still constrained.
 [TODO] Not implemented yet.
 ```
+
+### Mermaid Graph
 
 ```mermaid
 flowchart TB
