@@ -65,6 +65,27 @@ Status labels:
 [TODO] Not implemented yet.
 ```
 
+```
+flowchart TD
+  Spindle["Spindle Ecosystem"]
+
+  Spindle --> Loader["Mod Loader"]
+  Spindle --> ModdingAPI["Modding API"]
+  Spindle --> OtherAPIs["Other First/Third-Party APIs"]
+
+  Loader --> ThirdPartyMods["Third-Party Mods"]
+  Loader --> FirstPartyMods["First-Party Mods"]
+
+  FirstPartyMods <--> Performance["Performance Layer"]
+  ThirdPartyMods <--> Performance
+
+  ModdingAPI --> TargetAPI["Target Layer API"]
+  TargetAPI --> SteelHook["SteelHook"]
+
+  OtherAPIs --> ThirdPartyMods
+  OtherAPIs --> FirstPartyMods
+```
+
 ## What Spindle is today
 
 Spindle currently provides a deterministic loader runtime and a growing Minecraft target foundation.
