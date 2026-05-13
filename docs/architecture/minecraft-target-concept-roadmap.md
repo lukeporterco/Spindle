@@ -90,6 +90,8 @@ Target-16 now adds the first deterministic analysis-only report for this family.
 
 Target-17 now adds the second deterministic analysis-only report for this family. It writes `minecraft-resource-reload-symbol-analysis.json`, consumes Target-1 interpreted metadata plus Target-16 resource/reload boundary analysis, scans class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and reports candidate metadata symbols only. It does not select a stable reload target, bind reload behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply sandboxing. It may feed a future Target-18 binding/access strategy analysis. See [Target-17: Resource and Reload Symbol Discovery Analysis](target-17-resource-reload-symbol-analysis.md).
 
+Target-18 now adds the third deterministic analysis-only report for this family. It writes `minecraft-resource-reload-binding-analysis.json`, consumes Target-17 candidate metadata, classifies binding/access requirements for many candidates, and does not select a stable reload target. It does not make reload implementation ready, bind reload timing or apply behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply sandboxing. Target-19 may separate runtime resource visibility from future offline data generation design. See [Target-18: Resource and Reload Binding Requirement Analysis](target-18-resource-reload-binding-analysis.md).
+
 ### 4. Registry Bootstrap and Content Registration
 
 Purpose:

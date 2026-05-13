@@ -59,6 +59,8 @@ public record MinecraftProviderConfig(
     boolean explainResourceReloadAnalysis,
     boolean resourceReloadSymbolAnalysis,
     boolean explainResourceReloadSymbolAnalysis,
+    boolean resourceReloadBindingAnalysis,
+    boolean explainResourceReloadBindingAnalysis,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
@@ -182,6 +184,8 @@ public record MinecraftProviderConfig(
         false, // explainResourceReloadAnalysis
         false, // resourceReloadSymbolAnalysis
         false, // explainResourceReloadSymbolAnalysis
+        false, // resourceReloadBindingAnalysis
+        false, // explainResourceReloadBindingAnalysis
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
@@ -333,6 +337,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadAnalysis,
         resourceReloadSymbolAnalysis,
         explainResourceReloadSymbolAnalysis,
+        resourceReloadBindingAnalysis,
+        explainResourceReloadBindingAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -427,6 +433,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadAnalysis,
         resourceReloadSymbolAnalysis,
         explainResourceReloadSymbolAnalysis,
+        resourceReloadBindingAnalysis,
+        explainResourceReloadBindingAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -526,6 +534,8 @@ public record MinecraftProviderConfig(
       boolean explainResourceReloadAnalysis,
       boolean resourceReloadSymbolAnalysis,
       boolean explainResourceReloadSymbolAnalysis,
+      boolean resourceReloadBindingAnalysis,
+      boolean explainResourceReloadBindingAnalysis,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
@@ -606,6 +616,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadAnalysis,
         resourceReloadSymbolAnalysis,
         explainResourceReloadSymbolAnalysis,
+        resourceReloadBindingAnalysis,
+        explainResourceReloadBindingAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,

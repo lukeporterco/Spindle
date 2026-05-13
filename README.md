@@ -172,6 +172,8 @@ Target-16 now adds the first concept-grounding report for data, resources, reloa
 
 Target-17 now adds the next concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-symbol-analysis.json`, consumes Target-1 interpreted metadata plus Target-16 resource/reload boundary analysis, scans class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and discovers candidate metadata symbols only. It does not select a stable reload target, bind reload behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed. Target-18 may classify binding/access strategy for discovered resource/reload symbols.
 
+Target-18 now adds the next concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-binding-analysis.json`, consumes Target-17 candidate metadata, classifies binding/access requirements only for many candidates, and does not select a stable reload target. It does not make reload implementation ready, bind reload timing or apply behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed. Target-19 may separate runtime resource visibility from future offline data generation design.
+
 SteelHook currently has a narrow proof chain:
 
 ```text
@@ -570,6 +572,7 @@ runtime/minecraft-command-dispatcher-symbol-analysis.json
 runtime/minecraft-command-dispatcher-binding-analysis.json
 runtime/minecraft-resource-reload-analysis.json
 runtime/minecraft-resource-reload-symbol-analysis.json
+runtime/minecraft-resource-reload-binding-analysis.json
 runtime/minecraft-steelhook-0.1-report.json
 ```
 
@@ -632,6 +635,8 @@ docs/architecture/target-13-command-registration-concept-analysis.md
 docs/architecture/target-14-command-dispatcher-symbol-analysis.md
 docs/architecture/target-15-command-dispatcher-binding-analysis.md
 docs/architecture/target-16-resource-reload-boundary-analysis.md
+docs/architecture/target-17-resource-reload-symbol-analysis.md
+docs/architecture/target-18-resource-reload-binding-analysis.md
 ```
 
 Mod-facing docs:

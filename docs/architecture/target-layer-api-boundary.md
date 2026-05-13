@@ -34,6 +34,8 @@ Target-16 now adds the first concept-grounding pass for data, resources, reload,
 
 Target-17 now adds the next concept-grounding pass for data, resources, reload, and future data generation. It reads Target-1 artifact interpretation plus Target-16 resource/reload analysis, writes `minecraft-resource-reload-symbol-analysis.json`, scans only interpreted class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and reports candidate metadata symbols only. It remains analysis-only and does not select a stable reload target, bind reload timing or apply behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add new SteelHook primitives, add runtime transformation support, or imply sandboxing.
 
+Target-18 now adds the next concept-grounding pass for data, resources, reload, and future data generation. It reads Target-17 resource/reload symbol analysis, writes `minecraft-resource-reload-binding-analysis.json`, and classifies binding/access requirements only for discovered candidates. It remains analysis-only, does not select a stable reload target, does not make reload implementation ready, does not bind reload timing or apply behavior, does not access resources or datapacks, does not generate data, does not mutate registries, does not expose public APIs, does not add new SteelHook primitives, and does not imply sandboxing. Target-19 may separate runtime resource visibility from future offline data generation design.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
