@@ -76,8 +76,10 @@ flowchart TD
   Loader --> ThirdPartyMods["Third-Party Mods"]
   Loader --> FirstPartyMods["First-Party Mods"]
 
-  FirstPartyMods <--> Performance["Performance Layer"]
-  ThirdPartyMods <--> Performance
+  FirstPartyMods --> Performance["Performance Layer"]
+  ThirdPartyMods --> Performance
+  Performance --> FirstPartyMods
+  Performance --> ThirdPartyMods
 
   ModdingAPI --> TargetAPI["Target Layer API"]
   TargetAPI --> SteelHook["SteelHook"]
