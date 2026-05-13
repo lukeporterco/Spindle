@@ -88,6 +88,10 @@ import com.spindle.core.minecraft.resource.MinecraftResourceReloadBindingAnalyze
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadSymbolAnalysis;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadSymbolAnalysisWriter;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadSymbolAnalyzer;
+import com.spindle.core.minecraft.resource.MinecraftResourceVisibilityGenerationAnalysis;
+import com.spindle.core.minecraft.resource.MinecraftResourceVisibilityGenerationAnalysisWriter;
+import com.spindle.core.minecraft.resource.MinecraftResourceVisibilityGenerationAnalyzer;
+import com.spindle.core.minecraft.resource.MinecraftResourceVisibilityGenerationStatus;
 import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
@@ -136,6 +140,8 @@ public final class MinecraftDryRunFlow {
             || config.explainResourceReloadSymbolAnalysis()
             || config.resourceReloadBindingAnalysis()
             || config.explainResourceReloadBindingAnalysis()
+            || config.resourceVisibilityGenerationAnalysis()
+            || config.explainResourceVisibilityGenerationAnalysis()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
@@ -377,6 +383,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainResourceReloadSymbolAnalysis()
                 || config.resourceReloadBindingAnalysis()
                 || config.explainResourceReloadBindingAnalysis()
+                || config.resourceVisibilityGenerationAnalysis()
+                || config.explainResourceVisibilityGenerationAnalysis()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
@@ -525,6 +533,8 @@ public final class MinecraftDryRunFlow {
           || config.explainResourceReloadSymbolAnalysis()
           || config.resourceReloadBindingAnalysis()
           || config.explainResourceReloadBindingAnalysis()
+          || config.resourceVisibilityGenerationAnalysis()
+          || config.explainResourceVisibilityGenerationAnalysis()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
@@ -731,7 +741,9 @@ public final class MinecraftDryRunFlow {
               if (config.resourceReloadSymbolAnalysis()
                   || config.explainResourceReloadSymbolAnalysis()
                   || config.resourceReloadBindingAnalysis()
-                  || config.explainResourceReloadBindingAnalysis()) {
+                  || config.explainResourceReloadBindingAnalysis()
+                  || config.resourceVisibilityGenerationAnalysis()
+                  || config.explainResourceVisibilityGenerationAnalysis()) {
                 MinecraftArtifactInterpretation resourceReloadSymbolInterpretation = interpretation;
                 MinecraftResourceReloadSymbolAnalysis resourceReloadSymbolAnalysis =
                     DiagnosticMeasurements.measure(
@@ -774,7 +786,9 @@ public final class MinecraftDryRunFlow {
                   printMinecraftResourceReloadSymbolAnalysisExplain(resourceReloadSymbolAnalysis);
                 }
                 if (config.resourceReloadBindingAnalysis()
-                    || config.explainResourceReloadBindingAnalysis()) {
+                    || config.explainResourceReloadBindingAnalysis()
+                    || config.resourceVisibilityGenerationAnalysis()
+                    || config.explainResourceVisibilityGenerationAnalysis()) {
                   MinecraftResourceReloadBindingAnalysis resourceReloadBindingAnalysis =
                       DiagnosticMeasurements.measure(
                           diagnosticSink,
@@ -814,6 +828,54 @@ public final class MinecraftDryRunFlow {
                   if (config.explainResourceReloadBindingAnalysis()) {
                     printMinecraftResourceReloadBindingAnalysisExplain(
                         resourceReloadBindingAnalysis);
+                  }
+                  if (config.resourceVisibilityGenerationAnalysis()
+                      || config.explainResourceVisibilityGenerationAnalysis()) {
+                    MinecraftResourceVisibilityGenerationAnalysis
+                        resourceVisibilityGenerationAnalysis =
+                            DiagnosticMeasurements.measure(
+                                diagnosticSink,
+                                "minecraft.resource_visibility_generation_analysis.analyze",
+                                LaunchPhase.COMPLETE,
+                                () ->
+                                    new MinecraftResourceVisibilityGenerationAnalyzer()
+                                        .analyze(
+                                            resourceReloadAnalysis, resourceReloadBindingAnalysis),
+                                analysis ->
+                                    DiagnosticMeasurements.details(
+                                        "gatePassed",
+                                        Boolean.toString(analysis.gatePassed()),
+                                        "separationStatus",
+                                        analysis.separationStatus().name(),
+                                        "runtimeFacingSurfaceCount",
+                                        Integer.toString(analysis.runtimeFacingSurfaceCount()),
+                                        "offlineGenerationSurfaceCount",
+                                        Integer.toString(
+                                            analysis.offlineGenerationSurfaceCount())));
+                    DiagnosticMeasurements.measure(
+                        diagnosticSink,
+                        "minecraft.resource_visibility_generation_analysis.write",
+                        LaunchPhase.COMPLETE,
+                        () -> {
+                          Path outputPath =
+                              context
+                                  .workingDirectory()
+                                  .resolve(
+                                      "minecraft-resource-visibility-generation-analysis.json");
+                          new MinecraftResourceVisibilityGenerationAnalysisWriter()
+                              .write(outputPath, resourceVisibilityGenerationAnalysis);
+                          return outputPath;
+                        },
+                        outputPath ->
+                            DiagnosticMeasurements.details(
+                                "resourceVisibilityGenerationAnalysisOutputPath",
+                                DisplayPaths.displayPath(context, outputPath)));
+                    megaMilestoneReports.add(
+                        "minecraft-resource-visibility-generation-analysis.json");
+                    if (config.explainResourceVisibilityGenerationAnalysis()) {
+                      printMinecraftResourceVisibilityGenerationAnalysisExplain(
+                          resourceVisibilityGenerationAnalysis);
+                    }
                   }
                 }
               }
@@ -1737,6 +1799,29 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-resource-reload-binding-analysis: wrote minecraft-resource-reload-binding-analysis.json");
+  }
+
+  private static void printMinecraftResourceVisibilityGenerationAnalysisExplain(
+      MinecraftResourceVisibilityGenerationAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-resource-visibility-generation-analysis: Target-19 resource visibility/data generation separation is analysis-only.");
+    System.out.println(
+        "[spindle] explain-resource-visibility-generation-analysis: It consumes Target-16 resource/reload boundaries and Target-18 binding analysis.");
+    System.out.println(
+        "[spindle] explain-resource-visibility-generation-analysis: It separates runtime reload timing, runtime resource visibility, and future offline data generation.");
+    System.out.println(
+        "[spindle] explain-resource-visibility-generation-analysis: It does not implement reload handling, access resources, access datapacks, generate data, write generated files, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, or transform classes.");
+    if (analysis.separationStatus()
+        == MinecraftResourceVisibilityGenerationStatus.UPSTREAM_GATE_BLOCKED) {
+      System.out.println(
+          "[spindle] explain-resource-visibility-generation-analysis: Resource visibility/data generation separation gate failed: "
+              + analysis.gateFailureReason());
+    } else {
+      System.out.println(
+          "[spindle] explain-resource-visibility-generation-analysis: Runtime resource visibility is separated from future offline data generation; neither lane is implementation-ready.");
+    }
+    System.out.println(
+        "[spindle] explain-resource-visibility-generation-analysis: wrote minecraft-resource-visibility-generation-analysis.json");
   }
 
   private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(

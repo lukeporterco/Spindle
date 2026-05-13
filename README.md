@@ -174,6 +174,8 @@ Target-17 now adds the next concept-grounding report for data, resources, reload
 
 Target-18 now adds the next concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-binding-analysis.json`, consumes Target-17 candidate metadata, classifies binding/access requirements only for many candidates, and does not select a stable reload target. It does not make reload implementation ready, bind reload timing or apply behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed. Target-19 may separate runtime resource visibility from future offline data generation design.
 
+Target-19 now adds the next concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-visibility-generation-analysis.json`, consumes Target-16 resource/reload boundaries plus Target-18 binding analysis, and separates runtime reload timing, runtime resource visibility, and future offline data generation lanes only. Runtime resource visibility is not an API yet, offline data generation is not implemented yet, and future offline data generation remains intentionally separate from runtime reload. It does not discover new symbols, select a stable reload target, bind reload timing or apply behavior, access resources or datapacks, generate data, write generated files, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed. Target-20 may act as a caboose/decision pass for the resource/reload arc and decide whether to move to registries, pause for SteelHook primitive design, or continue resource/reload analysis.
+
 SteelHook currently has a narrow proof chain:
 
 ```text
@@ -573,6 +575,7 @@ runtime/minecraft-command-dispatcher-binding-analysis.json
 runtime/minecraft-resource-reload-analysis.json
 runtime/minecraft-resource-reload-symbol-analysis.json
 runtime/minecraft-resource-reload-binding-analysis.json
+runtime/minecraft-resource-visibility-generation-analysis.json
 runtime/minecraft-steelhook-0.1-report.json
 ```
 
@@ -637,6 +640,7 @@ docs/architecture/target-15-command-dispatcher-binding-analysis.md
 docs/architecture/target-16-resource-reload-boundary-analysis.md
 docs/architecture/target-17-resource-reload-symbol-analysis.md
 docs/architecture/target-18-resource-reload-binding-analysis.md
+docs/architecture/target-19-resource-visibility-generation-separation.md
 ```
 
 Mod-facing docs:
