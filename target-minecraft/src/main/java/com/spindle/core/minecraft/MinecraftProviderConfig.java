@@ -55,6 +55,8 @@ public record MinecraftProviderConfig(
     boolean explainServerLifecycleBindings,
     boolean serverLifecycleDispatchPlan,
     boolean explainServerLifecycleDispatchPlan,
+    boolean commandRegistrationAnalysis,
+    boolean explainCommandRegistrationAnalysis,
     boolean hookPlacementPlan,
     boolean explainHookPlacement,
     boolean hookBytecodeAnalysis,
@@ -168,6 +170,8 @@ public record MinecraftProviderConfig(
         false, // explainServerLifecycleBindings
         false, // serverLifecycleDispatchPlan
         false, // explainServerLifecycleDispatchPlan
+        false, // commandRegistrationAnalysis
+        false, // explainCommandRegistrationAnalysis
         false, // hookPlacementPlan
         false, // explainHookPlacement
         false, // hookBytecodeAnalysis
@@ -309,6 +313,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleBindings,
         serverLifecycleDispatchPlan,
         explainServerLifecycleDispatchPlan,
+        commandRegistrationAnalysis,
+        explainCommandRegistrationAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -393,6 +399,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleBindings,
         serverLifecycleDispatchPlan,
         explainServerLifecycleDispatchPlan,
+        commandRegistrationAnalysis,
+        explainCommandRegistrationAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -480,6 +488,10 @@ public record MinecraftProviderConfig(
       boolean explainHookContracts,
       boolean serverLifecycleBindings,
       boolean explainServerLifecycleBindings,
+      boolean serverLifecycleDispatchPlan,
+      boolean explainServerLifecycleDispatchPlan,
+      boolean commandRegistrationAnalysis,
+      boolean explainCommandRegistrationAnalysis,
       boolean hookPlacementPlan,
       boolean explainHookPlacement,
       boolean hookBytecodeAnalysis,
@@ -548,8 +560,10 @@ public record MinecraftProviderConfig(
         explainHookContracts,
         serverLifecycleBindings,
         explainServerLifecycleBindings,
-        false,
-        false,
+        serverLifecycleDispatchPlan,
+        explainServerLifecycleDispatchPlan,
+        commandRegistrationAnalysis,
+        explainCommandRegistrationAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,

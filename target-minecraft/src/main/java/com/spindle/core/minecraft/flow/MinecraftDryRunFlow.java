@@ -44,6 +44,9 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
+import com.spindle.core.minecraft.command.MinecraftCommandRegistrationAnalysis;
+import com.spindle.core.minecraft.command.MinecraftCommandRegistrationAnalysisWriter;
+import com.spindle.core.minecraft.command.MinecraftCommandRegistrationAnalyzer;
 import com.spindle.core.minecraft.concept.MinecraftTargetConceptCatalog;
 import com.spindle.core.minecraft.hook.MinecraftHookContractCatalogProvider;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReport;
@@ -112,6 +115,8 @@ public final class MinecraftDryRunFlow {
             || config.explainServerLifecycleBindings()
             || config.serverLifecycleDispatchPlan()
             || config.explainServerLifecycleDispatchPlan()
+            || config.commandRegistrationAnalysis()
+            || config.explainCommandRegistrationAnalysis()
             || config.hookPlacementPlan()
             || config.explainHookPlacement()
             || config.hookBytecodeAnalysis()
@@ -341,6 +346,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainServerLifecycleBindings()
                 || config.serverLifecycleDispatchPlan()
                 || config.explainServerLifecycleDispatchPlan()
+                || config.commandRegistrationAnalysis()
+                || config.explainCommandRegistrationAnalysis()
                 || config.hookPlacementPlan()
                 || config.explainHookPlacement()
                 || config.hookBytecodeAnalysis()
@@ -477,6 +484,8 @@ public final class MinecraftDryRunFlow {
           || config.explainServerLifecycleBindings()
           || config.serverLifecycleDispatchPlan()
           || config.explainServerLifecycleDispatchPlan()
+          || config.commandRegistrationAnalysis()
+          || config.explainCommandRegistrationAnalysis()
           || config.hookPlacementPlan()
           || config.explainHookPlacement()
           || config.hookBytecodeAnalysis()
@@ -551,7 +560,9 @@ public final class MinecraftDryRunFlow {
         if (config.serverLifecycleBindings()
             || config.explainServerLifecycleBindings()
             || config.serverLifecycleDispatchPlan()
-            || config.explainServerLifecycleDispatchPlan()) {
+            || config.explainServerLifecycleDispatchPlan()
+            || config.commandRegistrationAnalysis()
+            || config.explainCommandRegistrationAnalysis()) {
           MinecraftHookContractReport finalHookContractReportForLifecycle = hookContractReport;
           MinecraftServerLifecycleBindingReport lifecycleBindingReport =
               DiagnosticMeasurements.measure(
@@ -627,6 +638,48 @@ public final class MinecraftDryRunFlow {
             megaMilestoneReports.add("minecraft-server-lifecycle-dispatch-plan.json");
             if (config.explainServerLifecycleDispatchPlan()) {
               printMinecraftServerLifecycleDispatchPlanExplain(dispatchPlan);
+            }
+            if (config.commandRegistrationAnalysis()
+                || config.explainCommandRegistrationAnalysis()) {
+              MinecraftCommandRegistrationAnalysis commandRegistrationAnalysis =
+                  DiagnosticMeasurements.measure(
+                      diagnosticSink,
+                      "minecraft.command_registration_analysis.analyze",
+                      LaunchPhase.COMPLETE,
+                      () ->
+                          new MinecraftCommandRegistrationAnalyzer()
+                              .analyze(new MinecraftTargetConceptCatalog(), dispatchPlan),
+                      analysis ->
+                          DiagnosticMeasurements.details(
+                              "gatePassed",
+                              Boolean.toString(analysis.gatePassed()),
+                              "anchoredBoundaryCount",
+                              Integer.toString(analysis.anchoredBoundaryCount()),
+                              "unboundBoundaryCount",
+                              Integer.toString(analysis.unboundBoundaryCount()),
+                              "blockedBoundaryCount",
+                              Integer.toString(analysis.blockedBoundaryCount())));
+              DiagnosticMeasurements.measure(
+                  diagnosticSink,
+                  "minecraft.command_registration_analysis.write",
+                  LaunchPhase.COMPLETE,
+                  () -> {
+                    Path outputPath =
+                        context
+                            .workingDirectory()
+                            .resolve("minecraft-command-registration-analysis.json");
+                    new MinecraftCommandRegistrationAnalysisWriter()
+                        .write(outputPath, commandRegistrationAnalysis);
+                    return outputPath;
+                  },
+                  outputPath ->
+                      DiagnosticMeasurements.details(
+                          "commandRegistrationAnalysisOutputPath",
+                          DisplayPaths.displayPath(context, outputPath)));
+              megaMilestoneReports.add("minecraft-command-registration-analysis.json");
+              if (config.explainCommandRegistrationAnalysis()) {
+                printMinecraftCommandRegistrationAnalysisExplain(commandRegistrationAnalysis);
+              }
             }
           }
         }
@@ -1313,6 +1366,24 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-server-lifecycle-dispatch-plan: wrote minecraft-server-lifecycle-dispatch-plan.json");
+  }
+
+  private static void printMinecraftCommandRegistrationAnalysisExplain(
+      MinecraftCommandRegistrationAnalysis analysis) {
+    if (analysis.gatePassed()) {
+      System.out.println(
+          "[spindle] explain-command-registration-analysis: Command registration analysis: lifecycle anchor available, "
+              + analysis.unboundBoundaryCount()
+              + " command boundaries declared unbound.");
+      System.out.println(
+          "[spindle] explain-command-registration-analysis: Command registration is not implemented in this pass.");
+    } else {
+      System.out.println(
+          "[spindle] explain-command-registration-analysis: Command registration analysis gate failed: "
+              + analysis.gateFailureReason());
+    }
+    System.out.println(
+        "[spindle] explain-command-registration-analysis: wrote minecraft-command-registration-analysis.json");
   }
 
   private static void printMinecraftHookPlacementExplain(MinecraftHookPlacementPlan plan) {

@@ -92,6 +92,7 @@ The Minecraft target side can:
 - name the first ten Minecraft Target Layer concept families through a documentation/model-only roadmap
 - write an analysis-only server lifecycle binding report that binds only `minecraft.server.lifecycle.starting` to the known Minecraft `26.1.2` dedicated server main entrypoint contract
 - write an analysis-only server lifecycle dispatch plan that plans only one symbolic internal dispatch for `minecraft.server.lifecycle.starting`
+- write an analysis-only command registration concept report that uses only the symbolic Target-12 starting lifecycle dispatch as the current upstream anchor and leaves all future command dispatcher and registration boundaries unbound
 - validate known Minecraft hook symbols
 - analyze selected method bytecode for hook placement
 - plan one internal method-entry patch without modifying classes
@@ -160,6 +161,8 @@ The named Minecraft concept vocabulary above SteelHook now lives in [Minecraft T
 Target-11 now adds the first concept-grounding report above that roadmap. It is still analysis-only. It binds only `minecraft.server.lifecycle.starting` to the existing Target-3 Minecraft `26.1.2` server main entrypoint contract, leaves `started`, `stopping`, `stopped`, `crashed`, and `reload_requested` declared but unbound, adds no runtime lifecycle callback, adds no new SteelHook primitive, exposes no public Minecraft Modding API, and does not imply Java mod execution is sandboxed.
 
 Target-12 now adds the next concept-grounding report above Target-11. It is still analysis-only. It plans exactly one symbolic internal static dispatch for `minecraft.server.lifecycle.starting`, leaves the other five lifecycle phases declared unsupported for dispatch, does not implement or call a dispatcher, does not add public listener registration or mod callback execution, adds no new SteelHook primitive, exposes no public Minecraft Modding API, and does not imply Java mod execution is sandboxed.
+
+Target-13 now adds the next concept-grounding report above Target-12. It is still analysis-only. It writes `minecraft-command-registration-analysis.json`, treats the symbolic Target-12 starting lifecycle dispatch as the only available upstream command-registration anchor, leaves dispatcher discovery, registration window, registration apply, and reload reapply boundaries declared but unbound, binds no Minecraft command dispatcher symbol, adds no Brigadier adapter, performs no command registration or command execution, exposes no public Minecraft command API or Modding API, adds no runtime callback, and does not imply Java mod execution is sandboxed.
 
 SteelHook currently has a narrow proof chain:
 
@@ -553,6 +556,8 @@ runtime/minecraft-hook-bytecode-analysis.json
 runtime/minecraft-hook-patch-plan.json
 runtime/minecraft-hook-bootstrap-transformation-result.json
 runtime/minecraft-server-lifecycle-bindings.json
+runtime/minecraft-server-lifecycle-dispatch-plan.json
+runtime/minecraft-command-registration-analysis.json
 ```
 
 `runtime/` is generated local state and is ignored by Git.
@@ -608,6 +613,8 @@ docs/architecture/target-7-injection-patch-planning-dry-run.md
 docs/architecture/target-8-fixture-only-bytecode-transformation.md
 docs/architecture/target-9-bootstrap-class-transformation-path.md
 docs/architecture/target-11-server-lifecycle-binding-analysis.md
+docs/architecture/target-12-server-lifecycle-dispatch-plan.md
+docs/architecture/target-13-command-registration-concept-analysis.md
 ```
 
 Mod-facing docs:

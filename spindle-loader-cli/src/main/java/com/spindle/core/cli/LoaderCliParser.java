@@ -71,6 +71,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainServerLifecycleBindings = false;
     boolean minecraftServerLifecycleDispatchPlan = false;
     boolean minecraftExplainServerLifecycleDispatchPlan = false;
+    boolean minecraftCommandRegistrationAnalysis = false;
+    boolean minecraftExplainCommandRegistrationAnalysis = false;
     boolean minecraftHookPlacementPlan = false;
     boolean minecraftExplainHookPlacement = false;
     boolean minecraftHookBytecodeAnalysis = false;
@@ -405,6 +407,25 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-command-registration-analysis".equals(argument)) {
+        minecraftCommandRegistrationAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-command-registration-analysis".equals(argument)) {
+        minecraftExplainCommandRegistrationAnalysis = true;
+        minecraftCommandRegistrationAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
       if ("--minecraft-hook-placement-plan".equals(argument)) {
         minecraftHookPlacementPlan = true;
         minecraftHookContracts = true;
@@ -679,6 +700,8 @@ public final class LoaderCliParser {
             minecraftExplainServerLifecycleBindings,
             minecraftServerLifecycleDispatchPlan,
             minecraftExplainServerLifecycleDispatchPlan,
+            minecraftCommandRegistrationAnalysis,
+            minecraftExplainCommandRegistrationAnalysis,
             minecraftHookPlacementPlan,
             minecraftExplainHookPlacement,
             minecraftHookBytecodeAnalysis,

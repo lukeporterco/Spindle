@@ -14,6 +14,8 @@ Target-11 now adds the first analysis-only concept grounding report on top of th
 
 Target-12 now adds the next analysis-only layer above Target-11. It writes `minecraft-server-lifecycle-dispatch-plan.json`, plans exactly one symbolic internal static dispatch for `minecraft.server.lifecycle.starting`, leaves the other five lifecycle phases declared unsupported for dispatch in this pass, does not implement or call a dispatcher, does not expose public listener registration, and does not imply sandboxing.
 
+Target-13 now adds the next analysis-only layer above Target-12. It writes `minecraft-command-registration-analysis.json`, uses the symbolic Target-12 starting lifecycle dispatch as the only current upstream command-registration anchor, declares four future command boundaries unbound, binds no Minecraft command dispatcher symbol, adds no Brigadier adapter, performs no command registration or command execution, reads or mutates no command tree, exposes no public command API or Modding API, adds no runtime callback, and does not imply sandboxing.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation

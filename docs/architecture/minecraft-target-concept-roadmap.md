@@ -63,6 +63,8 @@ Any future command bridge should install against a clearly named registration ph
 Initial caution:
 This pass does not implement command registration behavior.
 
+Target-13 now adds one deterministic analysis-only report for this family. It writes `minecraft-command-registration-analysis.json`, anchors command registration analysis only to Target-12's symbolic `minecraft.server.lifecycle.starting` dispatch, marks the lifecycle anchor as available only when that upstream dispatch is planned, and leaves dispatcher discovery, registration window, registration apply, and reload reapply declared but unbound. No Minecraft command dispatcher symbol is bound in this pass. No Brigadier adapter, command registration, command execution, command tree access, public command API, public Modding API, runtime callback, new SteelHook primitive, or sandboxing is added. See [Target-13: Command Registration Concept Analysis](target-13-command-registration-concept-analysis.md).
+
 ### 3. Data, Resources, Reload, and Future Data Generation
 
 Purpose:
