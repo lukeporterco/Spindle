@@ -57,6 +57,8 @@ public record MinecraftProviderConfig(
     boolean explainServerLifecycleDispatchPlan,
     boolean resourceReloadAnalysis,
     boolean explainResourceReloadAnalysis,
+    boolean resourceReloadSymbolAnalysis,
+    boolean explainResourceReloadSymbolAnalysis,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
@@ -178,6 +180,8 @@ public record MinecraftProviderConfig(
         false, // explainServerLifecycleDispatchPlan
         false, // resourceReloadAnalysis
         false, // explainResourceReloadAnalysis
+        false, // resourceReloadSymbolAnalysis
+        false, // explainResourceReloadSymbolAnalysis
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
@@ -327,6 +331,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleDispatchPlan,
         resourceReloadAnalysis,
         explainResourceReloadAnalysis,
+        resourceReloadSymbolAnalysis,
+        explainResourceReloadSymbolAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -419,6 +425,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleDispatchPlan,
         resourceReloadAnalysis,
         explainResourceReloadAnalysis,
+        resourceReloadSymbolAnalysis,
+        explainResourceReloadSymbolAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -516,6 +524,8 @@ public record MinecraftProviderConfig(
       boolean explainServerLifecycleDispatchPlan,
       boolean resourceReloadAnalysis,
       boolean explainResourceReloadAnalysis,
+      boolean resourceReloadSymbolAnalysis,
+      boolean explainResourceReloadSymbolAnalysis,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
@@ -594,6 +604,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleDispatchPlan,
         resourceReloadAnalysis,
         explainResourceReloadAnalysis,
+        resourceReloadSymbolAnalysis,
+        explainResourceReloadSymbolAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,

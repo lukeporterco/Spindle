@@ -32,6 +32,8 @@ Target-15 now adds the next concept-grounding pass above Target-14. It reads the
 
 Target-16 now adds the first concept-grounding pass for data, resources, reload, and future data generation. It reads only the Target-12 lifecycle dispatch plan, writes `minecraft-resource-reload-analysis.json`, treats the symbolic `minecraft.server.lifecycle.starting` dispatch as a coarse lifecycle anchor only, and leaves reload discovery, reload timing, reload apply timing, datapack visibility, resource-manager visibility, and future offline data generation declared unbound. It remains analysis-only and does not discover Minecraft reload symbols, access resources, access datapacks, generate data, mutate registries, expose public APIs, add new SteelHook primitives, add runtime transformation support, or imply sandboxing.
 
+Target-17 now adds the next concept-grounding pass for data, resources, reload, and future data generation. It reads Target-1 artifact interpretation plus Target-16 resource/reload analysis, writes `minecraft-resource-reload-symbol-analysis.json`, scans only interpreted class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and reports candidate metadata symbols only. It remains analysis-only and does not select a stable reload target, bind reload timing or apply behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add new SteelHook primitives, add runtime transformation support, or imply sandboxing.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -86,6 +88,8 @@ Target-13 then adds an analysis-only command registration concept report above t
 Target-15 then narrows the interpretation of Target-14 selection. A unique metadata candidate is still only a selected symbol candidate, not proof of dispatcher access or command registration readiness. The boundary still does not add Brigadier integration, public command APIs, runtime callbacks, new SteelHook primitives, real Minecraft runtime transformation, or sandboxing.
 
 Target-16 then adds the first analysis-only boundary report for resources and reload. It keeps the lifecycle anchor explicitly coarse, separates runtime resource visibility from future offline data generation, and does not add reload handling, datapack access, resource manager access, generated output, registry mutation, public APIs, runtime callbacks, or sandboxing.
+
+Target-17 then adds analysis-only symbol discovery on top of that coarse boundary report. It discovers candidate metadata symbols only, may feed a future Target-18 binding/access strategy analysis, and still does not make reload implementation ready by itself.
 
 ## Modding API
 

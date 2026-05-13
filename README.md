@@ -170,6 +170,8 @@ Target-15 now adds the next concept-grounding report above Target-14. It is stil
 
 Target-16 now adds the first concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-analysis.json`, uses the symbolic Target-12 starting lifecycle dispatch only as a coarse lifecycle anchor, and leaves reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation declared unbound. It does not perform reload handling, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed.
 
+Target-17 now adds the next concept-grounding report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-symbol-analysis.json`, consumes Target-1 interpreted metadata plus Target-16 resource/reload boundary analysis, scans class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and discovers candidate metadata symbols only. It does not select a stable reload target, bind reload behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply Java mod execution is sandboxed. Target-18 may classify binding/access strategy for discovered resource/reload symbols.
+
 SteelHook currently has a narrow proof chain:
 
 ```text
@@ -567,6 +569,7 @@ runtime/minecraft-command-registration-analysis.json
 runtime/minecraft-command-dispatcher-symbol-analysis.json
 runtime/minecraft-command-dispatcher-binding-analysis.json
 runtime/minecraft-resource-reload-analysis.json
+runtime/minecraft-resource-reload-symbol-analysis.json
 runtime/minecraft-steelhook-0.1-report.json
 ```
 

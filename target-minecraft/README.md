@@ -22,6 +22,8 @@ Target-15 now adds the next analysis-only layer above Target-14. It writes `mine
 
 Target-16 now adds the first analysis-only layer for data, resources, reload, and future data generation. It writes `minecraft-resource-reload-analysis.json`, uses the Target-12 starting lifecycle dispatch only as a coarse lifecycle anchor, keeps reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation declared unbound, and intentionally separates future offline data generation from runtime reload. It does not perform reload handling, access resources or datapacks, generate data, mutate registries, expose public APIs, add new SteelHook primitives, or imply sandboxing.
 
+Target-17 now adds the next analysis-only layer for data, resources, reload, and future data generation. It writes `minecraft-resource-reload-symbol-analysis.json`, consumes Target-1 interpreted metadata plus Target-16 resource/reload boundary analysis, scans class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and discovers candidate metadata symbols only. It does not select a stable reload target, bind reload behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add new SteelHook primitives, or imply sandboxing. It may feed a future Target-18 binding/access strategy analysis.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation

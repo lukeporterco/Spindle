@@ -263,7 +263,7 @@ Avoid broad scope jumps. A pass should have clear non-goals.
 
 Future Target Layer, SteelHook, and Modding API planning should inspect `docs/architecture/minecraft-target-concept-roadmap.md` before adding new Minecraft-facing concept families or names.
 
-Current concept-grounding passes include Target-11 server lifecycle binding, Target-12 server lifecycle dispatch planning, Target-13 command registration boundary analysis, Target-14 command dispatcher symbol analysis, Target-15 command dispatcher binding analysis, and Target-16 resource/reload boundary analysis. Keep lifecycle anchors explicit and coarse when later passes have not yet discovered the concrete Minecraft hook surface.
+Current concept-grounding passes include Target-11 server lifecycle binding, Target-12 server lifecycle dispatch planning, Target-13 command registration boundary analysis, Target-14 command dispatcher symbol analysis, Target-15 command dispatcher binding analysis, Target-16 resource/reload boundary analysis, and Target-17 resource/reload symbol discovery analysis. Keep lifecycle anchors explicit and coarse when later passes have not yet discovered the concrete Minecraft hook surface.
 
 `com.spindle.api.minecraft.*` currently contains deferred/bootstrap-facing placeholder interfaces used by guarded Minecraft bootstrap fixtures. It is not part of the stabilized Runtime API-0 boundary and is not the public Minecraft Modding API.
 

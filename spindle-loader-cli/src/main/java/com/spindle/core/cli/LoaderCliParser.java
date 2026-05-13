@@ -73,6 +73,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainServerLifecycleDispatchPlan = false;
     boolean minecraftResourceReloadAnalysis = false;
     boolean minecraftExplainResourceReloadAnalysis = false;
+    boolean minecraftResourceReloadSymbolAnalysis = false;
+    boolean minecraftExplainResourceReloadSymbolAnalysis = false;
     boolean minecraftCommandRegistrationAnalysis = false;
     boolean minecraftExplainCommandRegistrationAnalysis = false;
     boolean minecraftCommandDispatcherSymbolAnalysis = false;
@@ -432,6 +434,27 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-resource-reload-symbol-analysis".equals(argument)) {
+        minecraftResourceReloadSymbolAnalysis = true;
+        minecraftResourceReloadAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-resource-reload-symbol-analysis".equals(argument)) {
+        minecraftExplainResourceReloadSymbolAnalysis = true;
+        minecraftResourceReloadSymbolAnalysis = true;
+        minecraftResourceReloadAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
       if ("--minecraft-command-registration-analysis".equals(argument)) {
         minecraftCommandRegistrationAnalysis = true;
         minecraftServerLifecycleDispatchPlan = true;
@@ -771,6 +794,8 @@ public final class LoaderCliParser {
             minecraftExplainServerLifecycleDispatchPlan,
             minecraftResourceReloadAnalysis,
             minecraftExplainResourceReloadAnalysis,
+            minecraftResourceReloadSymbolAnalysis,
+            minecraftExplainResourceReloadSymbolAnalysis,
             minecraftCommandRegistrationAnalysis,
             minecraftExplainCommandRegistrationAnalysis,
             minecraftCommandDispatcherSymbolAnalysis,

@@ -88,6 +88,8 @@ This pass does not implement reload handling, resource APIs, or data generation 
 
 Target-16 now adds the first deterministic analysis-only report for this family. It writes `minecraft-resource-reload-analysis.json`, consumes only the Target-12 starting lifecycle dispatch as a coarse anchor, and leaves reload discovery, reload window, reload apply, datapack view, resource manager view, and future data generation declared unbound. The lifecycle anchor is not a reload hook. Future data generation remains intentionally offline/future-facing and separate from runtime reload. No resource reload, resource access, datapack access, data generation, registry mutation, public API, new SteelHook primitive, real runtime artifact transformation, or sandboxing is added. See [Target-16: Resource and Reload Boundary Analysis](target-16-resource-reload-boundary-analysis.md).
 
+Target-17 now adds the second deterministic analysis-only report for this family. It writes `minecraft-resource-reload-symbol-analysis.json`, consumes Target-1 interpreted metadata plus Target-16 resource/reload boundary analysis, scans class/package names plus field and method names/descriptors for fixed resource/reload discovery tokens, and reports candidate metadata symbols only. It does not select a stable reload target, bind reload behavior, access resources or datapacks, generate data, mutate registries, expose public APIs, add SteelHook primitives, or imply sandboxing. It may feed a future Target-18 binding/access strategy analysis. See [Target-17: Resource and Reload Symbol Discovery Analysis](target-17-resource-reload-symbol-analysis.md).
+
 ### 4. Registry Bootstrap and Content Registration
 
 Purpose:

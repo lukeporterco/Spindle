@@ -82,6 +82,9 @@ import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlan
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysis;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysisWriter;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalyzer;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadSymbolAnalysis;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadSymbolAnalysisWriter;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadSymbolAnalyzer;
 import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
@@ -126,6 +129,8 @@ public final class MinecraftDryRunFlow {
             || config.explainServerLifecycleDispatchPlan()
             || config.resourceReloadAnalysis()
             || config.explainResourceReloadAnalysis()
+            || config.resourceReloadSymbolAnalysis()
+            || config.explainResourceReloadSymbolAnalysis()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
@@ -363,6 +368,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainServerLifecycleDispatchPlan()
                 || config.resourceReloadAnalysis()
                 || config.explainResourceReloadAnalysis()
+                || config.resourceReloadSymbolAnalysis()
+                || config.explainResourceReloadSymbolAnalysis()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
@@ -507,6 +514,8 @@ public final class MinecraftDryRunFlow {
           || config.explainServerLifecycleDispatchPlan()
           || config.resourceReloadAnalysis()
           || config.explainResourceReloadAnalysis()
+          || config.resourceReloadSymbolAnalysis()
+          || config.explainResourceReloadSymbolAnalysis()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
@@ -709,6 +718,50 @@ public final class MinecraftDryRunFlow {
               megaMilestoneReports.add("minecraft-resource-reload-analysis.json");
               if (config.explainResourceReloadAnalysis()) {
                 printMinecraftResourceReloadAnalysisExplain(resourceReloadAnalysis);
+              }
+              if (config.resourceReloadSymbolAnalysis()
+                  || config.explainResourceReloadSymbolAnalysis()) {
+                MinecraftArtifactInterpretation resourceReloadSymbolInterpretation = interpretation;
+                MinecraftResourceReloadSymbolAnalysis resourceReloadSymbolAnalysis =
+                    DiagnosticMeasurements.measure(
+                        diagnosticSink,
+                        "minecraft.resource_reload_symbol_analysis.analyze",
+                        LaunchPhase.COMPLETE,
+                        () ->
+                            new MinecraftResourceReloadSymbolAnalyzer()
+                                .analyze(
+                                    resourceReloadSymbolInterpretation, resourceReloadAnalysis),
+                        analysis ->
+                            DiagnosticMeasurements.details(
+                                "gatePassed",
+                                Boolean.toString(analysis.gatePassed()),
+                                "candidateCount",
+                                Integer.toString(analysis.candidateCount()),
+                                "selectableCandidateCount",
+                                Integer.toString(analysis.selectableCandidateCount()),
+                                "discoveryStatus",
+                                analysis.discoveryStatus().name()));
+                DiagnosticMeasurements.measure(
+                    diagnosticSink,
+                    "minecraft.resource_reload_symbol_analysis.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                      Path outputPath =
+                          context
+                              .workingDirectory()
+                              .resolve("minecraft-resource-reload-symbol-analysis.json");
+                      new MinecraftResourceReloadSymbolAnalysisWriter()
+                          .write(outputPath, resourceReloadSymbolAnalysis);
+                      return outputPath;
+                    },
+                    outputPath ->
+                        DiagnosticMeasurements.details(
+                            "resourceReloadSymbolAnalysisOutputPath",
+                            DisplayPaths.displayPath(context, outputPath)));
+                megaMilestoneReports.add("minecraft-resource-reload-symbol-analysis.json");
+                if (config.explainResourceReloadSymbolAnalysis()) {
+                  printMinecraftResourceReloadSymbolAnalysisExplain(resourceReloadSymbolAnalysis);
+                }
               }
             }
             if (config.commandRegistrationAnalysis()
@@ -1570,6 +1623,35 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-resource-reload-analysis: wrote minecraft-resource-reload-analysis.json");
+  }
+
+  private static void printMinecraftResourceReloadSymbolAnalysisExplain(
+      MinecraftResourceReloadSymbolAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-resource-reload-symbol-analysis: Target-17 resource/reload symbol analysis is analysis-only.");
+    System.out.println(
+        "[spindle] explain-resource-reload-symbol-analysis: It scans Target-1 interpreted metadata for resource/reload-like class, method, and field symbols.");
+    System.out.println(
+        "[spindle] explain-resource-reload-symbol-analysis: It does not inspect bytecode instructions, mappings, decompiled source, live classes, resources, datapacks, generated JSON, registries, or command trees.");
+    System.out.println(
+        "[spindle] explain-resource-reload-symbol-analysis: It does not perform reload handling, resource access, datapack access, data generation, registry mutation, public API exposure, runtime dispatch, hook installation, or transformation.");
+    switch (analysis.discoveryStatus()) {
+      case UPSTREAM_GATE_BLOCKED ->
+          System.out.println(
+              "[spindle] explain-resource-reload-symbol-analysis: Resource/reload symbol discovery gate failed: "
+                  + analysis.gateFailureReason());
+      case NO_CANDIDATES ->
+          System.out.println(
+              "[spindle] explain-resource-reload-symbol-analysis: No resource/reload symbol candidates were discovered.");
+      case ONLY_REJECTED_CANDIDATES ->
+          System.out.println(
+              "[spindle] explain-resource-reload-symbol-analysis: Only rejected resource/reload symbol candidates were discovered.");
+      case CANDIDATES_DISCOVERED ->
+          System.out.println(
+              "[spindle] explain-resource-reload-symbol-analysis: Selectable resource/reload symbol candidates were discovered for future binding strategy analysis.");
+    }
+    System.out.println(
+        "[spindle] explain-resource-reload-symbol-analysis: wrote minecraft-resource-reload-symbol-analysis.json");
   }
 
   private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(
