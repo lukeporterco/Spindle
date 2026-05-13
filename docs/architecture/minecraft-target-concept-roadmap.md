@@ -65,6 +65,8 @@ This pass does not implement command registration behavior.
 
 Target-13 now adds one deterministic analysis-only report for this family. It writes `minecraft-command-registration-analysis.json`, anchors command registration analysis only to Target-12's symbolic `minecraft.server.lifecycle.starting` dispatch, marks the lifecycle anchor as available only when that upstream dispatch is planned, and leaves dispatcher discovery, registration window, registration apply, and reload reapply declared but unbound. No Minecraft command dispatcher symbol is bound in this pass. No Brigadier adapter, command registration, command execution, command tree access, public command API, public Modding API, runtime callback, new SteelHook primitive, or sandboxing is added. See [Target-13: Command Registration Concept Analysis](target-13-command-registration-concept-analysis.md).
 
+Target-14 now adds the next deterministic analysis-only report for this family. It writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only Target-1 interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable non-library target is discovered. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, or imply sandboxing. See [Target-14: Command Dispatcher Symbol Analysis](target-14-command-dispatcher-symbol-analysis.md).
+
 ### 3. Data, Resources, Reload, and Future Data Generation
 
 Purpose:

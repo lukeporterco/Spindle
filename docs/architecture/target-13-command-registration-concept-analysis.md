@@ -33,6 +33,8 @@ The remaining four command registration boundaries stay declared but unbound:
 - registration apply
 - reload reapply
 
+Target-14 follows this pass by scanning Target-1 interpreted metadata for deterministic Brigadier `CommandDispatcher` descriptor references. That later pass may determine future proof eligibility, but it still does not perform command registration.
+
 ## What This Pass Does Not Add
 
 No Brigadier adapter is added.

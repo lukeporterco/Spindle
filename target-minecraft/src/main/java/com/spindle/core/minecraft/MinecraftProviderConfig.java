@@ -57,6 +57,8 @@ public record MinecraftProviderConfig(
     boolean explainServerLifecycleDispatchPlan,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
+    boolean commandDispatcherSymbolAnalysis,
+    boolean explainCommandDispatcherSymbolAnalysis,
     boolean hookPlacementPlan,
     boolean explainHookPlacement,
     boolean hookBytecodeAnalysis,
@@ -172,6 +174,8 @@ public record MinecraftProviderConfig(
         false, // explainServerLifecycleDispatchPlan
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
+        false, // commandDispatcherSymbolAnalysis
+        false, // explainCommandDispatcherSymbolAnalysis
         false, // hookPlacementPlan
         false, // explainHookPlacement
         false, // hookBytecodeAnalysis
@@ -315,6 +319,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleDispatchPlan,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
+        commandDispatcherSymbolAnalysis,
+        explainCommandDispatcherSymbolAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -401,6 +407,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleDispatchPlan,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
+        commandDispatcherSymbolAnalysis,
+        explainCommandDispatcherSymbolAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -492,6 +500,8 @@ public record MinecraftProviderConfig(
       boolean explainServerLifecycleDispatchPlan,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
+      boolean commandDispatcherSymbolAnalysis,
+      boolean explainCommandDispatcherSymbolAnalysis,
       boolean hookPlacementPlan,
       boolean explainHookPlacement,
       boolean hookBytecodeAnalysis,
@@ -564,6 +574,8 @@ public record MinecraftProviderConfig(
         explainServerLifecycleDispatchPlan,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
+        commandDispatcherSymbolAnalysis,
+        explainCommandDispatcherSymbolAnalysis,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,

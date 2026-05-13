@@ -164,6 +164,8 @@ Target-12 now adds the next concept-grounding report above Target-11. It is stil
 
 Target-13 now adds the next concept-grounding report above Target-12. It is still analysis-only. It writes `minecraft-command-registration-analysis.json`, treats the symbolic Target-12 starting lifecycle dispatch as the only available upstream command-registration anchor, leaves dispatcher discovery, registration window, registration apply, and reload reapply boundaries declared but unbound, binds no Minecraft command dispatcher symbol, adds no Brigadier adapter, performs no command registration or command execution, exposes no public Minecraft command API or Modding API, adds no runtime callback, and does not imply Java mod execution is sandboxed.
 
+Target-14 now adds the next concept-grounding report above Target-13. It is still analysis-only. It writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only Target-1 interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable non-library target is discovered. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public Minecraft command APIs or a public Modding API, add runtime callbacks, and does not imply Java mod execution is sandboxed.
+
 SteelHook currently has a narrow proof chain:
 
 ```text
@@ -558,6 +560,7 @@ runtime/minecraft-hook-bootstrap-transformation-result.json
 runtime/minecraft-server-lifecycle-bindings.json
 runtime/minecraft-server-lifecycle-dispatch-plan.json
 runtime/minecraft-command-registration-analysis.json
+runtime/minecraft-command-dispatcher-symbol-analysis.json
 ```
 
 `runtime/` is generated local state and is ignored by Git.
@@ -615,6 +618,7 @@ docs/architecture/target-9-bootstrap-class-transformation-path.md
 docs/architecture/target-11-server-lifecycle-binding-analysis.md
 docs/architecture/target-12-server-lifecycle-dispatch-plan.md
 docs/architecture/target-13-command-registration-concept-analysis.md
+docs/architecture/target-14-command-dispatcher-symbol-analysis.md
 ```
 
 Mod-facing docs:

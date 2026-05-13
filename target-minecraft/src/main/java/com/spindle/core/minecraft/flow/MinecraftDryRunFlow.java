@@ -44,6 +44,9 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
+import com.spindle.core.minecraft.command.MinecraftCommandDispatcherSymbolAnalysis;
+import com.spindle.core.minecraft.command.MinecraftCommandDispatcherSymbolAnalysisWriter;
+import com.spindle.core.minecraft.command.MinecraftCommandDispatcherSymbolAnalyzer;
 import com.spindle.core.minecraft.command.MinecraftCommandRegistrationAnalysis;
 import com.spindle.core.minecraft.command.MinecraftCommandRegistrationAnalysisWriter;
 import com.spindle.core.minecraft.command.MinecraftCommandRegistrationAnalyzer;
@@ -117,6 +120,8 @@ public final class MinecraftDryRunFlow {
             || config.explainServerLifecycleDispatchPlan()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
+            || config.commandDispatcherSymbolAnalysis()
+            || config.explainCommandDispatcherSymbolAnalysis()
             || config.hookPlacementPlan()
             || config.explainHookPlacement()
             || config.hookBytecodeAnalysis()
@@ -348,6 +353,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainServerLifecycleDispatchPlan()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
+                || config.commandDispatcherSymbolAnalysis()
+                || config.explainCommandDispatcherSymbolAnalysis()
                 || config.hookPlacementPlan()
                 || config.explainHookPlacement()
                 || config.hookBytecodeAnalysis()
@@ -486,6 +493,8 @@ public final class MinecraftDryRunFlow {
           || config.explainServerLifecycleDispatchPlan()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
+          || config.commandDispatcherSymbolAnalysis()
+          || config.explainCommandDispatcherSymbolAnalysis()
           || config.hookPlacementPlan()
           || config.explainHookPlacement()
           || config.hookBytecodeAnalysis()
@@ -562,7 +571,9 @@ public final class MinecraftDryRunFlow {
             || config.serverLifecycleDispatchPlan()
             || config.explainServerLifecycleDispatchPlan()
             || config.commandRegistrationAnalysis()
-            || config.explainCommandRegistrationAnalysis()) {
+            || config.explainCommandRegistrationAnalysis()
+            || config.commandDispatcherSymbolAnalysis()
+            || config.explainCommandDispatcherSymbolAnalysis()) {
           MinecraftHookContractReport finalHookContractReportForLifecycle = hookContractReport;
           MinecraftServerLifecycleBindingReport lifecycleBindingReport =
               DiagnosticMeasurements.measure(
@@ -679,6 +690,50 @@ public final class MinecraftDryRunFlow {
               megaMilestoneReports.add("minecraft-command-registration-analysis.json");
               if (config.explainCommandRegistrationAnalysis()) {
                 printMinecraftCommandRegistrationAnalysisExplain(commandRegistrationAnalysis);
+              }
+              if (config.commandDispatcherSymbolAnalysis()
+                  || config.explainCommandDispatcherSymbolAnalysis()) {
+                MinecraftArtifactInterpretation symbolAnalysisInterpretation = interpretation;
+                MinecraftCommandDispatcherSymbolAnalysis commandDispatcherSymbolAnalysis =
+                    DiagnosticMeasurements.measure(
+                        diagnosticSink,
+                        "minecraft.command_dispatcher_symbol_analysis.analyze",
+                        LaunchPhase.COMPLETE,
+                        () ->
+                            new MinecraftCommandDispatcherSymbolAnalyzer()
+                                .analyze(symbolAnalysisInterpretation, commandRegistrationAnalysis),
+                        analysis ->
+                            DiagnosticMeasurements.details(
+                                "gatePassed",
+                                Boolean.toString(analysis.gatePassed()),
+                                "candidateCount",
+                                Integer.toString(analysis.candidateCount()),
+                                "selectableCandidateCount",
+                                Integer.toString(analysis.selectableCandidateCount()),
+                                "selectionStatus",
+                                analysis.selectionStatus().name()));
+                DiagnosticMeasurements.measure(
+                    diagnosticSink,
+                    "minecraft.command_dispatcher_symbol_analysis.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                      Path outputPath =
+                          context
+                              .workingDirectory()
+                              .resolve("minecraft-command-dispatcher-symbol-analysis.json");
+                      new MinecraftCommandDispatcherSymbolAnalysisWriter()
+                          .write(outputPath, commandDispatcherSymbolAnalysis);
+                      return outputPath;
+                    },
+                    outputPath ->
+                        DiagnosticMeasurements.details(
+                            "commandDispatcherSymbolAnalysisOutputPath",
+                            DisplayPaths.displayPath(context, outputPath)));
+                megaMilestoneReports.add("minecraft-command-dispatcher-symbol-analysis.json");
+                if (config.explainCommandDispatcherSymbolAnalysis()) {
+                  printMinecraftCommandDispatcherSymbolAnalysisExplain(
+                      commandDispatcherSymbolAnalysis);
+                }
               }
             }
           }
@@ -1384,6 +1439,33 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-command-registration-analysis: wrote minecraft-command-registration-analysis.json");
+  }
+
+  private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(
+      MinecraftCommandDispatcherSymbolAnalysis analysis) {
+    if (!analysis.gatePassed()) {
+      System.out.println(
+          "[spindle] explain-command-dispatcher-symbol-analysis: Command dispatcher symbol analysis gate failed: "
+              + analysis.gateFailureReason());
+    } else {
+      switch (analysis.selectionStatus()) {
+        case STABLE_TARGET_SELECTED ->
+            System.out.println(
+                "[spindle] explain-command-dispatcher-symbol-analysis: Command dispatcher symbol analysis: stable target selected. Minimal command registration proof eligible: true.");
+        case NO_CANDIDATES ->
+            System.out.println(
+                "[spindle] explain-command-dispatcher-symbol-analysis: Command dispatcher symbol analysis: no selectable command dispatcher candidates found. Minimal command registration proof eligible: false.");
+        case AMBIGUOUS_CANDIDATES ->
+            System.out.println(
+                "[spindle] explain-command-dispatcher-symbol-analysis: Command dispatcher symbol analysis: multiple selectable command dispatcher candidates found. Minimal command registration proof eligible: false.");
+        case UPSTREAM_GATE_BLOCKED ->
+            System.out.println(
+                "[spindle] explain-command-dispatcher-symbol-analysis: Command dispatcher symbol analysis gate failed: "
+                    + analysis.gateFailureReason());
+      }
+    }
+    System.out.println(
+        "[spindle] explain-command-dispatcher-symbol-analysis: wrote minecraft-command-dispatcher-symbol-analysis.json");
   }
 
   private static void printMinecraftHookPlacementExplain(MinecraftHookPlacementPlan plan) {

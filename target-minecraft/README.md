@@ -16,6 +16,8 @@ Target-12 now adds the next analysis-only layer above Target-11. It writes `mine
 
 Target-13 now adds the next analysis-only layer above Target-12. It writes `minecraft-command-registration-analysis.json`, uses the symbolic Target-12 starting lifecycle dispatch as the only current upstream command-registration anchor, declares four future command boundaries unbound, binds no Minecraft command dispatcher symbol, adds no Brigadier adapter, performs no command registration or command execution, reads or mutates no command tree, exposes no public command API or Modding API, adds no runtime callback, and does not imply sandboxing.
 
+Target-14 now adds the next analysis-only layer above Target-13. It writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only Target-1 interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable non-library symbol target is discovered. It does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public command APIs or a public Modding API, add runtime callbacks, and does not imply sandboxing.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation

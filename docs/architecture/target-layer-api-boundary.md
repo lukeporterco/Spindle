@@ -26,6 +26,8 @@ Target-12 now adds the next concept-grounding pass above Target-11. It reads the
 
 Target-13 now adds the second concept-grounding pass above Target-12. It reads the Target-12 lifecycle dispatch plan, writes `minecraft-command-registration-analysis.json`, treats the symbolic `minecraft.server.lifecycle.starting` dispatch as the only current upstream anchor, and leaves future command dispatcher discovery, registration timing, apply timing, and reload reapplication boundaries declared but unbound. It remains analysis-only and does not bind a Minecraft command dispatcher symbol, add Brigadier adapters, perform command registration, execute commands, expose a public command API or Modding API, add runtime callbacks, add new SteelHook primitives, add real runtime transformation support, or add sandboxing.
 
+Target-14 now adds the next concept-grounding pass above Target-13. It reads the Target-1 artifact interpretation plus the Target-13 command registration analysis, writes `minecraft-command-dispatcher-symbol-analysis.json`, scans only interpreted metadata for Brigadier `CommandDispatcher` descriptor references, and may declare a future minimal command registration proof eligible only when exactly one selectable target is discovered. It remains analysis-only and does not register commands, execute commands, read or mutate a command tree, add Brigadier dependencies, add hook contracts for command classes, expose public command APIs or a public Modding API, add runtime callbacks, add new SteelHook primitives, add real runtime transformation support, or imply sandboxing.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
