@@ -20,6 +20,10 @@ Target-9 now wires that single validated SteelHook transform into bootstrap clas
 
 Target-10 now hardens that chain with one explicit SteelHook 0.1 completion check. That pass does not add new hook kinds or new mutation modes. It reuses the existing fake-server transformation path, verifies the report chain from Target-3 through Target-9, writes `minecraft-steelhook-0.1-report.json`, and proves the current spine is deterministic, bounded, fake-server-only, and not a public API.
 
+Target-11 now adds the first concept-grounding pass above that chain. It reads the Target Layer concept catalog plus Target-3 hook contract validation, writes `minecraft-server-lifecycle-bindings.json`, and binds only `minecraft.server.lifecycle.starting` to the existing Minecraft `26.1.2` dedicated server main entrypoint contract. It remains analysis-only and does not add runtime lifecycle callbacks, public APIs, new SteelHook primitives, real runtime transformation support, or sandboxing.
+
+Target-12 now adds the next concept-grounding pass above Target-11. It reads the Target-11 binding report, writes `minecraft-server-lifecycle-dispatch-plan.json`, plans exactly one symbolic internal static dispatch target for `minecraft.server.lifecycle.starting`, and leaves the other five lifecycle phases declared unsupported for dispatch. It remains analysis-only and does not implement or call a dispatcher, add public listener registration, add mod callback execution, add new SteelHook primitives, add real runtime transformation support, or add sandboxing.
+
 ## Injection Hook Subsystem
 
 The Injection Hook Subsystem is the low-level subsystem inside the Minecraft Target Layer.
@@ -67,7 +71,7 @@ It should expose target facts and target operations, not developer-friendly modd
 
 Advanced developers may eventually use it as an escape hatch when they need direct target behavior.
 
-The ordered concept vocabulary for that future layer now lives in [Minecraft Target Concept Roadmap](minecraft-target-concept-roadmap.md). In this pass, that roadmap and its matching internal catalog are documentation/model-only. They do not add runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry/content registration, data generation tooling, networking support, client support, or sandboxing.
+The ordered concept vocabulary for that future layer now lives in [Minecraft Target Concept Roadmap](minecraft-target-concept-roadmap.md). Target-11 now adds the first analysis-only grounding report for that vocabulary by binding only `minecraft.server.lifecycle.starting` to the known Minecraft `26.1.2` server entrypoint contract. Target-12 then adds an analysis-only symbolic dispatch plan for that same starting phase without implementing runtime callbacks or public listeners. The boundary still does not add runtime callbacks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry/content registration, data generation tooling, networking support, client support, or sandboxing.
 
 ## Modding API
 

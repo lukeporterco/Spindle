@@ -90,6 +90,8 @@ The Minecraft target side can:
 - produce boundary, integration, preflight, reproducibility, and execution reports
 - run fake-server bootstrap smoke flows
 - name the first ten Minecraft Target Layer concept families through a documentation/model-only roadmap
+- write an analysis-only server lifecycle binding report that binds only `minecraft.server.lifecycle.starting` to the known Minecraft `26.1.2` dedicated server main entrypoint contract
+- write an analysis-only server lifecycle dispatch plan that plans only one symbolic internal dispatch for `minecraft.server.lifecycle.starting`
 - validate known Minecraft hook symbols
 - analyze selected method bytecode for hook placement
 - plan one internal method-entry patch without modifying classes
@@ -154,6 +156,10 @@ The stable Loader API remains loader-focused. `com.spindle.api.minecraft.*` rema
 SteelHook is Spindle's internal custom injection hook subsystem inside `target-minecraft`. It is not a public hook API and not a Mixin replacement.
 
 The named Minecraft concept vocabulary above SteelHook now lives in [Minecraft Target Concept Roadmap](docs/architecture/minecraft-target-concept-roadmap.md). That roadmap is documentation/model-only in this pass. It does not add runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry behavior, data generation tooling, networking support, client support, or sandboxing.
+
+Target-11 now adds the first concept-grounding report above that roadmap. It is still analysis-only. It binds only `minecraft.server.lifecycle.starting` to the existing Target-3 Minecraft `26.1.2` server main entrypoint contract, leaves `started`, `stopping`, `stopped`, `crashed`, and `reload_requested` declared but unbound, adds no runtime lifecycle callback, adds no new SteelHook primitive, exposes no public Minecraft Modding API, and does not imply Java mod execution is sandboxed.
+
+Target-12 now adds the next concept-grounding report above Target-11. It is still analysis-only. It plans exactly one symbolic internal static dispatch for `minecraft.server.lifecycle.starting`, leaves the other five lifecycle phases declared unsupported for dispatch, does not implement or call a dispatcher, does not add public listener registration or mod callback execution, adds no new SteelHook primitive, exposes no public Minecraft Modding API, and does not imply Java mod execution is sandboxed.
 
 SteelHook currently has a narrow proof chain:
 
@@ -546,6 +552,7 @@ runtime/minecraft-hook-placement-plan.json
 runtime/minecraft-hook-bytecode-analysis.json
 runtime/minecraft-hook-patch-plan.json
 runtime/minecraft-hook-bootstrap-transformation-result.json
+runtime/minecraft-server-lifecycle-bindings.json
 ```
 
 `runtime/` is generated local state and is ignored by Git.
@@ -600,6 +607,7 @@ docs/architecture/target-6-instruction-aware-bytecode-model.md
 docs/architecture/target-7-injection-patch-planning-dry-run.md
 docs/architecture/target-8-fixture-only-bytecode-transformation.md
 docs/architecture/target-9-bootstrap-class-transformation-path.md
+docs/architecture/target-11-server-lifecycle-binding-analysis.md
 ```
 
 Mod-facing docs:

@@ -44,6 +44,7 @@ import com.spindle.core.minecraft.MinecraftServerRuntimePlanWriter;
 import com.spindle.core.minecraft.MinecraftServerRuntimePlanner;
 import com.spindle.core.minecraft.MinecraftSide;
 import com.spindle.core.minecraft.MinecraftVersionMetadata;
+import com.spindle.core.minecraft.concept.MinecraftTargetConceptCatalog;
 import com.spindle.core.minecraft.hook.MinecraftHookContractCatalogProvider;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReport;
 import com.spindle.core.minecraft.hook.MinecraftHookContractReportWriter;
@@ -63,6 +64,12 @@ import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanner;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
+import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleBindingAnalyzer;
+import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleBindingReport;
+import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleBindingReportWriter;
+import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlan;
+import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanWriter;
+import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanner;
 import com.spindle.core.pipeline.ModpackPlanningResult;
 import com.spindle.core.report.DiagnosticMeasurements;
 import com.spindle.core.report.DisplayPaths;
@@ -101,6 +108,10 @@ public final class MinecraftDryRunFlow {
     if ((config.interpretArtifact()
             || config.hookContracts()
             || config.explainHookContracts()
+            || config.serverLifecycleBindings()
+            || config.explainServerLifecycleBindings()
+            || config.serverLifecycleDispatchPlan()
+            || config.explainServerLifecycleDispatchPlan()
             || config.hookPlacementPlan()
             || config.explainHookPlacement()
             || config.hookBytecodeAnalysis()
@@ -112,7 +123,7 @@ public final class MinecraftDryRunFlow {
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
       throw new LoaderException(
-          "Minecraft artifact interpretation, hook contract diagnostics, and hook installation planning currently support the server-side Minecraft runtime only.");
+          "Minecraft artifact interpretation, hook contract diagnostics, server lifecycle binding analysis, and hook installation planning currently support the server-side Minecraft runtime only.");
     }
 
     if (config.cacheInspect()) {
@@ -326,6 +337,10 @@ public final class MinecraftDryRunFlow {
                 || config.interpretArtifact()
                 || config.hookContracts()
                 || config.explainHookContracts()
+                || config.serverLifecycleBindings()
+                || config.explainServerLifecycleBindings()
+                || config.serverLifecycleDispatchPlan()
+                || config.explainServerLifecycleDispatchPlan()
                 || config.hookPlacementPlan()
                 || config.explainHookPlacement()
                 || config.hookBytecodeAnalysis()
@@ -458,6 +473,10 @@ public final class MinecraftDryRunFlow {
       }
       if (config.hookContracts()
           || config.explainHookContracts()
+          || config.serverLifecycleBindings()
+          || config.explainServerLifecycleBindings()
+          || config.serverLifecycleDispatchPlan()
+          || config.explainServerLifecycleDispatchPlan()
           || config.hookPlacementPlan()
           || config.explainHookPlacement()
           || config.hookBytecodeAnalysis()
@@ -528,6 +547,88 @@ public final class MinecraftDryRunFlow {
         megaMilestoneReports.add("minecraft-hook-contracts.json");
         if (config.explainHookContracts()) {
           printMinecraftHookContractsExplain(hookContractReport);
+        }
+        if (config.serverLifecycleBindings()
+            || config.explainServerLifecycleBindings()
+            || config.serverLifecycleDispatchPlan()
+            || config.explainServerLifecycleDispatchPlan()) {
+          MinecraftHookContractReport finalHookContractReportForLifecycle = hookContractReport;
+          MinecraftServerLifecycleBindingReport lifecycleBindingReport =
+              DiagnosticMeasurements.measure(
+                  diagnosticSink,
+                  "minecraft.server_lifecycle_bindings.analyze",
+                  LaunchPhase.COMPLETE,
+                  () ->
+                      new MinecraftServerLifecycleBindingAnalyzer()
+                          .analyze(
+                              new MinecraftTargetConceptCatalog(),
+                              finalHookContractReportForLifecycle),
+                  report ->
+                      DiagnosticMeasurements.details(
+                          "gatePassed",
+                          Boolean.toString(report.gatePassed()),
+                          "boundPhaseCount",
+                          Integer.toString(report.boundPhaseCount()),
+                          "unboundPhaseCount",
+                          Integer.toString(report.unboundPhaseCount())));
+          DiagnosticMeasurements.measure(
+              diagnosticSink,
+              "minecraft.server_lifecycle_bindings.write",
+              LaunchPhase.COMPLETE,
+              () -> {
+                Path outputPath =
+                    context.workingDirectory().resolve("minecraft-server-lifecycle-bindings.json");
+                new MinecraftServerLifecycleBindingReportWriter()
+                    .write(outputPath, lifecycleBindingReport);
+                return outputPath;
+              },
+              outputPath ->
+                  DiagnosticMeasurements.details(
+                      "serverLifecycleBindingOutputPath",
+                      DisplayPaths.displayPath(context, outputPath)));
+          megaMilestoneReports.add("minecraft-server-lifecycle-bindings.json");
+          if (config.explainServerLifecycleBindings()) {
+            printMinecraftServerLifecycleBindingsExplain(lifecycleBindingReport);
+          }
+          if (config.serverLifecycleDispatchPlan() || config.explainServerLifecycleDispatchPlan()) {
+            MinecraftServerLifecycleDispatchPlan dispatchPlan =
+                DiagnosticMeasurements.measure(
+                    diagnosticSink,
+                    "minecraft.server_lifecycle_dispatch_plan.plan",
+                    LaunchPhase.COMPLETE,
+                    () ->
+                        new MinecraftServerLifecycleDispatchPlanner().plan(lifecycleBindingReport),
+                    report ->
+                        DiagnosticMeasurements.details(
+                            "gatePassed",
+                            Boolean.toString(report.gatePassed()),
+                            "plannedDispatchCount",
+                            Integer.toString(report.plannedDispatchCount()),
+                            "blockedDispatchCount",
+                            Integer.toString(report.blockedDispatchCount()),
+                            "unsupportedDispatchCount",
+                            Integer.toString(report.unsupportedDispatchCount())));
+            DiagnosticMeasurements.measure(
+                diagnosticSink,
+                "minecraft.server_lifecycle_dispatch_plan.write",
+                LaunchPhase.COMPLETE,
+                () -> {
+                  Path outputPath =
+                      context
+                          .workingDirectory()
+                          .resolve("minecraft-server-lifecycle-dispatch-plan.json");
+                  new MinecraftServerLifecycleDispatchPlanWriter().write(outputPath, dispatchPlan);
+                  return outputPath;
+                },
+                outputPath ->
+                    DiagnosticMeasurements.details(
+                        "serverLifecycleDispatchPlanOutputPath",
+                        DisplayPaths.displayPath(context, outputPath)));
+            megaMilestoneReports.add("minecraft-server-lifecycle-dispatch-plan.json");
+            if (config.explainServerLifecycleDispatchPlan()) {
+              printMinecraftServerLifecycleDispatchPlanExplain(dispatchPlan);
+            }
+          }
         }
       }
       if (config.explainRuntime()) {
@@ -1172,6 +1273,46 @@ public final class MinecraftDryRunFlow {
     System.out.println("[spindle] explain-hook-contracts: warnings " + report.warningCount());
     System.out.println("[spindle] explain-hook-contracts: errors " + report.errorCount());
     System.out.println("[spindle] explain-hook-contracts: wrote minecraft-hook-contracts.json");
+  }
+
+  private static void printMinecraftServerLifecycleBindingsExplain(
+      MinecraftServerLifecycleBindingReport report) {
+    System.out.println(
+        "[spindle] explain-server-lifecycle-bindings: Server lifecycle bindings: "
+            + report.boundPhaseCount()
+            + " bound, "
+            + report.unboundPhaseCount()
+            + " declared unbound.");
+    if (report.gatePassed()) {
+      System.out.println(
+          "[spindle] explain-server-lifecycle-bindings: Starting phase: bound to minecraft.26_1_2.server.main.entrypoint.");
+    } else {
+      System.out.println(
+          "[spindle] explain-server-lifecycle-bindings: lifecycle binding gate failed: "
+              + report.gateFailureReason());
+    }
+    System.out.println(
+        "[spindle] explain-server-lifecycle-bindings: wrote minecraft-server-lifecycle-bindings.json");
+  }
+
+  private static void printMinecraftServerLifecycleDispatchPlanExplain(
+      MinecraftServerLifecycleDispatchPlan plan) {
+    if (plan.gatePassed()) {
+      System.out.println(
+          "[spindle] explain-server-lifecycle-dispatch-plan: Server lifecycle dispatch plan: "
+              + plan.plannedDispatchCount()
+              + " planned, "
+              + plan.unsupportedDispatchCount()
+              + " unsupported.");
+      System.out.println(
+          "[spindle] explain-server-lifecycle-dispatch-plan: Starting dispatch: symbolic internal static dispatch before Minecraft server main.");
+    } else {
+      System.out.println(
+          "[spindle] explain-server-lifecycle-dispatch-plan: Server lifecycle dispatch plan gate failed: "
+              + plan.gateFailureReason());
+    }
+    System.out.println(
+        "[spindle] explain-server-lifecycle-dispatch-plan: wrote minecraft-server-lifecycle-dispatch-plan.json");
   }
 
   private static void printMinecraftHookPlacementExplain(MinecraftHookPlacementPlan plan) {

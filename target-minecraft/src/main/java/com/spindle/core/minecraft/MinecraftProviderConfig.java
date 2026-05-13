@@ -51,6 +51,10 @@ public record MinecraftProviderConfig(
     boolean explainInterpretation,
     boolean hookContracts,
     boolean explainHookContracts,
+    boolean serverLifecycleBindings,
+    boolean explainServerLifecycleBindings,
+    boolean serverLifecycleDispatchPlan,
+    boolean explainServerLifecycleDispatchPlan,
     boolean hookPlacementPlan,
     boolean explainHookPlacement,
     boolean hookBytecodeAnalysis,
@@ -160,6 +164,10 @@ public record MinecraftProviderConfig(
         false, // explainInterpretation
         false, // hookContracts
         false, // explainHookContracts
+        false, // serverLifecycleBindings
+        false, // explainServerLifecycleBindings
+        false, // serverLifecycleDispatchPlan
+        false, // explainServerLifecycleDispatchPlan
         false, // hookPlacementPlan
         false, // explainHookPlacement
         false, // hookBytecodeAnalysis
@@ -297,6 +305,10 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        serverLifecycleBindings,
+        explainServerLifecycleBindings,
+        serverLifecycleDispatchPlan,
+        explainServerLifecycleDispatchPlan,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -377,6 +389,10 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        serverLifecycleBindings,
+        explainServerLifecycleBindings,
+        serverLifecycleDispatchPlan,
+        explainServerLifecycleDispatchPlan,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,
@@ -462,6 +478,8 @@ public record MinecraftProviderConfig(
       boolean explainInterpretation,
       boolean hookContracts,
       boolean explainHookContracts,
+      boolean serverLifecycleBindings,
+      boolean explainServerLifecycleBindings,
       boolean hookPlacementPlan,
       boolean explainHookPlacement,
       boolean hookBytecodeAnalysis,
@@ -528,6 +546,10 @@ public record MinecraftProviderConfig(
         explainInterpretation,
         hookContracts,
         explainHookContracts,
+        serverLifecycleBindings,
+        explainServerLifecycleBindings,
+        false,
+        false,
         hookPlacementPlan,
         explainHookPlacement,
         hookBytecodeAnalysis,

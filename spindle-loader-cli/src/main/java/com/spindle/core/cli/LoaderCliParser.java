@@ -67,6 +67,10 @@ public final class LoaderCliParser {
     boolean minecraftExplainInterpretation = false;
     boolean minecraftHookContracts = false;
     boolean minecraftExplainHookContracts = false;
+    boolean minecraftServerLifecycleBindings = false;
+    boolean minecraftExplainServerLifecycleBindings = false;
+    boolean minecraftServerLifecycleDispatchPlan = false;
+    boolean minecraftExplainServerLifecycleDispatchPlan = false;
     boolean minecraftHookPlacementPlan = false;
     boolean minecraftExplainHookPlacement = false;
     boolean minecraftHookBytecodeAnalysis = false;
@@ -369,6 +373,38 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-server-lifecycle-bindings".equals(argument)) {
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-server-lifecycle-bindings".equals(argument)) {
+        minecraftExplainServerLifecycleBindings = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-server-lifecycle-dispatch-plan".equals(argument)) {
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-server-lifecycle-dispatch-plan".equals(argument)) {
+        minecraftExplainServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
       if ("--minecraft-hook-placement-plan".equals(argument)) {
         minecraftHookPlacementPlan = true;
         minecraftHookContracts = true;
@@ -639,6 +675,10 @@ public final class LoaderCliParser {
             minecraftExplainInterpretation,
             minecraftHookContracts,
             minecraftExplainHookContracts,
+            minecraftServerLifecycleBindings,
+            minecraftExplainServerLifecycleBindings,
+            minecraftServerLifecycleDispatchPlan,
+            minecraftExplainServerLifecycleDispatchPlan,
             minecraftHookPlacementPlan,
             minecraftExplainHookPlacement,
             minecraftHookBytecodeAnalysis,

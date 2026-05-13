@@ -42,6 +42,10 @@ Future hooks should remain subordinate to explicit lifecycle phases instead of i
 Initial caution:
 This pass does not add lifecycle hooks or public lifecycle APIs.
 
+Target-11 now grounds this family in one deterministic analysis-only report. Only `minecraft.server.lifecycle.starting` is bound, and only to the existing Target-3 Minecraft `26.1.2` server main entrypoint contract. `started`, `stopping`, `stopped`, `crashed`, and `reload_requested` remain declared but unbound. No runtime callback, public API, new SteelHook primitive, or sandboxing is added. See [Target-11: Server Lifecycle Binding Analysis](target-11-server-lifecycle-binding-analysis.md).
+
+Target-12 now adds one deterministic analysis-only dispatch plan above that binding report. It plans exactly one symbolic internal static dispatch for `minecraft.server.lifecycle.starting` before Minecraft server main, leaves the other five lifecycle phases declared unsupported for dispatch, does not implement or call a dispatcher, does not add public listener registration, and does not add sandboxing. See [Target-12: Server Lifecycle Dispatch Plan](target-12-server-lifecycle-dispatch-plan.md).
+
 ### 2. Command Registration
 
 Purpose:

@@ -10,6 +10,10 @@ The next boundary-prep arc is documented in [Target Layer API Boundary](../docs/
 
 The named concept vocabulary for future Target Layer, SteelHook, and Modding API planning is documented in [Minecraft Target Concept Roadmap](../docs/architecture/minecraft-target-concept-roadmap.md). That roadmap and its matching internal catalog are documentation/model-only in this pass. They do not add runtime hooks, public APIs, real Minecraft runtime transformation, `StackMapTable` rewriting, command registration, registry/content registration, data generation, networking, client support, or sandboxing.
 
+Target-11 now adds the first analysis-only concept grounding report on top of that roadmap. It writes `minecraft-server-lifecycle-bindings.json`, binds only `minecraft.server.lifecycle.starting` to the existing Target-3 Minecraft `26.1.2` dedicated server main entrypoint contract, and leaves `started`, `stopping`, `stopped`, `crashed`, and `reload_requested` declared but unbound. It does not add runtime lifecycle callbacks, public APIs, new SteelHook primitives, real runtime transformation, or sandboxing.
+
+Target-12 now adds the next analysis-only layer above Target-11. It writes `minecraft-server-lifecycle-dispatch-plan.json`, plans exactly one symbolic internal static dispatch for `minecraft.server.lifecycle.starting`, leaves the other five lifecycle phases declared unsupported for dispatch in this pass, does not implement or call a dispatcher, does not expose public listener registration, and does not imply sandboxing.
+
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
 ## Target-1 artifact interpretation
@@ -179,6 +183,44 @@ It adds `--minecraft-steelhook-0-1-check`, `--minecraft-explain-steelhook-0-1-ch
 Target-10 does not add new hook kinds, real Minecraft runtime transformation, `StackMapTable` rewriting, public APIs, gameplay hooks, Mixin, Java agents, or sandbox claims.
 
 See [Target-10: SteelHook Hardening Caboose](../docs/architecture/target-10-steelhook-hardening-caboose.md) and [SteelHook 0.1 Capability Boundary](../docs/architecture/steelhook-0.1-capability-boundary.md).
+
+## Target-11 server lifecycle binding analysis
+
+Target-11 is the first Minecraft Target Layer concept grounding pass after the roadmap.
+
+It reads the internal concept catalog plus Target-3 hook contract validation and writes `minecraft-server-lifecycle-bindings.json`.
+
+Target-11 remains analysis-only:
+
+- only `minecraft.server.lifecycle.starting` is bound
+- that binding points to `minecraft.26_1_2.server.main.entrypoint`
+- `started`, `stopping`, `stopped`, `crashed`, and `reload_requested` remain declared but unbound
+- no runtime lifecycle callback exists yet
+- no public Modding API exists yet
+- no new SteelHook primitive is added
+- Java mod execution is not sandboxed
+
+See [Target-11: Server Lifecycle Binding Analysis](../docs/architecture/target-11-server-lifecycle-binding-analysis.md).
+
+## Target-12 server lifecycle dispatch plan
+
+Target-12 is the next Minecraft Target Layer concept grounding pass after Target-11.
+
+It reads the Target-11 binding report and writes `minecraft-server-lifecycle-dispatch-plan.json`.
+
+Target-12 remains analysis-only:
+
+- it plans one symbolic internal static dispatch for `minecraft.server.lifecycle.starting`
+- that dispatch is symbolic only and does not implement or call a dispatcher
+- it is non-cancellable and cannot replace results
+- it does not add public listener registration or mod callback execution
+- `started`, `stopping`, `stopped`, `crashed`, and `reload_requested` remain declared unsupported for dispatch
+- no runtime lifecycle callback exists yet
+- no public Modding API exists yet
+- no new SteelHook primitive is added
+- Java mod execution is not sandboxed
+
+See [Target-12: Server Lifecycle Dispatch Plan](../docs/architecture/target-12-server-lifecycle-dispatch-plan.md).
 
 ## Target-4 minimal hook installation proof
 
