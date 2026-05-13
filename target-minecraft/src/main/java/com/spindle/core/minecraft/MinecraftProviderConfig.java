@@ -65,6 +65,8 @@ public record MinecraftProviderConfig(
     boolean explainResourceVisibilityGenerationAnalysis,
     boolean resourceReloadArcDecision,
     boolean explainResourceReloadArcDecision,
+    boolean registryBootstrapAnalysis,
+    boolean explainRegistryBootstrapAnalysis,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
@@ -194,6 +196,8 @@ public record MinecraftProviderConfig(
         false, // explainResourceVisibilityGenerationAnalysis
         false, // resourceReloadArcDecision
         false, // explainResourceReloadArcDecision
+        false, // registryBootstrapAnalysis
+        false, // explainRegistryBootstrapAnalysis
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
@@ -351,6 +355,8 @@ public record MinecraftProviderConfig(
         explainResourceVisibilityGenerationAnalysis,
         resourceReloadArcDecision,
         explainResourceReloadArcDecision,
+        registryBootstrapAnalysis,
+        explainRegistryBootstrapAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -451,6 +457,8 @@ public record MinecraftProviderConfig(
         explainResourceVisibilityGenerationAnalysis,
         resourceReloadArcDecision,
         explainResourceReloadArcDecision,
+        registryBootstrapAnalysis,
+        explainRegistryBootstrapAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -556,6 +564,8 @@ public record MinecraftProviderConfig(
       boolean explainResourceVisibilityGenerationAnalysis,
       boolean resourceReloadArcDecision,
       boolean explainResourceReloadArcDecision,
+      boolean registryBootstrapAnalysis,
+      boolean explainRegistryBootstrapAnalysis,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
@@ -642,6 +652,8 @@ public record MinecraftProviderConfig(
         explainResourceVisibilityGenerationAnalysis,
         resourceReloadArcDecision,
         explainResourceReloadArcDecision,
+        registryBootstrapAnalysis,
+        explainRegistryBootstrapAnalysis,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,

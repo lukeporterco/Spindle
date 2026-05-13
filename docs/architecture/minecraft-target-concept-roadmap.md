@@ -113,6 +113,8 @@ Registry-related internals should remain target-owned and deterministic rather t
 Initial caution:
 This pass does not implement registry or content registration behavior.
 
+Target-21 now adds the first deterministic analysis-only report for this family. It writes `minecraft-registry-bootstrap-analysis.json`, consumes Target-1 interpreted metadata plus the Target-20 registry handoff decision, names registry bootstrap/content registration boundaries, discovers registry-like metadata candidates, and classifies future access requirements in one combined pass. It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, design a new SteelHook primitive, or imply sandboxing. Target-22 must harden and synthesize this registry arc before any implementation decision.
+
 ### 5. Server Tick and Scheduled Work
 
 Purpose:

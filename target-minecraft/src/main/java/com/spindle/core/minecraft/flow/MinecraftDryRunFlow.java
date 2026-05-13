@@ -79,6 +79,11 @@ import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleBindingRepor
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlan;
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanWriter;
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanner;
+import com.spindle.core.minecraft.registry.MinecraftRegistryBindingStatus;
+import com.spindle.core.minecraft.registry.MinecraftRegistryBootstrapAnalysis;
+import com.spindle.core.minecraft.registry.MinecraftRegistryBootstrapAnalysisWriter;
+import com.spindle.core.minecraft.registry.MinecraftRegistryBootstrapAnalyzer;
+import com.spindle.core.minecraft.registry.MinecraftRegistryDiscoveryStatus;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysis;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysisWriter;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalyzer;
@@ -148,6 +153,8 @@ public final class MinecraftDryRunFlow {
             || config.explainResourceVisibilityGenerationAnalysis()
             || config.resourceReloadArcDecision()
             || config.explainResourceReloadArcDecision()
+            || config.registryBootstrapAnalysis()
+            || config.explainRegistryBootstrapAnalysis()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
@@ -393,6 +400,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainResourceVisibilityGenerationAnalysis()
                 || config.resourceReloadArcDecision()
                 || config.explainResourceReloadArcDecision()
+                || config.registryBootstrapAnalysis()
+                || config.explainRegistryBootstrapAnalysis()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
@@ -545,6 +554,8 @@ public final class MinecraftDryRunFlow {
           || config.explainResourceVisibilityGenerationAnalysis()
           || config.resourceReloadArcDecision()
           || config.explainResourceReloadArcDecision()
+          || config.registryBootstrapAnalysis()
+          || config.explainRegistryBootstrapAnalysis()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
@@ -708,7 +719,18 @@ public final class MinecraftDryRunFlow {
             if (config.explainServerLifecycleDispatchPlan()) {
               printMinecraftServerLifecycleDispatchPlanExplain(dispatchPlan);
             }
-            if (config.resourceReloadAnalysis() || config.explainResourceReloadAnalysis()) {
+            if (config.resourceReloadAnalysis()
+                || config.explainResourceReloadAnalysis()
+                || config.resourceReloadSymbolAnalysis()
+                || config.explainResourceReloadSymbolAnalysis()
+                || config.resourceReloadBindingAnalysis()
+                || config.explainResourceReloadBindingAnalysis()
+                || config.resourceVisibilityGenerationAnalysis()
+                || config.explainResourceVisibilityGenerationAnalysis()
+                || config.resourceReloadArcDecision()
+                || config.explainResourceReloadArcDecision()
+                || config.registryBootstrapAnalysis()
+                || config.explainRegistryBootstrapAnalysis()) {
               MinecraftResourceReloadAnalysis resourceReloadAnalysis =
                   DiagnosticMeasurements.measure(
                       diagnosticSink,
@@ -753,7 +775,11 @@ public final class MinecraftDryRunFlow {
                   || config.resourceReloadBindingAnalysis()
                   || config.explainResourceReloadBindingAnalysis()
                   || config.resourceVisibilityGenerationAnalysis()
-                  || config.explainResourceVisibilityGenerationAnalysis()) {
+                  || config.explainResourceVisibilityGenerationAnalysis()
+                  || config.resourceReloadArcDecision()
+                  || config.explainResourceReloadArcDecision()
+                  || config.registryBootstrapAnalysis()
+                  || config.explainRegistryBootstrapAnalysis()) {
                 MinecraftArtifactInterpretation resourceReloadSymbolInterpretation = interpretation;
                 MinecraftResourceReloadSymbolAnalysis resourceReloadSymbolAnalysis =
                     DiagnosticMeasurements.measure(
@@ -800,7 +826,9 @@ public final class MinecraftDryRunFlow {
                     || config.resourceVisibilityGenerationAnalysis()
                     || config.explainResourceVisibilityGenerationAnalysis()
                     || config.resourceReloadArcDecision()
-                    || config.explainResourceReloadArcDecision()) {
+                    || config.explainResourceReloadArcDecision()
+                    || config.registryBootstrapAnalysis()
+                    || config.explainRegistryBootstrapAnalysis()) {
                   MinecraftResourceReloadBindingAnalysis resourceReloadBindingAnalysis =
                       DiagnosticMeasurements.measure(
                           diagnosticSink,
@@ -844,7 +872,9 @@ public final class MinecraftDryRunFlow {
                   if (config.resourceVisibilityGenerationAnalysis()
                       || config.explainResourceVisibilityGenerationAnalysis()
                       || config.resourceReloadArcDecision()
-                      || config.explainResourceReloadArcDecision()) {
+                      || config.explainResourceReloadArcDecision()
+                      || config.registryBootstrapAnalysis()
+                      || config.explainRegistryBootstrapAnalysis()) {
                     MinecraftResourceVisibilityGenerationAnalysis
                         resourceVisibilityGenerationAnalysis =
                             DiagnosticMeasurements.measure(
@@ -891,7 +921,9 @@ public final class MinecraftDryRunFlow {
                           resourceVisibilityGenerationAnalysis);
                     }
                     if (config.resourceReloadArcDecision()
-                        || config.explainResourceReloadArcDecision()) {
+                        || config.explainResourceReloadArcDecision()
+                        || config.registryBootstrapAnalysis()
+                        || config.explainRegistryBootstrapAnalysis()) {
                       MinecraftResourceReloadArcDecisionAnalysis resourceReloadArcDecisionAnalysis =
                           DiagnosticMeasurements.measure(
                               diagnosticSink,
@@ -935,6 +967,54 @@ public final class MinecraftDryRunFlow {
                       if (config.explainResourceReloadArcDecision()) {
                         printMinecraftResourceReloadArcDecisionExplain(
                             resourceReloadArcDecisionAnalysis);
+                      }
+                      if (config.registryBootstrapAnalysis()
+                          || config.explainRegistryBootstrapAnalysis()) {
+                        MinecraftArtifactInterpretation registryInterpretation = interpretation;
+                        MinecraftRegistryBootstrapAnalysis registryBootstrapAnalysis =
+                            DiagnosticMeasurements.measure(
+                                diagnosticSink,
+                                "minecraft.registry_bootstrap_analysis.analyze",
+                                LaunchPhase.COMPLETE,
+                                () ->
+                                    new MinecraftRegistryBootstrapAnalyzer()
+                                        .analyze(
+                                            new MinecraftTargetConceptCatalog(),
+                                            registryInterpretation,
+                                            resourceReloadArcDecisionAnalysis),
+                                analysis ->
+                                    DiagnosticMeasurements.details(
+                                        "gatePassed",
+                                        Boolean.toString(analysis.gatePassed()),
+                                        "discoveryStatus",
+                                        analysis.discoveryStatus().name(),
+                                        "bindingStatus",
+                                        analysis.bindingStatus().name(),
+                                        "candidateCount",
+                                        Integer.toString(analysis.candidateCount()),
+                                        "selectableCandidateCount",
+                                        Integer.toString(analysis.selectableCandidateCount())));
+                        DiagnosticMeasurements.measure(
+                            diagnosticSink,
+                            "minecraft.registry_bootstrap_analysis.write",
+                            LaunchPhase.COMPLETE,
+                            () -> {
+                              Path outputPath =
+                                  context
+                                      .workingDirectory()
+                                      .resolve("minecraft-registry-bootstrap-analysis.json");
+                              new MinecraftRegistryBootstrapAnalysisWriter()
+                                  .write(outputPath, registryBootstrapAnalysis);
+                              return outputPath;
+                            },
+                            outputPath ->
+                                DiagnosticMeasurements.details(
+                                    "registryBootstrapAnalysisOutputPath",
+                                    DisplayPaths.displayPath(context, outputPath)));
+                        megaMilestoneReports.add("minecraft-registry-bootstrap-analysis.json");
+                        if (config.explainRegistryBootstrapAnalysis()) {
+                          printMinecraftRegistryBootstrapAnalysisExplain(registryBootstrapAnalysis);
+                        }
                       }
                     }
                   }
@@ -1908,6 +1988,36 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-resource-reload-arc-decision: wrote minecraft-resource-reload-arc-decision.json");
+  }
+
+  private static void printMinecraftRegistryBootstrapAnalysisExplain(
+      MinecraftRegistryBootstrapAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-registry-bootstrap-analysis: Target-21 registry bootstrap/content registration analysis is analysis-only.");
+    System.out.println(
+        "[spindle] explain-registry-bootstrap-analysis: It consumes Target-1 interpreted metadata and the Target-20 registry handoff decision.");
+    System.out.println(
+        "[spindle] explain-registry-bootstrap-analysis: It names registry bootstrap/content registration boundaries, discovers registry-like metadata candidates, and classifies future access requirements.");
+    System.out.println(
+        "[spindle] explain-registry-bootstrap-analysis: It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, or design a new SteelHook primitive.");
+    if (analysis.bindingStatus() == MinecraftRegistryBindingStatus.UPSTREAM_GATE_BLOCKED
+        || analysis.discoveryStatus() == MinecraftRegistryDiscoveryStatus.UPSTREAM_GATE_BLOCKED) {
+      System.out.println(
+          "[spindle] explain-registry-bootstrap-analysis: Registry bootstrap/content registration analysis gate failed: "
+              + analysis.gateFailureReason());
+    } else if (analysis.discoveryStatus() == MinecraftRegistryDiscoveryStatus.NO_CANDIDATES) {
+      System.out.println(
+          "[spindle] explain-registry-bootstrap-analysis: No registry bootstrap/content registration metadata candidates were discovered.");
+    } else if (analysis.discoveryStatus()
+        == MinecraftRegistryDiscoveryStatus.ONLY_REJECTED_CANDIDATES) {
+      System.out.println(
+          "[spindle] explain-registry-bootstrap-analysis: Only rejected registry bootstrap/content registration candidates were discovered.");
+    } else {
+      System.out.println(
+          "[spindle] explain-registry-bootstrap-analysis: Registry bootstrap/content registration binding requirements were classified for selectable candidates; registry implementation is still not recommended.");
+    }
+    System.out.println(
+        "[spindle] explain-registry-bootstrap-analysis: wrote minecraft-registry-bootstrap-analysis.json");
   }
 
   private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(
