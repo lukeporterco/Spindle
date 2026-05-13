@@ -113,7 +113,9 @@ Registry-related internals should remain target-owned and deterministic rather t
 Initial caution:
 This pass does not implement registry or content registration behavior.
 
-Target-21 now adds the first deterministic analysis-only report for this family. It writes `minecraft-registry-bootstrap-analysis.json`, consumes Target-1 interpreted metadata plus the Target-20 registry handoff decision, names registry bootstrap/content registration boundaries, discovers registry-like metadata candidates, and classifies future access requirements in one combined pass. It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, design a new SteelHook primitive, or imply sandboxing. Target-22 must harden and synthesize this registry arc before any implementation decision.
+Target-21 now adds the first deterministic analysis-only report for this family. It writes `minecraft-registry-bootstrap-analysis.json`, consumes Target-1 interpreted metadata plus the Target-20 registry handoff decision, names registry bootstrap/content registration boundaries, discovers registry-like metadata candidates, and classifies future access requirements in one combined pass. It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, design a new SteelHook primitive, or imply sandboxing.
+
+Target-22 now hardens Target-21 with one deterministic analysis-only synthesis report. It writes `minecraft-registry-arc-hardening.json`, validates Target-21 invariants instead of doing more discovery, closes the registry arc for now when those invariants pass, and may recommend SteelHook 0.2 primitive design next. Registry implementation remains blocked. See [Target-22: Registry Arc Hardening and Synthesis](target-22-registry-arc-hardening-synthesis.md).
 
 ### 5. Server Tick and Scheduled Work
 

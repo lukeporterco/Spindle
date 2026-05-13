@@ -11,6 +11,12 @@ public final class LaunchArgumentResolver {
       throws LoaderException {
     MinecraftProviderConfig resolvedMinecraftProviderConfig =
         launchArguments.minecraftProviderConfig().resolveAgainst(workingDirectory);
+    if ("minecraft".equals(launchArguments.gameProviderId())
+        && requestsServerOnlyMinecraftTargetAnalysis(resolvedMinecraftProviderConfig)
+        && resolvedMinecraftProviderConfig.side() != MinecraftSide.SERVER) {
+      throw new LoaderException(
+          "Minecraft artifact interpretation, hook contract diagnostics, server lifecycle binding analysis, and hook installation planning currently support the server-side Minecraft runtime only.");
+    }
     if (!"minecraft".equals(launchArguments.gameProviderId())
         && resolvedMinecraftProviderConfig.realSmoke()) {
       throw new LoaderException("--minecraft-real-smoke requires --game-provider minecraft");
@@ -54,5 +60,44 @@ public final class LaunchArgumentResolver {
         .withMinecraftProviderConfig(resolvedMinecraftProviderConfig)
         .withMacheDirectory(
             CliParsing.resolveOptionalPath(workingDirectory, launchArguments.macheDirectory()));
+  }
+
+  private boolean requestsServerOnlyMinecraftTargetAnalysis(MinecraftProviderConfig config) {
+    return config.interpretArtifact()
+        || config.hookContracts()
+        || config.explainHookContracts()
+        || config.serverLifecycleBindings()
+        || config.explainServerLifecycleBindings()
+        || config.serverLifecycleDispatchPlan()
+        || config.explainServerLifecycleDispatchPlan()
+        || config.resourceReloadAnalysis()
+        || config.explainResourceReloadAnalysis()
+        || config.resourceReloadSymbolAnalysis()
+        || config.explainResourceReloadSymbolAnalysis()
+        || config.resourceReloadBindingAnalysis()
+        || config.explainResourceReloadBindingAnalysis()
+        || config.resourceVisibilityGenerationAnalysis()
+        || config.explainResourceVisibilityGenerationAnalysis()
+        || config.resourceReloadArcDecision()
+        || config.explainResourceReloadArcDecision()
+        || config.registryBootstrapAnalysis()
+        || config.explainRegistryBootstrapAnalysis()
+        || config.registryArcHardening()
+        || config.explainRegistryArcHardening()
+        || config.commandRegistrationAnalysis()
+        || config.explainCommandRegistrationAnalysis()
+        || config.commandDispatcherSymbolAnalysis()
+        || config.explainCommandDispatcherSymbolAnalysis()
+        || config.commandDispatcherBindingAnalysis()
+        || config.explainCommandDispatcherBindingAnalysis()
+        || config.hookPlacementPlan()
+        || config.explainHookPlacement()
+        || config.hookBytecodeAnalysis()
+        || config.explainHookBytecodeAnalysis()
+        || config.hookPatchPlan()
+        || config.bootstrapTransformHooks()
+        || config.explainHookPatchPlan()
+        || config.hookInstallationPlan()
+        || config.installHooks();
   }
 }

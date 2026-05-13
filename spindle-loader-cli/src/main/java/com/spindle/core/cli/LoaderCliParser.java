@@ -83,6 +83,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainResourceReloadArcDecision = false;
     boolean minecraftRegistryBootstrapAnalysis = false;
     boolean minecraftExplainRegistryBootstrapAnalysis = false;
+    boolean minecraftRegistryArcHardening = false;
+    boolean minecraftExplainRegistryArcHardening = false;
     boolean minecraftCommandRegistrationAnalysis = false;
     boolean minecraftExplainCommandRegistrationAnalysis = false;
     boolean minecraftCommandDispatcherSymbolAnalysis = false;
@@ -567,6 +569,37 @@ public final class LoaderCliParser {
         minecraftRuntimePlan = true;
         continue;
       }
+      if ("--minecraft-registry-arc-hardening".equals(argument)) {
+        minecraftRegistryArcHardening = true;
+        minecraftRegistryBootstrapAnalysis = true;
+        minecraftResourceReloadArcDecision = true;
+        minecraftResourceVisibilityGenerationAnalysis = true;
+        minecraftResourceReloadBindingAnalysis = true;
+        minecraftResourceReloadSymbolAnalysis = true;
+        minecraftResourceReloadAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-registry-arc-hardening".equals(argument)) {
+        minecraftExplainRegistryArcHardening = true;
+        minecraftRegistryArcHardening = true;
+        minecraftRegistryBootstrapAnalysis = true;
+        minecraftResourceReloadArcDecision = true;
+        minecraftResourceVisibilityGenerationAnalysis = true;
+        minecraftResourceReloadBindingAnalysis = true;
+        minecraftResourceReloadSymbolAnalysis = true;
+        minecraftResourceReloadAnalysis = true;
+        minecraftServerLifecycleDispatchPlan = true;
+        minecraftServerLifecycleBindings = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        continue;
+      }
       if ("--minecraft-command-registration-analysis".equals(argument)) {
         minecraftCommandRegistrationAnalysis = true;
         minecraftServerLifecycleDispatchPlan = true;
@@ -916,6 +949,8 @@ public final class LoaderCliParser {
             minecraftExplainResourceReloadArcDecision,
             minecraftRegistryBootstrapAnalysis,
             minecraftExplainRegistryBootstrapAnalysis,
+            minecraftRegistryArcHardening,
+            minecraftExplainRegistryArcHardening,
             minecraftCommandRegistrationAnalysis,
             minecraftExplainCommandRegistrationAnalysis,
             minecraftCommandDispatcherSymbolAnalysis,

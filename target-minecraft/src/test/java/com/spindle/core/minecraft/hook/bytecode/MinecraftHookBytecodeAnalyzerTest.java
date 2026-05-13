@@ -171,10 +171,28 @@ class MinecraftHookBytecodeAnalyzerTest {
 
   @Test
   void exceptionHandlerIntoMiddleOfInstructionFailsValidation() throws Exception {
+    Path validServerJar =
+        createJar(
+            tempDirectory.resolve("server-valid-exception.jar"),
+            readResourceBytes("net/minecraft/server/Main.class"),
+            "net/minecraft/server/Main.class");
+    MinecraftHookPlacementPlan validPlacementPlan =
+        placementPlanner.plan(
+            validContractReport(),
+            executionPlan("net.minecraft.server.Main"),
+            runtimePlan(validServerJar));
+    MinecraftHookBytecodeAnalysisReport validReport =
+        analyzer.analyze(
+            validPlacementPlan,
+            executionPlan("net.minecraft.server.Main"),
+            runtimePlan(validServerJar));
+    int invalidHandlerPc = findNonInstructionBoundary(validReport);
+
     Path serverJar =
         createJar(
             tempDirectory.resolve("server-invalid-exception.jar"),
-            withInvalidHandlerPc(readResourceBytes("net/minecraft/server/Main.class"), 3),
+            withInvalidHandlerPc(
+                readResourceBytes("net/minecraft/server/Main.class"), invalidHandlerPc),
             "net/minecraft/server/Main.class");
     MinecraftHookPlacementPlan placementPlan =
         placementPlanner.plan(
@@ -189,6 +207,18 @@ class MinecraftHookBytecodeAnalyzerTest {
     assertFalse(report.gatePassed());
     assertFalse(report.exceptionTableValidationPassed());
     assertNotNull(report.gateFailureReason());
+  }
+
+  private int findNonInstructionBoundary(MinecraftHookBytecodeAnalysisReport report) {
+    for (MinecraftDecodedInstruction instruction : report.decodedInstructions()) {
+      for (int offset = instruction.offset() + 1;
+          offset < instruction.offset() + instruction.length();
+          offset++) {
+        return offset;
+      }
+    }
+    throw new IllegalStateException(
+        "Expected at least one non-boundary bytecode offset in fixture method.");
   }
 
   private MinecraftHookContractReport validContractReport() {

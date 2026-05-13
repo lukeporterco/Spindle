@@ -67,6 +67,8 @@ public record MinecraftProviderConfig(
     boolean explainResourceReloadArcDecision,
     boolean registryBootstrapAnalysis,
     boolean explainRegistryBootstrapAnalysis,
+    boolean registryArcHardening,
+    boolean explainRegistryArcHardening,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
@@ -198,6 +200,8 @@ public record MinecraftProviderConfig(
         false, // explainResourceReloadArcDecision
         false, // registryBootstrapAnalysis
         false, // explainRegistryBootstrapAnalysis
+        false, // registryArcHardening
+        false, // explainRegistryArcHardening
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
@@ -357,6 +361,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadArcDecision,
         registryBootstrapAnalysis,
         explainRegistryBootstrapAnalysis,
+        registryArcHardening,
+        explainRegistryArcHardening,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -459,6 +465,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadArcDecision,
         registryBootstrapAnalysis,
         explainRegistryBootstrapAnalysis,
+        registryArcHardening,
+        explainRegistryArcHardening,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -566,6 +574,8 @@ public record MinecraftProviderConfig(
       boolean explainResourceReloadArcDecision,
       boolean registryBootstrapAnalysis,
       boolean explainRegistryBootstrapAnalysis,
+      boolean registryArcHardening,
+      boolean explainRegistryArcHardening,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
@@ -654,6 +664,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadArcDecision,
         registryBootstrapAnalysis,
         explainRegistryBootstrapAnalysis,
+        registryArcHardening,
+        explainRegistryArcHardening,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,

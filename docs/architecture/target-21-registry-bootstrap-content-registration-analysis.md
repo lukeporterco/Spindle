@@ -10,4 +10,4 @@ It combines boundary naming, metadata discovery, and access classification for t
 
 It does not implement registries, content registration, public APIs, callbacks, hooks, runtime mutation, data generation, resource access, datapack access, mappings, decompiled source inspection, SteelHook primitive design, real Minecraft transformation, or sandboxing.
 
-Target-22 will harden and synthesize the registry arc before any SteelHook 0.2 or implementation decision.
+Target-22 completes the next handoff with invariant hardening and synthesis in [Target-22: Registry Arc Hardening and Synthesis](target-22-registry-arc-hardening-synthesis.md).

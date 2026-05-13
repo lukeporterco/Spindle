@@ -79,6 +79,9 @@ import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleBindingRepor
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlan;
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanWriter;
 import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlanner;
+import com.spindle.core.minecraft.registry.MinecraftRegistryArcHardeningAnalysis;
+import com.spindle.core.minecraft.registry.MinecraftRegistryArcHardeningAnalysisWriter;
+import com.spindle.core.minecraft.registry.MinecraftRegistryArcHardeningAnalyzer;
 import com.spindle.core.minecraft.registry.MinecraftRegistryBindingStatus;
 import com.spindle.core.minecraft.registry.MinecraftRegistryBootstrapAnalysis;
 import com.spindle.core.minecraft.registry.MinecraftRegistryBootstrapAnalysisWriter;
@@ -155,6 +158,8 @@ public final class MinecraftDryRunFlow {
             || config.explainResourceReloadArcDecision()
             || config.registryBootstrapAnalysis()
             || config.explainRegistryBootstrapAnalysis()
+            || config.registryArcHardening()
+            || config.explainRegistryArcHardening()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
@@ -402,6 +407,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainResourceReloadArcDecision()
                 || config.registryBootstrapAnalysis()
                 || config.explainRegistryBootstrapAnalysis()
+                || config.registryArcHardening()
+                || config.explainRegistryArcHardening()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
@@ -556,6 +563,8 @@ public final class MinecraftDryRunFlow {
           || config.explainResourceReloadArcDecision()
           || config.registryBootstrapAnalysis()
           || config.explainRegistryBootstrapAnalysis()
+          || config.registryArcHardening()
+          || config.explainRegistryArcHardening()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
@@ -730,7 +739,9 @@ public final class MinecraftDryRunFlow {
                 || config.resourceReloadArcDecision()
                 || config.explainResourceReloadArcDecision()
                 || config.registryBootstrapAnalysis()
-                || config.explainRegistryBootstrapAnalysis()) {
+                || config.explainRegistryBootstrapAnalysis()
+                || config.registryArcHardening()
+                || config.explainRegistryArcHardening()) {
               MinecraftResourceReloadAnalysis resourceReloadAnalysis =
                   DiagnosticMeasurements.measure(
                       diagnosticSink,
@@ -779,7 +790,9 @@ public final class MinecraftDryRunFlow {
                   || config.resourceReloadArcDecision()
                   || config.explainResourceReloadArcDecision()
                   || config.registryBootstrapAnalysis()
-                  || config.explainRegistryBootstrapAnalysis()) {
+                  || config.explainRegistryBootstrapAnalysis()
+                  || config.registryArcHardening()
+                  || config.explainRegistryArcHardening()) {
                 MinecraftArtifactInterpretation resourceReloadSymbolInterpretation = interpretation;
                 MinecraftResourceReloadSymbolAnalysis resourceReloadSymbolAnalysis =
                     DiagnosticMeasurements.measure(
@@ -828,7 +841,9 @@ public final class MinecraftDryRunFlow {
                     || config.resourceReloadArcDecision()
                     || config.explainResourceReloadArcDecision()
                     || config.registryBootstrapAnalysis()
-                    || config.explainRegistryBootstrapAnalysis()) {
+                    || config.explainRegistryBootstrapAnalysis()
+                    || config.registryArcHardening()
+                    || config.explainRegistryArcHardening()) {
                   MinecraftResourceReloadBindingAnalysis resourceReloadBindingAnalysis =
                       DiagnosticMeasurements.measure(
                           diagnosticSink,
@@ -874,7 +889,9 @@ public final class MinecraftDryRunFlow {
                       || config.resourceReloadArcDecision()
                       || config.explainResourceReloadArcDecision()
                       || config.registryBootstrapAnalysis()
-                      || config.explainRegistryBootstrapAnalysis()) {
+                      || config.explainRegistryBootstrapAnalysis()
+                      || config.registryArcHardening()
+                      || config.explainRegistryArcHardening()) {
                     MinecraftResourceVisibilityGenerationAnalysis
                         resourceVisibilityGenerationAnalysis =
                             DiagnosticMeasurements.measure(
@@ -923,7 +940,9 @@ public final class MinecraftDryRunFlow {
                     if (config.resourceReloadArcDecision()
                         || config.explainResourceReloadArcDecision()
                         || config.registryBootstrapAnalysis()
-                        || config.explainRegistryBootstrapAnalysis()) {
+                        || config.explainRegistryBootstrapAnalysis()
+                        || config.registryArcHardening()
+                        || config.explainRegistryArcHardening()) {
                       MinecraftResourceReloadArcDecisionAnalysis resourceReloadArcDecisionAnalysis =
                           DiagnosticMeasurements.measure(
                               diagnosticSink,
@@ -969,7 +988,9 @@ public final class MinecraftDryRunFlow {
                             resourceReloadArcDecisionAnalysis);
                       }
                       if (config.registryBootstrapAnalysis()
-                          || config.explainRegistryBootstrapAnalysis()) {
+                          || config.explainRegistryBootstrapAnalysis()
+                          || config.registryArcHardening()
+                          || config.explainRegistryArcHardening()) {
                         MinecraftArtifactInterpretation registryInterpretation = interpretation;
                         MinecraftRegistryBootstrapAnalysis registryBootstrapAnalysis =
                             DiagnosticMeasurements.measure(
@@ -1014,6 +1035,49 @@ public final class MinecraftDryRunFlow {
                         megaMilestoneReports.add("minecraft-registry-bootstrap-analysis.json");
                         if (config.explainRegistryBootstrapAnalysis()) {
                           printMinecraftRegistryBootstrapAnalysisExplain(registryBootstrapAnalysis);
+                        }
+                        if (config.registryArcHardening() || config.explainRegistryArcHardening()) {
+                          MinecraftRegistryArcHardeningAnalysis registryArcHardeningAnalysis =
+                              DiagnosticMeasurements.measure(
+                                  diagnosticSink,
+                                  "minecraft.registry_arc_hardening.analyze",
+                                  LaunchPhase.COMPLETE,
+                                  () ->
+                                      new MinecraftRegistryArcHardeningAnalyzer()
+                                          .analyze(
+                                              resourceReloadArcDecisionAnalysis,
+                                              registryBootstrapAnalysis),
+                                  analysis ->
+                                      DiagnosticMeasurements.details(
+                                          "gatePassed",
+                                          Boolean.toString(analysis.gatePassed()),
+                                          "hardeningStatus",
+                                          analysis.hardeningStatus().name(),
+                                          "nextDirection",
+                                          analysis.nextDirection().name(),
+                                          "blockingFindingCount",
+                                          Integer.toString(analysis.blockingFindingCount())));
+                          DiagnosticMeasurements.measure(
+                              diagnosticSink,
+                              "minecraft.registry_arc_hardening.write",
+                              LaunchPhase.COMPLETE,
+                              () -> {
+                                Path outputPath =
+                                    context
+                                        .workingDirectory()
+                                        .resolve("minecraft-registry-arc-hardening.json");
+                                new MinecraftRegistryArcHardeningAnalysisWriter()
+                                    .write(outputPath, registryArcHardeningAnalysis);
+                                return outputPath;
+                              },
+                              outputPath ->
+                                  DiagnosticMeasurements.details(
+                                      "registryArcHardeningOutputPath",
+                                      DisplayPaths.displayPath(context, outputPath)));
+                          megaMilestoneReports.add("minecraft-registry-arc-hardening.json");
+                          if (config.explainRegistryArcHardening()) {
+                            printMinecraftRegistryArcHardeningExplain(registryArcHardeningAnalysis);
+                          }
                         }
                       }
                     }
@@ -2018,6 +2082,34 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-registry-bootstrap-analysis: wrote minecraft-registry-bootstrap-analysis.json");
+  }
+
+  private static void printMinecraftRegistryArcHardeningExplain(
+      MinecraftRegistryArcHardeningAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-registry-arc-hardening: Target-22 registry arc hardening is analysis-only.");
+    System.out.println(
+        "[spindle] explain-registry-arc-hardening: It consumes the Target-20 registry handoff and Target-21 registry bootstrap/content registration analysis.");
+    System.out.println(
+        "[spindle] explain-registry-arc-hardening: It validates Target-21 invariants, checks that runtime/mutation/API/sandbox behavior remains absent, and synthesizes the next architecture direction.");
+    System.out.println(
+        "[spindle] explain-registry-arc-hardening: It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, or implement SteelHook 0.2.");
+    switch (analysis.hardeningStatus()) {
+      case UPSTREAM_GATE_BLOCKED ->
+          System.out.println(
+              "[spindle] explain-registry-arc-hardening: Registry arc hardening is blocked by upstream Target-20 or Target-21 gates.");
+      case INVARIANTS_FAILED ->
+          System.out.println(
+              "[spindle] explain-registry-arc-hardening: Registry arc hardening found invariant failures that must be fixed before the next architecture decision.");
+      case REGISTRY_ARC_HARDENED_FOR_STEELHOOK_0_2 ->
+          System.out.println(
+              "[spindle] explain-registry-arc-hardening: Registry arc hardening recommends SteelHook 0.2 primitive design next; registry implementation remains blocked.");
+      case REGISTRY_ARC_HARDENED_MORE_CONCEPT_EVIDENCE_REQUIRED ->
+          System.out.println(
+              "[spindle] explain-registry-arc-hardening: Registry arc hardening recommends more registry concept evidence before SteelHook 0.2 design.");
+    }
+    System.out.println(
+        "[spindle] explain-registry-arc-hardening: wrote minecraft-registry-arc-hardening.json");
   }
 
   private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(

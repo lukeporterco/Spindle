@@ -178,7 +178,9 @@ Target-19 now adds the next concept-grounding report for data, resources, reload
 
 Target-20 now adds the caboose decision report for data, resources, reload, and future data generation. It is still analysis-only. It writes `minecraft-resource-reload-arc-decision.json`, consumes Target-16, Target-17, Target-18, and Target-19 resource/reload reports, closes the resource/reload arc for now, and records the decision to move next to Registry Bootstrap and Content Registration. It does not implement registries, discover registry symbols, design registry APIs, mutate registries, design a SteelHook primitive, implement reload handling, access resources or datapacks, generate data, write generated files, expose public APIs, or imply Java mod execution is sandboxed. Target-21 may begin Registry Bootstrap and Content Registration boundary analysis.
 
-Target-21 now adds the first concept-grounding report for Registry Bootstrap and Content Registration. It is still analysis-only. It writes `minecraft-registry-bootstrap-analysis.json`, consumes Target-1 interpreted metadata plus the Target-20 registry handoff decision, names registry bootstrap/content registration boundaries, discovers registry-like metadata candidates, and classifies future access requirements in one combined pass. It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, design a new SteelHook primitive, or imply Java mod execution is sandboxed. Target-22 must harden and synthesize this registry arc before any implementation decision.
+Target-21 now adds the first concept-grounding report for Registry Bootstrap and Content Registration. It is still analysis-only. It writes `minecraft-registry-bootstrap-analysis.json`, consumes Target-1 interpreted metadata plus the Target-20 registry handoff decision, names registry bootstrap/content registration boundaries, discovers registry-like metadata candidates, and classifies future access requirements in one combined pass. It does not implement registries, mutate registries, expose public APIs, dispatch runtime callbacks, install hooks, transform classes, access resources or datapacks, generate data, design a new SteelHook primitive, or imply Java mod execution is sandboxed.
+
+Target-22 now hardens and synthesizes that registry arc. It is still analysis-only. It writes `minecraft-registry-arc-hardening.json`, consumes Target-20 plus Target-21, validates Target-21 invariants instead of broadening registry discovery, and may recommend SteelHook 0.2 primitive design only as the next design activity. Registry implementation remains blocked, and Target-22 does not implement SteelHook 0.2.
 
 SteelHook currently has a narrow proof chain:
 
@@ -582,6 +584,7 @@ runtime/minecraft-resource-reload-binding-analysis.json
 runtime/minecraft-resource-visibility-generation-analysis.json
 runtime/minecraft-resource-reload-arc-decision.json
 runtime/minecraft-registry-bootstrap-analysis.json
+runtime/minecraft-registry-arc-hardening.json
 runtime/minecraft-steelhook-0.1-report.json
 ```
 
@@ -649,6 +652,7 @@ docs/architecture/target-18-resource-reload-binding-analysis.md
 docs/architecture/target-19-resource-visibility-generation-separation.md
 docs/architecture/target-20-resource-reload-arc-caboose.md
 docs/architecture/target-21-registry-bootstrap-content-registration-analysis.md
+docs/architecture/target-22-registry-arc-hardening-synthesis.md
 ```
 
 Mod-facing docs:
