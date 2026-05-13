@@ -61,6 +61,6 @@ This pass does not add:
 - bootstrap transformation
 - SteelHook completion behavior
 
-Target-17 writes `minecraft-resource-reload-symbol-analysis.json` and may perform candidate-only resource/reload symbol discovery.
-Target-18 may classify resource/reload binding strategy.
-Target-19 may separate runtime resource visibility from future offline data generation design.
+Target-17 writes `minecraft-resource-reload-symbol-analysis.json` and performs candidate-only resource/reload symbol discovery.
+Target-18 now classifies resource/reload binding strategy.
+Target-19 now separates runtime resource visibility from future offline data generation design.

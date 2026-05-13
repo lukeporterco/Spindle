@@ -63,6 +63,8 @@ public record MinecraftProviderConfig(
     boolean explainResourceReloadBindingAnalysis,
     boolean resourceVisibilityGenerationAnalysis,
     boolean explainResourceVisibilityGenerationAnalysis,
+    boolean resourceReloadArcDecision,
+    boolean explainResourceReloadArcDecision,
     boolean commandRegistrationAnalysis,
     boolean explainCommandRegistrationAnalysis,
     boolean commandDispatcherSymbolAnalysis,
@@ -190,6 +192,8 @@ public record MinecraftProviderConfig(
         false, // explainResourceReloadBindingAnalysis
         false, // resourceVisibilityGenerationAnalysis
         false, // explainResourceVisibilityGenerationAnalysis
+        false, // resourceReloadArcDecision
+        false, // explainResourceReloadArcDecision
         false, // commandRegistrationAnalysis
         false, // explainCommandRegistrationAnalysis
         false, // commandDispatcherSymbolAnalysis
@@ -345,6 +349,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadBindingAnalysis,
         resourceVisibilityGenerationAnalysis,
         explainResourceVisibilityGenerationAnalysis,
+        resourceReloadArcDecision,
+        explainResourceReloadArcDecision,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -443,6 +449,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadBindingAnalysis,
         resourceVisibilityGenerationAnalysis,
         explainResourceVisibilityGenerationAnalysis,
+        resourceReloadArcDecision,
+        explainResourceReloadArcDecision,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,
@@ -546,6 +554,8 @@ public record MinecraftProviderConfig(
       boolean explainResourceReloadBindingAnalysis,
       boolean resourceVisibilityGenerationAnalysis,
       boolean explainResourceVisibilityGenerationAnalysis,
+      boolean resourceReloadArcDecision,
+      boolean explainResourceReloadArcDecision,
       boolean commandRegistrationAnalysis,
       boolean explainCommandRegistrationAnalysis,
       boolean commandDispatcherSymbolAnalysis,
@@ -630,6 +640,8 @@ public record MinecraftProviderConfig(
         explainResourceReloadBindingAnalysis,
         resourceVisibilityGenerationAnalysis,
         explainResourceVisibilityGenerationAnalysis,
+        resourceReloadArcDecision,
+        explainResourceReloadArcDecision,
         commandRegistrationAnalysis,
         explainCommandRegistrationAnalysis,
         commandDispatcherSymbolAnalysis,

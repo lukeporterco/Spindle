@@ -82,6 +82,10 @@ import com.spindle.core.minecraft.lifecycle.MinecraftServerLifecycleDispatchPlan
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysis;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalysisWriter;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadAnalyzer;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadArcDecisionAnalysis;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadArcDecisionAnalysisWriter;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadArcDecisionAnalyzer;
+import com.spindle.core.minecraft.resource.MinecraftResourceReloadArcDecisionStatus;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadBindingAnalysis;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadBindingAnalysisWriter;
 import com.spindle.core.minecraft.resource.MinecraftResourceReloadBindingAnalyzer;
@@ -142,6 +146,8 @@ public final class MinecraftDryRunFlow {
             || config.explainResourceReloadBindingAnalysis()
             || config.resourceVisibilityGenerationAnalysis()
             || config.explainResourceVisibilityGenerationAnalysis()
+            || config.resourceReloadArcDecision()
+            || config.explainResourceReloadArcDecision()
             || config.commandRegistrationAnalysis()
             || config.explainCommandRegistrationAnalysis()
             || config.commandDispatcherSymbolAnalysis()
@@ -385,6 +391,8 @@ public final class MinecraftDryRunFlow {
                 || config.explainResourceReloadBindingAnalysis()
                 || config.resourceVisibilityGenerationAnalysis()
                 || config.explainResourceVisibilityGenerationAnalysis()
+                || config.resourceReloadArcDecision()
+                || config.explainResourceReloadArcDecision()
                 || config.commandRegistrationAnalysis()
                 || config.explainCommandRegistrationAnalysis()
                 || config.commandDispatcherSymbolAnalysis()
@@ -535,6 +543,8 @@ public final class MinecraftDryRunFlow {
           || config.explainResourceReloadBindingAnalysis()
           || config.resourceVisibilityGenerationAnalysis()
           || config.explainResourceVisibilityGenerationAnalysis()
+          || config.resourceReloadArcDecision()
+          || config.explainResourceReloadArcDecision()
           || config.commandRegistrationAnalysis()
           || config.explainCommandRegistrationAnalysis()
           || config.commandDispatcherSymbolAnalysis()
@@ -788,7 +798,9 @@ public final class MinecraftDryRunFlow {
                 if (config.resourceReloadBindingAnalysis()
                     || config.explainResourceReloadBindingAnalysis()
                     || config.resourceVisibilityGenerationAnalysis()
-                    || config.explainResourceVisibilityGenerationAnalysis()) {
+                    || config.explainResourceVisibilityGenerationAnalysis()
+                    || config.resourceReloadArcDecision()
+                    || config.explainResourceReloadArcDecision()) {
                   MinecraftResourceReloadBindingAnalysis resourceReloadBindingAnalysis =
                       DiagnosticMeasurements.measure(
                           diagnosticSink,
@@ -830,7 +842,9 @@ public final class MinecraftDryRunFlow {
                         resourceReloadBindingAnalysis);
                   }
                   if (config.resourceVisibilityGenerationAnalysis()
-                      || config.explainResourceVisibilityGenerationAnalysis()) {
+                      || config.explainResourceVisibilityGenerationAnalysis()
+                      || config.resourceReloadArcDecision()
+                      || config.explainResourceReloadArcDecision()) {
                     MinecraftResourceVisibilityGenerationAnalysis
                         resourceVisibilityGenerationAnalysis =
                             DiagnosticMeasurements.measure(
@@ -875,6 +889,53 @@ public final class MinecraftDryRunFlow {
                     if (config.explainResourceVisibilityGenerationAnalysis()) {
                       printMinecraftResourceVisibilityGenerationAnalysisExplain(
                           resourceVisibilityGenerationAnalysis);
+                    }
+                    if (config.resourceReloadArcDecision()
+                        || config.explainResourceReloadArcDecision()) {
+                      MinecraftResourceReloadArcDecisionAnalysis resourceReloadArcDecisionAnalysis =
+                          DiagnosticMeasurements.measure(
+                              diagnosticSink,
+                              "minecraft.resource_reload_arc_decision.analyze",
+                              LaunchPhase.COMPLETE,
+                              () ->
+                                  new MinecraftResourceReloadArcDecisionAnalyzer()
+                                      .analyze(
+                                          resourceReloadAnalysis,
+                                          resourceReloadSymbolAnalysis,
+                                          resourceReloadBindingAnalysis,
+                                          resourceVisibilityGenerationAnalysis),
+                              analysis ->
+                                  DiagnosticMeasurements.details(
+                                      "gatePassed",
+                                      Boolean.toString(analysis.gatePassed()),
+                                      "decisionStatus",
+                                      analysis.decisionStatus().name(),
+                                      "nextDirection",
+                                      analysis.nextDirection().name(),
+                                      "registryBootstrapRecommended",
+                                      Boolean.toString(analysis.registryBootstrapRecommended())));
+                      DiagnosticMeasurements.measure(
+                          diagnosticSink,
+                          "minecraft.resource_reload_arc_decision.write",
+                          LaunchPhase.COMPLETE,
+                          () -> {
+                            Path outputPath =
+                                context
+                                    .workingDirectory()
+                                    .resolve("minecraft-resource-reload-arc-decision.json");
+                            new MinecraftResourceReloadArcDecisionAnalysisWriter()
+                                .write(outputPath, resourceReloadArcDecisionAnalysis);
+                            return outputPath;
+                          },
+                          outputPath ->
+                              DiagnosticMeasurements.details(
+                                  "resourceReloadArcDecisionOutputPath",
+                                  DisplayPaths.displayPath(context, outputPath)));
+                      megaMilestoneReports.add("minecraft-resource-reload-arc-decision.json");
+                      if (config.explainResourceReloadArcDecision()) {
+                        printMinecraftResourceReloadArcDecisionExplain(
+                            resourceReloadArcDecisionAnalysis);
+                      }
                     }
                   }
                 }
@@ -1822,6 +1883,31 @@ public final class MinecraftDryRunFlow {
     }
     System.out.println(
         "[spindle] explain-resource-visibility-generation-analysis: wrote minecraft-resource-visibility-generation-analysis.json");
+  }
+
+  private static void printMinecraftResourceReloadArcDecisionExplain(
+      MinecraftResourceReloadArcDecisionAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-resource-reload-arc-decision: Target-20 resource/reload arc decision is analysis-only.");
+    System.out.println(
+        "[spindle] explain-resource-reload-arc-decision: It consumes Target-16, Target-17, Target-18, and Target-19 resource/reload reports.");
+    System.out.println(
+        "[spindle] explain-resource-reload-arc-decision: It records the decision to move next to Registry Bootstrap and Content Registration.");
+    System.out.println(
+        "[spindle] explain-resource-reload-arc-decision: It does not design a new SteelHook primitive.");
+    System.out.println(
+        "[spindle] explain-resource-reload-arc-decision: It does not implement registries, reload handling, resource access, datapack access, data generation, generated files, public APIs, runtime dispatch, hook installation, or transformation.");
+    if (analysis.decisionStatus()
+        == MinecraftResourceReloadArcDecisionStatus.UPSTREAM_GATE_BLOCKED) {
+      System.out.println(
+          "[spindle] explain-resource-reload-arc-decision: Resource/reload arc decision gate failed: "
+              + analysis.gateFailureReason());
+    } else {
+      System.out.println(
+          "[spindle] explain-resource-reload-arc-decision: Resource/reload arc caboose recorded: move next to registry bootstrap boundary analysis.");
+    }
+    System.out.println(
+        "[spindle] explain-resource-reload-arc-decision: wrote minecraft-resource-reload-arc-decision.json");
   }
 
   private static void printMinecraftCommandDispatcherSymbolAnalysisExplain(

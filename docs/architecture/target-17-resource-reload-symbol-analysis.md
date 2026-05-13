@@ -28,6 +28,6 @@ Java mod execution is not sandboxed.
 Target-17 discovers candidate metadata symbols only.
 Target-17 does not make reload implementation ready by itself.
 Target-18 writes `minecraft-resource-reload-binding-analysis.json`.
-Target-18 may classify binding/access requirements only for discovered resource/reload symbols.
+Target-18 now classifies binding/access requirements only for discovered resource/reload symbols.
 Target-18 does not make reload implementation ready.
-Target-19 may separate runtime resource visibility from future offline data generation design.
+Target-19 now separates runtime resource visibility from future offline data generation design.

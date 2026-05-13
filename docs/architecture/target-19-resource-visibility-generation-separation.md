@@ -28,4 +28,8 @@ Java mod execution is not sandboxed.
 Target-19 separates lanes only.
 Runtime resource visibility is not an API yet.
 Offline data generation is not implemented yet.
-Target-20 may act as a caboose/decision pass for the resource/reload arc and decide whether to move to registries, pause for SteelHook primitive design, or continue resource/reload analysis.
+Target-20 writes `minecraft-resource-reload-arc-decision.json`, closes the resource/reload arc for now, and records the decision to move next to Registry Bootstrap and Content Registration.
+
+Target-20 does not implement registry behavior and does not design a SteelHook primitive.
+
+Target-21 may begin Registry Bootstrap and Content Registration boundary analysis.

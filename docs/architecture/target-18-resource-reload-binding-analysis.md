@@ -25,5 +25,5 @@ Java mod execution is not sandboxed.
 
 Target-18 classifies binding/access requirements only.
 Target-18 does not make reload implementation ready.
-Target-19 separates runtime resource visibility from future offline data generation design.
-It writes `minecraft-resource-visibility-generation-analysis.json`, separates runtime reload timing from runtime resource visibility and future offline data generation, and remains analysis-only.
+Target-19 now separates runtime resource visibility from future offline data generation design.
+Target-20 writes `minecraft-resource-reload-arc-decision.json`, closes the resource/reload arc for now, and records the decision to move next to Registry Bootstrap and Content Registration.
