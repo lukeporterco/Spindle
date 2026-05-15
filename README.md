@@ -786,4 +786,6 @@ Spindle is licensed under the Mozilla Public License 2.0.
 
 Copyright (c) 2026 Axen-o7.
 
-Mods, plugins, and external tools that merely use Spindle’s public APIs are not required to use the MPL-2.0. Changes to Spindle’s own MPL-covered source files must comply with the MPL-2.0.
+For clarity, Spindle’s MPL-2.0 licensing applies to Spindle’s MPL-covered source files and modifications of those files. Mods, plugins, and external tools that merely depend on or call Spindle’s public APIs, without copying or modifying MPL-covered Spindle source files, are not required by Spindle to use MPL-2.0.
+
+This clarification does not add terms to, narrow, or expand the MPL-2.0. See `LICENSE` for the full license text and `NOTICE` for attribution and licensing notice.
