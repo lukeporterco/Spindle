@@ -70,6 +70,9 @@ import com.spindle.core.minecraft.hook.patch.MinecraftHookPatchPlanner;
 import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlan;
 import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanWriter;
 import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanner;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02ContractGeneralizationAnalysis;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02ContractGeneralizationAnalysisWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02ContractGeneralizationAnalyzer;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalysis;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalysisWriter;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalyzer;
@@ -175,9 +178,11 @@ public final class MinecraftDryRunFlow {
             || config.explainHookBytecodeAnalysis()
             || config.hookPatchPlan()
             || config.steelHook02PrimitiveBoundary()
+            || config.steelHook02ContractGeneralization()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
+            || config.explainSteelHook02ContractGeneralization()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -426,9 +431,11 @@ public final class MinecraftDryRunFlow {
                 || config.explainHookBytecodeAnalysis()
                 || config.hookPatchPlan()
                 || config.steelHook02PrimitiveBoundary()
+                || config.steelHook02ContractGeneralization()
                 || config.bootstrapTransformHooks()
                 || config.explainHookPatchPlan()
                 || config.explainSteelHook02PrimitiveBoundary()
+                || config.explainSteelHook02ContractGeneralization()
                 || config.hookInstallationPlan()
                 || config.installHooks()
                 || config.integrationPlan()
@@ -506,9 +513,11 @@ public final class MinecraftDryRunFlow {
               || config.explainHookBytecodeAnalysis()
               || config.hookPatchPlan()
               || config.steelHook02PrimitiveBoundary()
+              || config.steelHook02ContractGeneralization()
               || config.bootstrapTransformHooks()
               || config.explainHookPatchPlan()
               || config.explainSteelHook02PrimitiveBoundary()
+              || config.explainSteelHook02ContractGeneralization()
               || config.hookInstallationPlan()
               || config.installHooks();
       if (shouldCreateInterpretation) {
@@ -1242,6 +1251,7 @@ public final class MinecraftDryRunFlow {
           || config.hookBytecodeAnalysis()
           || config.hookPatchPlan()
           || config.steelHook02PrimitiveBoundary()
+          || config.steelHook02ContractGeneralization()
           || config.hookInstallationPlan()
           || config.installHooks()
           || config.preflight()
@@ -1298,6 +1308,7 @@ public final class MinecraftDryRunFlow {
               || config.hookPlacementPlan()
               || config.hookBytecodeAnalysis()
               || config.hookPatchPlan()
+              || config.steelHook02ContractGeneralization()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer())
           && runtimeBoundary != null) {
@@ -1351,6 +1362,7 @@ public final class MinecraftDryRunFlow {
               || config.hookBytecodeAnalysis()
               || config.hookPatchPlan()
               || config.steelHook02PrimitiveBoundary()
+              || config.steelHook02ContractGeneralization()
               || config.installHooks()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer()
@@ -1416,6 +1428,7 @@ public final class MinecraftDryRunFlow {
             || config.hookBytecodeAnalysis()
             || config.hookPatchPlan()
             || config.steelHook02PrimitiveBoundary()
+            || config.steelHook02ContractGeneralization()
             || config.bootstrapTransformHooks()) {
           MinecraftHookContractReport finalHookContractReport = hookContractReport;
           MinecraftHookPlacementPlan hookPlacementPlan =
@@ -1461,6 +1474,7 @@ public final class MinecraftDryRunFlow {
           if (config.hookBytecodeAnalysis()
               || config.hookPatchPlan()
               || config.steelHook02PrimitiveBoundary()
+              || config.steelHook02ContractGeneralization()
               || config.bootstrapTransformHooks()) {
             hookBytecodeAnalysisReport =
                 DiagnosticMeasurements.measure(
@@ -1507,6 +1521,7 @@ public final class MinecraftDryRunFlow {
 
           if (config.hookPatchPlan()
               || config.steelHook02PrimitiveBoundary()
+              || config.steelHook02ContractGeneralization()
               || config.bootstrapTransformHooks()) {
             MinecraftHookBytecodeAnalysisReport finalHookBytecodeAnalysisReport =
                 hookBytecodeAnalysisReport;
@@ -1549,7 +1564,9 @@ public final class MinecraftDryRunFlow {
               printMinecraftHookPatchPlanExplain(hookPatchPlan);
             }
             if (config.steelHook02PrimitiveBoundary()
-                || config.explainSteelHook02PrimitiveBoundary()) {
+                || config.explainSteelHook02PrimitiveBoundary()
+                || config.steelHook02ContractGeneralization()
+                || config.explainSteelHook02ContractGeneralization()) {
               SteelHook02PrimitiveBoundaryAnalysis steelHook02PrimitiveBoundaryAnalysis =
                   DiagnosticMeasurements.measure(
                       diagnosticSink,
@@ -1586,6 +1603,49 @@ public final class MinecraftDryRunFlow {
               megaMilestoneReports.add("minecraft-steelhook-0-2-primitive-boundary.json");
               if (config.explainSteelHook02PrimitiveBoundary()) {
                 printSteelHook02PrimitiveBoundaryExplain(steelHook02PrimitiveBoundaryAnalysis);
+              }
+              if (config.steelHook02ContractGeneralization()
+                  || config.explainSteelHook02ContractGeneralization()) {
+                SteelHook02ContractGeneralizationAnalysis contractGeneralizationAnalysis =
+                    DiagnosticMeasurements.measure(
+                        diagnosticSink,
+                        "minecraft.steelhook_0_2.contract_generalization",
+                        LaunchPhase.COMPLETE,
+                        () ->
+                            new SteelHook02ContractGeneralizationAnalyzer()
+                                .analyze(steelHook02PrimitiveBoundaryAnalysis, hookPatchPlan),
+                        analysis ->
+                            DiagnosticMeasurements.details(
+                                "gatePassed",
+                                Boolean.toString(analysis.gatePassed()),
+                                "status",
+                                analysis.status().name(),
+                                "nextDirection",
+                                analysis.nextDirection().name(),
+                                "eligibleForTarget25TransformerExtraction",
+                                Boolean.toString(
+                                    analysis.eligibleForTarget25TransformerExtraction())));
+                DiagnosticMeasurements.measure(
+                    diagnosticSink,
+                    "minecraft.steelhook_0_2.contract_generalization.write",
+                    LaunchPhase.COMPLETE,
+                    () -> {
+                      Path outputPath =
+                          context
+                              .workingDirectory()
+                              .resolve("minecraft-steelhook-0-2-contract-generalization.json");
+                      new SteelHook02ContractGeneralizationAnalysisWriter()
+                          .write(outputPath, contractGeneralizationAnalysis);
+                      return outputPath;
+                    },
+                    outputPath ->
+                        DiagnosticMeasurements.details(
+                            "steelHook02ContractGeneralizationOutputPath",
+                            DisplayPaths.displayPath(context, outputPath)));
+                megaMilestoneReports.add("minecraft-steelhook-0-2-contract-generalization.json");
+                if (config.explainSteelHook02ContractGeneralization()) {
+                  printSteelHook02ContractGeneralizationExplain(contractGeneralizationAnalysis);
+                }
               }
             }
           }
@@ -2278,5 +2338,35 @@ public final class MinecraftDryRunFlow {
             + analysis.nextRecommendedAction());
     System.out.println(
         "[spindle] explain-steelhook-0-2-primitive-boundary: wrote minecraft-steelhook-0-2-primitive-boundary.json");
+  }
+
+  private static void printSteelHook02ContractGeneralizationExplain(
+      SteelHook02ContractGeneralizationAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: Target-24 is analysis-only");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: gatePassed "
+            + analysis.gatePassed());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: status "
+            + analysis.status().name());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: primitive contract "
+            + (analysis.primitiveContract() == null ? "none" : analysis.primitiveContract().id()));
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: target descriptor "
+            + (analysis.targetDescriptor() == null ? "none" : analysis.targetDescriptor().id()));
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: dispatcher descriptor "
+            + (analysis.dispatcherDescriptor() == null
+                ? "none"
+                : analysis.dispatcherDescriptor().id()));
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: runtime transformation readiness remains false");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: next action "
+            + analysis.nextRecommendedAction());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-contract-generalization: wrote minecraft-steelhook-0-2-contract-generalization.json");
   }
 }

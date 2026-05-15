@@ -1,6 +1,8 @@
 package com.spindle.core.minecraft.hook.patch;
 
 public enum MinecraftHookPatchMode {
+  STEELHOOK_0_2_CONTRACT_GENERALIZED_STATIC_DISPATCH_INVOKESTATIC(
+      "steelhook-0-2-contract-generalized-static-dispatch-invokestatic"),
   DRY_RUN_STATIC_DISPATCH_INVOKESTATIC("dry-run-static-dispatch-invokestatic");
 
   private final String id;

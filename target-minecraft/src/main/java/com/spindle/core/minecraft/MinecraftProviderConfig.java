@@ -83,6 +83,8 @@ public record MinecraftProviderConfig(
     boolean explainHookPatchPlan,
     boolean steelHook02PrimitiveBoundary,
     boolean explainSteelHook02PrimitiveBoundary,
+    boolean steelHook02ContractGeneralization,
+    boolean explainSteelHook02ContractGeneralization,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -218,6 +220,8 @@ public record MinecraftProviderConfig(
         false, // explainHookPatchPlan
         false, // steelHook02PrimitiveBoundary
         false, // explainSteelHook02PrimitiveBoundary
+        false, // steelHook02ContractGeneralization
+        false, // explainSteelHook02ContractGeneralization
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -381,6 +385,8 @@ public record MinecraftProviderConfig(
         explainHookPatchPlan,
         steelHook02PrimitiveBoundary,
         explainSteelHook02PrimitiveBoundary,
+        steelHook02ContractGeneralization,
+        explainSteelHook02ContractGeneralization,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -487,6 +493,8 @@ public record MinecraftProviderConfig(
         explainHookPatchPlan,
         steelHook02PrimitiveBoundary,
         explainSteelHook02PrimitiveBoundary,
+        steelHook02ContractGeneralization,
+        explainSteelHook02ContractGeneralization,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -598,6 +606,8 @@ public record MinecraftProviderConfig(
       boolean explainHookPatchPlan,
       boolean steelHook02PrimitiveBoundary,
       boolean explainSteelHook02PrimitiveBoundary,
+      boolean steelHook02ContractGeneralization,
+      boolean explainSteelHook02ContractGeneralization,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -692,6 +702,8 @@ public record MinecraftProviderConfig(
         explainHookPatchPlan,
         steelHook02PrimitiveBoundary,
         explainSteelHook02PrimitiveBoundary,
+        steelHook02ContractGeneralization,
+        explainSteelHook02ContractGeneralization,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

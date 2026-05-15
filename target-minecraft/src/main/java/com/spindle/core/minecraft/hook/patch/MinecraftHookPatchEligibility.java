@@ -1,6 +1,7 @@
 package com.spindle.core.minecraft.hook.patch;
 
 public enum MinecraftHookPatchEligibility {
+  STEELHOOK_0_2_CONTRACT_READY_RUNTIME_CANDIDATE("steelhook-0-2-contract-ready-runtime-candidate"),
   FIXTURE_ONLY_FUTURE_TRANSFORM("fixture-only-future-transform"),
   NOT_ELIGIBLE("not-eligible");
 

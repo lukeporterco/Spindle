@@ -190,6 +190,23 @@ class MinecraftHookPatchPlannerTest {
     assertTrue(plan.gateFailureReason().contains("main class"));
   }
 
+  @Test
+  void patchEligibilityAndModeIdsRoundTrip() {
+    assertEquals(
+        MinecraftHookPatchEligibility.STEELHOOK_0_2_CONTRACT_READY_RUNTIME_CANDIDATE,
+        MinecraftHookPatchEligibility.fromId("steelhook-0-2-contract-ready-runtime-candidate"));
+    assertEquals(
+        MinecraftHookPatchMode.STEELHOOK_0_2_CONTRACT_GENERALIZED_STATIC_DISPATCH_INVOKESTATIC,
+        MinecraftHookPatchMode.fromId(
+            "steelhook-0-2-contract-generalized-static-dispatch-invokestatic"));
+    assertEquals(
+        MinecraftHookPatchEligibility.FIXTURE_ONLY_FUTURE_TRANSFORM,
+        MinecraftHookPatchEligibility.fromId("fixture-only-future-transform"));
+    assertEquals(
+        MinecraftHookPatchMode.DRY_RUN_STATIC_DISPATCH_INVOKESTATIC,
+        MinecraftHookPatchMode.fromId("dry-run-static-dispatch-invokestatic"));
+  }
+
   private MinecraftHookPlacementPlan validPlacementPlan() {
     return placementPlan("target-5.minecraft.server.main.method-entry-placement");
   }

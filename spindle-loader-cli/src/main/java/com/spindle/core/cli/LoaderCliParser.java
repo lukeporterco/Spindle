@@ -99,6 +99,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainHookPatchPlan = false;
     boolean minecraftSteelHook02PrimitiveBoundary = false;
     boolean minecraftExplainSteelHook02PrimitiveBoundary = false;
+    boolean minecraftSteelHook02ContractGeneralization = false;
+    boolean minecraftExplainSteelHook02ContractGeneralization = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -761,6 +763,35 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-2-contract-generalization".equals(argument)) {
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-2-contract-generalization".equals(argument)) {
+        minecraftExplainSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -915,6 +946,10 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft SteelHook 0.2 primitive boundary analysis cannot be combined with --minecraft-install-hooks.");
     }
+    if (minecraftSteelHook02ContractGeneralization && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.2 contract generalization cannot be combined with --minecraft-install-hooks.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -998,6 +1033,8 @@ public final class LoaderCliParser {
             minecraftExplainHookPatchPlan,
             minecraftSteelHook02PrimitiveBoundary,
             minecraftExplainSteelHook02PrimitiveBoundary,
+            minecraftSteelHook02ContractGeneralization,
+            minecraftExplainSteelHook02ContractGeneralization,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,
