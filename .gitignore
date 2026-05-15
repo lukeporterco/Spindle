@@ -45,3 +45,6 @@ replay_pid*
 # Temporary files
 *.tmp
 *.temp
+
+# .ZIP files
+*.ZIP
