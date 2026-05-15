@@ -278,6 +278,12 @@ Do not infer runtime readiness from analysis-only Target documents. Unless a pas
 
 Boundary-prep passes are documentation-only unless the task explicitly says otherwise. Do not implement the injection hook subsystem, Modding API surfaces, ECS, threading, or simulation work as part of a boundary-prep pass.
 
+A simple set of rules to abide by at all times:
+
+- If the feature is about JVM mechanics, it belongs in SteelHook.
+- If the feature is about Minecraft meaning, it belongs in the Target Layer.
+- If the feature is about modder experience, it belongs in the Modding API.
+
 ## Architecture documentation rules
 
 The `docs/` tree is part of the project memory. Architecture docs should record what each pass added, what it did not add, what reports or APIs it affected, and what future work is allowed to build on.
