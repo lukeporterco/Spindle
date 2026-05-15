@@ -12,4 +12,4 @@ Target-25 extracts the reusable method-entry bytecode transformer and proves it 
 
 Target-26 enables the gated runtime classloader transformation path for the single approved method-entry static-dispatch primitive. It defines the transformed target class through the runtime classloader, but it does not invoke Minecraft main, launch a server, install hooks, or observe dispatcher execution.
 
-SteelHook 0.2 still does not transform real Minecraft classes, expose a public API, or claim Java mod execution sandboxing.
+Target-27 completes SteelHook 0.2 by verifying the Target-7 through Target-26 report chain, safety invariants, capability boundaries, and handoff state. SteelHook 0.2 now proves one approved method-entry static-dispatch primitive through gated runtime classloader definition, but still does not invoke Minecraft main, launch a server, install hooks, observe dispatcher execution, expose public APIs, claim sandboxing, or support broad bytecode mutation.

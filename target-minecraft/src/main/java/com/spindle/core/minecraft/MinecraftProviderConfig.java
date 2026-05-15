@@ -89,6 +89,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook02MethodEntryTransformer,
     boolean steelHook02GatedRuntimeTransformation,
     boolean explainSteelHook02GatedRuntimeTransformation,
+    boolean steelHook02CompletionCheck,
+    boolean explainSteelHook02CompletionCheck,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -230,6 +232,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook02MethodEntryTransformer
         false, // steelHook02GatedRuntimeTransformation
         false, // explainSteelHook02GatedRuntimeTransformation
+        false, // steelHook02CompletionCheck
+        false, // explainSteelHook02CompletionCheck
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -399,6 +403,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02MethodEntryTransformer,
         steelHook02GatedRuntimeTransformation,
         explainSteelHook02GatedRuntimeTransformation,
+        steelHook02CompletionCheck,
+        explainSteelHook02CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -511,6 +517,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02MethodEntryTransformer,
         steelHook02GatedRuntimeTransformation,
         explainSteelHook02GatedRuntimeTransformation,
+        steelHook02CompletionCheck,
+        explainSteelHook02CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -628,6 +636,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook02MethodEntryTransformer,
       boolean steelHook02GatedRuntimeTransformation,
       boolean explainSteelHook02GatedRuntimeTransformation,
+      boolean steelHook02CompletionCheck,
+      boolean explainSteelHook02CompletionCheck,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -728,6 +738,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02MethodEntryTransformer,
         steelHook02GatedRuntimeTransformation,
         explainSteelHook02GatedRuntimeTransformation,
+        steelHook02CompletionCheck,
+        explainSteelHook02CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
