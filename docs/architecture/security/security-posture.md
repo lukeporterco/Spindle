@@ -1,0 +1,124 @@
+# Security Posture
+
+Spindle runs mods as executable Java code.
+
+Current Runtime-5 standard mod execution is:
+
+- in process
+- unrestricted Java
+- not sandboxed
+
+Passing Spindle security validation does not mean a mod is safe. It means the mod passed Spindle's current trust-boundary checks for the current non-invasive Runtime contract.
+
+## Current Scope
+
+Security-0 adds deterministic trust-boundary validation before schema `2` standard lifecycle execution.
+
+Security-1 adds deterministic artifact trust reporting for local jars, lockfile hash identity, and optional detached Ed25519 sidecars.
+
+Security-2 adds warning-only static risk signals for resolved mod jars without classloading or executing mod code.
+
+Security-3 moves static security tooling that can safely run out of process into a restricted child JVM. The first worker is the Security-2 static risk scanner.
+
+It writes `spindle.security-report.json` with:
+
+- stable rule ids
+- fatal findings that block standard lifecycle execution
+- warning findings that remain report-only
+- explicit runtime posture fields
+- explicit restricted-tool isolation fields
+- an `artifactTrust` section with per-artifact trust state and summary counts
+- a `riskSignals` section with warning-only static jar and constant-pool evidence
+- a `capabilityGrants` section that distinguishes granted, denied, unavailable, unknown, and visibility-only Runtime-5 capability states
+- a `runtimeClosure` section in `spindle.profile.json` that closes the Runtime Arc without sealing the full loader API
+
+The report always states:
+
+- `executionIsolationMode: "in-process-unrestricted-java"`
+- `runtimeExecutionIsolationMode: "in-process-unrestricted-java"`
+- `sandboxed: false`
+- `runtimeSandboxed: false`
+- `sandboxClaim: "not-sandboxed"`
+
+For static risk scanning, the report also states:
+
+- `toolIsolation.mode: "restricted-child-jvm"`
+- `toolIsolation.worker: "static-risk-scan"`
+- `toolIsolation.status: "passed"` or `"failed"`
+- `toolIsolation.outputPath: ".spindle/security-tools/static-risk-scan/output.json"`
+
+## Validated Surfaces
+
+Runtime-1 validates only narrow Spindle-native boundaries:
+
+- artifact lockfile identity
+- artifact trust sidecar shape and Ed25519 verification
+- loader-owned package ownership
+- protected platform and compatibility packages
+- known Spindle API/core class shadowing
+- schema `2` lifecycle declaration shape and handler signatures
+- planned `ModContext` path boundaries
+- compiled profile cache rebuild visibility
+- capability grant contract validation for Spindle-owned API surfaces
+- deterministic Runtime-5 config-schema capability grants and pre-lifecycle config contract validation
+- deterministic Runtime-5 service capability grants and service contract planning
+- deterministic Runtime-5 runtime-closure and loader-api-boundary inventory recording
+- runtime and compiled profile identity fingerprints
+- static jar risk signals from constant-pool UTF-8 strings, native files, service-provider files, and nested jars
+- restricted child-JVM execution for Spindle-owned static analysis tooling that can treat jars as data
+
+## Current Rules
+
+- `SEC-PACKAGE-001`: schema `2` mod defines loader-owned package
+- `SEC-PACKAGE-002`: schema `2` mod defines protected platform or compatibility package
+- `SEC-CLASS-001`: mod shadows known Spindle API/core class
+- `SEC-LIFECYCLE-001`: lifecycle declaration shape is invalid
+- `SEC-LIFECYCLE-002`: lifecycle handler signature is invalid
+- `SEC-PATH-001`: planned owned path escapes the working directory
+- `SEC-PATH-002`: logical relative path contract is violated
+- `SEC-CACHE-001`: cached compiled profile was rejected and rebuilt
+- `SEC-PERM-001`: mod requests capabilities that Runtime-5 does not grant
+- `SEC-ARTIFACT-001`: lockfile or artifact identity mismatch
+- `SEC-TRUST-001`: artifact is local unsigned
+- `SEC-TRUST-002`: signature sidecar is malformed, unsupported, or unreadable
+- `SEC-TRUST-003`: signature artifact hash does not match the jar
+- `SEC-TRUST-004`: signature verification failed
+- `SEC-TRUST-005`: artifact is locked by hash but has no publisher identity
+- `SEC-TRUST-006`: provenance is not present
+- `SEC-TOOL-001`: restricted security tool failed or produced invalid output
+- `SEC-METADATA-001`: metadata schema or security-relevant metadata field is invalid
+- `SEC-RUNTIME-001`: runtime policy or compiled profile identity mismatch
+- `RISK-PROCESS-001`: process execution APIs are referenced
+- `RISK-NATIVE-001`: native loading APIs or bundled native files are present
+- `RISK-NETWORK-001`: network APIs are referenced
+- `RISK-REFLECTION-001`: reflection or method-handle APIs are referenced
+- `RISK-UNSAFE-001`: unsafe, internal, or foreign-memory APIs are referenced
+- `RISK-DYNAMIC-CLASSLOAD-001`: dynamic classloading APIs are referenced
+- `RISK-SCRIPT-001`: script execution APIs are referenced
+- `RISK-SERVICE-001`: service-provider entries are present
+- `RISK-EMBEDDED-JAR-001`: nested jar entries are present
+- `RISK-CLASSFILE-001`: a class entry could not be statically scanned
+
+## Non-goals
+
+The Runtime-5 capability, config, service, and closure contract still does not add:
+
+- registry-backed publisher identity
+- human review
+- sandboxing
+- restricted child-JVM execution for arbitrary runtime mods
+- compatibility-layer claims
+
+Runtime-5 service bindings are runtime contract findings, not sandbox findings. Duplicate providers, missing implementations, ownership violations, required unbound services, and type mismatches can block execution, but they do not change the honesty fields: execution remains `in-process-unrestricted-java`, `sandboxed: false`, and `sandboxClaim: "not-sandboxed"`.
+
+Runtime-5 config validation is also a runtime contract finding, not a sandbox finding. Invalid config JSON, wrong types, out-of-range values, invalid options, and missing `storage.config` can block execution before classloading without changing the honesty fields.
+
+Runtime-5 runtime closure is also a contract and reporting feature, not a sandbox claim. It records implemented surfaces, unavailable surfaces, visibility-only disclosures, and loader-api boundary preparation while execution remains in-process and unrestricted.
+
+The current sidecar model is intentionally local and loader-native. A valid sidecar proves that a specific signer key signed a specific jar hash and the signed mod id/version. It does not claim ecosystem review, malware analysis, or platform endorsement.
+
+The static risk scanner is intentionally limited. It reads jar entries and UTF-8 constant-pool strings only. It does not classload mods, execute mod code, or claim that a warning proves malicious intent.
+
+Security-3 isolates that scanner in a restricted child JVM because the scanner can run without mod classloading. That child JVM does not put mod jars on its classpath and does not execute mod code. This is tooling isolation, not runtime mod sandboxing.
+
+Milestone 8 Minecraft bootstrap remains a separate server-only path. Its bootstrap checks still apply, but Security-0 does not claim that bootstrap-approved Minecraft mods are sandboxed or generally safe either.

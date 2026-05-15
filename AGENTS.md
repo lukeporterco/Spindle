@@ -269,6 +269,25 @@ Current concept-grounding passes include Target-11 server lifecycle binding, Tar
 
 Boundary-prep passes are documentation-only unless the task explicitly says otherwise; do not implement the injection hook subsystem, Modding API surfaces, ECS, threading, or simulation work as part of a boundary-prep pass.
 
+## Architecture documentation rules
+
+The `docs/` tree is part of the project memory. Architecture docs should record what each pass added, what it did not add, what reports or APIs it affected, and what future work is allowed to build on.
+
+For architecture-affecting `Runtime-*`, `Platform-*`, `SteelHook-*`, `Minecraft-*`, `Target-*`, Security, Foundation, and Loader API work, update documentation in the same change as the code or analysis change. For `Target-*` passes, create or update a focused architecture document unless the task explicitly says it is code-only, test-only, or documentation-free.
+
+Use the organization and templates described in:
+
+- `docs/README.md`
+- `docs/architecture/README.md`
+- `docs/architecture/templates/pass-document-template.md`
+- `docs/architecture/templates/arc-readme-template.md`
+
+Each architecture arc folder should have a `README.md` that states current status, important pass sequence, latest capability, blocked capabilities, and next handoff. Future plans and Codex prompts should inspect the relevant arc README before editing that arc.
+
+Caboose, closure, hardening, and synthesis documents should clearly record completion state, preserved invariants, blocked capabilities, and the next architectural handoff. Analysis-only Target documents should be explicit that they classify, name, validate, or decide only; they should not imply runtime implementation, public API exposure, real Minecraft transformation, or sandboxing.
+
+Do not move or rename existing docs during a normal implementation pass unless docs organization is explicitly in scope. If docs are moved, update nearby README files and relative links in the same change.
+
 ## Before finalizing a change
 
 Check:
