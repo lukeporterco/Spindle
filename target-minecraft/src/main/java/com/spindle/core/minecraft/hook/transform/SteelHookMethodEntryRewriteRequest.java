@@ -1,0 +1,25 @@
+package com.spindle.core.minecraft.hook.transform;
+
+public record SteelHookMethodEntryRewriteRequest(
+    String id,
+    String scope,
+    String sourcePatchId,
+    String sourcePlacementId,
+    String sourceContractId,
+    String targetOwnerInternalName,
+    String targetBinaryName,
+    String targetClassEntryName,
+    String targetMethodName,
+    String targetDescriptor,
+    int insertionOffset,
+    String dispatcherOwnerInternalName,
+    String dispatcherBinaryName,
+    String dispatcherMethodName,
+    String dispatcherDescriptor,
+    String opcodeMnemonic,
+    String opcodeHex,
+    int instructionLength,
+    boolean stackMapTableRewriteSupported,
+    boolean runtimeClassLoadingPathEnabled,
+    boolean publicApiExposed,
+    boolean javaModExecutionSandboxed) {}

@@ -8,4 +8,6 @@ Target-23 is analysis-only. It selects the first approved primitive boundary fro
 
 Target-24 is also analysis-only. It generalizes that one approved Target-23 candidate into explicit target, dispatcher, primitive-contract, and generalized patch-plan descriptors for Target-25, while still keeping runtime transformation blocked.
 
+Target-25 extracts the reusable method-entry bytecode transformer and proves it through local/offline class-byte transformation. It still does not classload transformed bytes into Minecraft or make runtime transformation ready.
+
 SteelHook 0.2 still does not transform real Minecraft classes, expose a public API, or claim Java mod execution sandboxing.

@@ -85,6 +85,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook02PrimitiveBoundary,
     boolean steelHook02ContractGeneralization,
     boolean explainSteelHook02ContractGeneralization,
+    boolean steelHook02MethodEntryTransformer,
+    boolean explainSteelHook02MethodEntryTransformer,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -222,6 +224,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook02PrimitiveBoundary
         false, // steelHook02ContractGeneralization
         false, // explainSteelHook02ContractGeneralization
+        false, // steelHook02MethodEntryTransformer
+        false, // explainSteelHook02MethodEntryTransformer
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -387,6 +391,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02PrimitiveBoundary,
         steelHook02ContractGeneralization,
         explainSteelHook02ContractGeneralization,
+        steelHook02MethodEntryTransformer,
+        explainSteelHook02MethodEntryTransformer,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -495,6 +501,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02PrimitiveBoundary,
         steelHook02ContractGeneralization,
         explainSteelHook02ContractGeneralization,
+        steelHook02MethodEntryTransformer,
+        explainSteelHook02MethodEntryTransformer,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -608,6 +616,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook02PrimitiveBoundary,
       boolean steelHook02ContractGeneralization,
       boolean explainSteelHook02ContractGeneralization,
+      boolean steelHook02MethodEntryTransformer,
+      boolean explainSteelHook02MethodEntryTransformer,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -704,6 +714,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02PrimitiveBoundary,
         steelHook02ContractGeneralization,
         explainSteelHook02ContractGeneralization,
+        steelHook02MethodEntryTransformer,
+        explainSteelHook02MethodEntryTransformer,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

@@ -101,6 +101,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainSteelHook02PrimitiveBoundary = false;
     boolean minecraftSteelHook02ContractGeneralization = false;
     boolean minecraftExplainSteelHook02ContractGeneralization = false;
+    boolean minecraftSteelHook02MethodEntryTransformer = false;
+    boolean minecraftExplainSteelHook02MethodEntryTransformer = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -792,6 +794,37 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-2-method-entry-transformer".equals(argument)) {
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-2-method-entry-transformer".equals(argument)) {
+        minecraftExplainSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -950,6 +983,10 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft SteelHook 0.2 contract generalization cannot be combined with --minecraft-install-hooks.");
     }
+    if (minecraftSteelHook02MethodEntryTransformer && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.2 method-entry transformer extraction cannot be combined with --minecraft-install-hooks.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -1035,6 +1072,8 @@ public final class LoaderCliParser {
             minecraftExplainSteelHook02PrimitiveBoundary,
             minecraftSteelHook02ContractGeneralization,
             minecraftExplainSteelHook02ContractGeneralization,
+            minecraftSteelHook02MethodEntryTransformer,
+            minecraftExplainSteelHook02MethodEntryTransformer,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,
