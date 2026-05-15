@@ -132,13 +132,13 @@ Do not leak implementation classes from `spindle-loader-core` into `spindle-load
 
 Keep deterministic behavior explicit:
 
-- sort maps before writing reports
-- sort lists when order is not semantically meaningful
-- avoid filesystem traversal order as observable output
-- avoid timestamps in reproducibility-sensitive reports
-- normalize paths in reports
-- avoid absolute path leakage unless the report is explicitly local/human-only
-- preserve reproducible jar settings
+* sort maps before writing reports
+* sort lists when order is not semantically meaningful
+* avoid filesystem traversal order as observable output
+* avoid timestamps in reproducibility-sensitive reports
+* normalize paths in reports
+* avoid absolute path leakage unless the report is explicitly local/human-only
+* preserve reproducible jar settings
 
 Prefer small planner, verifier, writer, and model classes over adding more orchestration to `LoaderMain`.
 
@@ -150,16 +150,16 @@ When adding a gate, fail closed. Rejected mods, fatal boundary violations, hash 
 
 Do not add any of the following unless the task explicitly asks for that capability:
 
-- Mixin support
-- ASM transformation as a general compatibility layer
-- remapping
-- access wideners
-- Fabric/Forge/NeoForge/Quilt/Paper compatibility
-- Minecraft client launch
-- gameplay API exposure
-- arbitrary Minecraft classpath injection
-- mod jars on the real Minecraft runtime classpath
-- real Minecraft hooks outside an explicit future `SteelHook-*` or `Minecraft-*` pass
+* Mixin support
+* ASM transformation as a general compatibility layer
+* remapping
+* access wideners
+* Fabric/Forge/NeoForge/Quilt/Paper compatibility
+* Minecraft client launch
+* gameplay API exposure
+* arbitrary Minecraft classpath injection
+* mod jars on the real Minecraft runtime classpath
+* real Minecraft hooks outside an explicit future `SteelHook-*` or `Minecraft-*` pass
 
 Current Minecraft mod execution is bootstrap-only and server-only. It must remain guarded by execution plans, classloader policy, hash/fingerprint verification, and deterministic reports.
 
@@ -175,8 +175,8 @@ loader.mod.json
 
 Current mod metadata supports `schema: 1` and `schema: 2`.
 
-- `schema: 1` remains the compatibility path.
-- `schema: 2` is the current Spindle-native Runtime-1 lifecycle and trust-boundary contract.
+* `schema: 1` remains the compatibility path.
+* `schema: 2` is the current Spindle-native Runtime-1 lifecycle and trust-boundary contract.
 
 When adding schema features, preserve old schema behavior or reject with a clear diagnostic. Do not silently reinterpret older metadata.
 
@@ -192,20 +192,20 @@ Use JUnit 5.
 
 Add or update tests when changing:
 
-- metadata parsing
-- dependency resolution
-- lockfile behavior
-- report contents
-- ordering rules
-- artifact/cache verification
-- Minecraft runtime planning
-- Minecraft boundary scanning
-- preflight failure policy
-- reproducibility checks
-- bootstrap execution
-- classloader policy
-- package/class ownership
-- process-launch behavior
+* metadata parsing
+* dependency resolution
+* lockfile behavior
+* report contents
+* ordering rules
+* artifact/cache verification
+* Minecraft runtime planning
+* Minecraft boundary scanning
+* preflight failure policy
+* reproducibility checks
+* bootstrap execution
+* classloader policy
+* package/class ownership
+* process-launch behavior
 
 Test deterministic output by comparing stable JSON, hashes, or repeated runs when practical.
 
@@ -219,11 +219,11 @@ Public API and metadata should use intuitive names. Avoid clever names, ambiguou
 
 Diagnostics should include:
 
-- mod id when applicable
-- file or class involved
-- specific rule violated
-- fatal vs warning severity
-- what the developer should change when clear
+* mod id when applicable
+* file or class involved
+* specific rule violated
+* fatal vs warning severity
+* what the developer should change when clear
 
 Bad diagnostic style:
 
@@ -248,26 +248,35 @@ Prefer this sequence:
 
 Good near-term systems:
 
-- compiled modpack profile
-- lifecycle declarations
-- generated or precomputed mod contexts
-- deterministic service registry
-- config schema validation
-- loader-owned config/data/cache/generated directories
-- package sealing and classloader firewall
-- resource overlay planner
-- startup profiling
-- modpack quality report
+* compiled modpack profile
+* lifecycle declarations
+* generated or precomputed mod contexts
+* deterministic service registry
+* config schema validation
+* loader-owned config/data/cache/generated directories
+* package sealing and classloader firewall
+* resource overlay planner
+* startup profiling
+* modpack quality report
 
 Avoid broad scope jumps. A pass should have clear non-goals.
 
-Future Target Layer, SteelHook, and Modding API planning should inspect `docs/architecture/minecraft-target-concept-roadmap.md` before adding new Minecraft-facing concept families or names.
+Future Target Layer, SteelHook, and Modding API planning should inspect these docs before adding new Minecraft-facing concept families, public names, hook semantics, or implementation passes:
 
-Current concept-grounding passes include Target-11 server lifecycle binding, Target-12 server lifecycle dispatch planning, Target-13 command registration boundary analysis, Target-14 command dispatcher symbol analysis, Target-15 command dispatcher binding analysis, Target-16 resource/reload boundary analysis, Target-17 resource/reload symbol discovery analysis, Target-18 resource/reload binding requirement analysis, Target-19 resource visibility/data generation separation analysis, and Target-20 resource/reload arc caboose decision analysis. Keep lifecycle anchors explicit and coarse when later passes have not yet discovered the concrete Minecraft hook surface. Target-18 is still analysis-only and does not make reload implementation ready. Target-19 separates runtime reload timing, runtime resource visibility, and future offline data generation lanes only; it is not a runtime resource API or data-generation implementation. Target-20 closes that arc for now and records registry bootstrap/content registration as the next concept family without implementing registry behavior or designing a new SteelHook primitive.
+* `docs/architecture/minecraft-target/README.md`
+* `docs/architecture/minecraft-target/minecraft-target-concept-roadmap.md`
+* the relevant concept-family folder under `docs/architecture/minecraft-target/`
+* `docs/architecture/steelhook/README.md` for SteelHook expansion work
+
+The detailed Target pass history lives in the Minecraft Target Layer architecture docs, not in this file. `AGENTS.md` should preserve current operating constraints, handoff rules, and safety boundaries rather than pass-by-pass historical narrative.
+
+Current Target Layer posture should be read from `docs/architecture/minecraft-target/README.md`. In broad terms, the early Target passes prove a narrow fake-server-only SteelHook 0.1 spine, while later Target passes ground Minecraft concepts through analysis and synthesis reports before public APIs or real Minecraft runtime transformation are added.
+
+Do not infer runtime readiness from analysis-only Target documents. Unless a pass explicitly says otherwise, Target concept-grounding work does not add public APIs, runtime callbacks, real Minecraft transformation, new SteelHook primitives, gameplay behavior, or sandboxing.
 
 `com.spindle.api.minecraft.*` currently contains deferred/bootstrap-facing placeholder interfaces used by guarded Minecraft bootstrap fixtures. It is not part of the stabilized Runtime API-0 boundary and is not the public Minecraft Modding API.
 
-Boundary-prep passes are documentation-only unless the task explicitly says otherwise; do not implement the injection hook subsystem, Modding API surfaces, ECS, threading, or simulation work as part of a boundary-prep pass.
+Boundary-prep passes are documentation-only unless the task explicitly says otherwise. Do not implement the injection hook subsystem, Modding API surfaces, ECS, threading, or simulation work as part of a boundary-prep pass.
 
 ## Architecture documentation rules
 
@@ -277,10 +286,10 @@ For architecture-affecting `Runtime-*`, `Platform-*`, `SteelHook-*`, `Minecraft-
 
 Use the organization and templates described in:
 
-- `docs/README.md`
-- `docs/architecture/README.md`
-- `docs/architecture/templates/pass-document-template.md`
-- `docs/architecture/templates/arc-readme-template.md`
+* `docs/README.md`
+* `docs/architecture/README.md`
+* `docs/architecture/templates/pass-document-template.md`
+* `docs/architecture/templates/arc-readme-template.md`
 
 Each architecture arc folder should have a `README.md` that states current status, important pass sequence, latest capability, blocked capabilities, and next handoff. Future plans and Codex prompts should inspect the relevant arc README before editing that arc.
 
@@ -292,10 +301,10 @@ Do not move or rename existing docs during a normal implementation pass unless d
 
 Check:
 
-- Did this preserve deterministic output?
-- Did this avoid expanding Minecraft compatibility scope accidentally?
-- Did this keep public API readable?
-- Did this fail closed before mod classloading when safety checks fail?
-- Did this add or update focused tests?
-- Did this avoid committing generated `runtime/` files?
-- Did the required Gradle verification task pass?
+* Did this preserve deterministic output?
+* Did this avoid expanding Minecraft compatibility scope accidentally?
+* Did this keep public API readable?
+* Did this fail closed before mod classloading when safety checks fail?
+* Did this add or update focused tests?
+* Did this avoid committing generated `runtime/` files?
+* Did the required Gradle verification task pass?
