@@ -142,6 +142,65 @@ class SteelHook02ContractGeneralizationAnalyzerTest {
   }
 
   @Test
+  void primitiveBoundaryAnalysisOnlyDriftFails() {
+    List<SteelHook02ContractGeneralizationAnalysis> analyses =
+        List.of(
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .analysisOnly(false)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .classLoadingOccurred(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .injectionOccurred(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .transformationOccurred(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .patchingOccurred(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .hookInstallationOccurred(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .runtimeDispatchOccurred(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .publicApiExposed(true)
+                    .build(),
+                validPatchPlan()),
+            analyzer.analyze(
+                primitiveBoundaryBuilder(validPrimitiveBoundaryAnalysis())
+                    .javaModExecutionSandboxed(true)
+                    .build(),
+                validPatchPlan()));
+
+    analyses.forEach(
+        analysis -> {
+          assertFalse(analysis.gatePassed());
+          assertEquals(
+              SteelHook02ContractGeneralizationStatus.CONTRACT_GENERALIZATION_BLOCKED,
+              analysis.status());
+        });
+  }
+
+  @Test
   void candidatePatchIdMismatchFails() {
     SteelHook02ContractGeneralizationAnalysis analysis =
         analyzer.analyze(
@@ -466,6 +525,15 @@ class SteelHook02ContractGeneralizationAnalyzerTest {
 
   private static final class PrimitiveBoundaryBuilder {
     private final SteelHook02PrimitiveBoundaryAnalysis base;
+    private boolean analysisOnly;
+    private boolean classLoadingOccurred;
+    private boolean injectionOccurred;
+    private boolean transformationOccurred;
+    private boolean patchingOccurred;
+    private boolean hookInstallationOccurred;
+    private boolean runtimeDispatchOccurred;
+    private boolean publicApiExposed;
+    private boolean javaModExecutionSandboxed;
     private boolean gatePassed;
     private String gateFailureReason;
     private int approvedCandidateCount;
@@ -473,10 +541,64 @@ class SteelHook02ContractGeneralizationAnalyzerTest {
 
     private PrimitiveBoundaryBuilder(SteelHook02PrimitiveBoundaryAnalysis base) {
       this.base = base;
+      analysisOnly = base.analysisOnly();
+      classLoadingOccurred = base.classLoadingOccurred();
+      injectionOccurred = base.injectionOccurred();
+      transformationOccurred = base.transformationOccurred();
+      patchingOccurred = base.patchingOccurred();
+      hookInstallationOccurred = base.hookInstallationOccurred();
+      runtimeDispatchOccurred = base.runtimeDispatchOccurred();
+      publicApiExposed = base.publicApiExposed();
+      javaModExecutionSandboxed = base.javaModExecutionSandboxed();
       gatePassed = base.gatePassed();
       gateFailureReason = base.gateFailureReason();
       approvedCandidateCount = base.approvedCandidateCount();
       candidates = new ArrayList<>(base.candidates());
+    }
+
+    private PrimitiveBoundaryBuilder analysisOnly(boolean value) {
+      analysisOnly = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder classLoadingOccurred(boolean value) {
+      classLoadingOccurred = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder injectionOccurred(boolean value) {
+      injectionOccurred = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder transformationOccurred(boolean value) {
+      transformationOccurred = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder patchingOccurred(boolean value) {
+      patchingOccurred = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder hookInstallationOccurred(boolean value) {
+      hookInstallationOccurred = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder runtimeDispatchOccurred(boolean value) {
+      runtimeDispatchOccurred = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder publicApiExposed(boolean value) {
+      publicApiExposed = value;
+      return this;
+    }
+
+    private PrimitiveBoundaryBuilder javaModExecutionSandboxed(boolean value) {
+      javaModExecutionSandboxed = value;
+      return this;
     }
 
     private PrimitiveBoundaryBuilder gatePassed(boolean value) {
@@ -510,15 +632,15 @@ class SteelHook02ContractGeneralizationAnalyzerTest {
           base.sourcePatchPlanMilestone(),
           base.sourceSteelHookCompletionMilestone(),
           base.sourceRegistryHardeningMilestone(),
-          base.analysisOnly(),
-          base.classLoadingOccurred(),
-          base.injectionOccurred(),
-          base.transformationOccurred(),
-          base.patchingOccurred(),
-          base.hookInstallationOccurred(),
-          base.runtimeDispatchOccurred(),
-          base.publicApiExposed(),
-          base.javaModExecutionSandboxed(),
+          analysisOnly,
+          classLoadingOccurred,
+          injectionOccurred,
+          transformationOccurred,
+          patchingOccurred,
+          hookInstallationOccurred,
+          runtimeDispatchOccurred,
+          publicApiExposed,
+          javaModExecutionSandboxed,
           base.supportedPrimitiveCount(),
           approvedCandidateCount,
           base.deferredCandidateCount(),

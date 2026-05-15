@@ -213,10 +213,60 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
           findings);
     }
 
+    boolean primitiveAnalysisOnly =
+        primitiveBoundaryAnalysis.analysisOnly()
+            && !primitiveBoundaryAnalysis.classLoadingOccurred()
+            && !primitiveBoundaryAnalysis.injectionOccurred()
+            && !primitiveBoundaryAnalysis.transformationOccurred()
+            && !primitiveBoundaryAnalysis.patchingOccurred()
+            && !primitiveBoundaryAnalysis.hookInstallationOccurred()
+            && !primitiveBoundaryAnalysis.runtimeDispatchOccurred()
+            && !primitiveBoundaryAnalysis.publicApiExposed()
+            && !primitiveBoundaryAnalysis.javaModExecutionSandboxed();
+    addFinding(
+        findings,
+        7,
+        "Target-23 remains analysis-only with no classloading, installation, dispatch, API, or sandbox drift.",
+        primitiveAnalysisOnly
+            ? SteelHook02ContractGeneralizationFindingStatus.PASS
+            : SteelHook02ContractGeneralizationFindingStatus.FAIL,
+        true,
+        primitiveAnalysisOnly
+            ? "Target-23 still preserves the expected analysis-only SteelHook 0.2 boundary."
+            : "Target-23 analysis-only invariants drifted from the expected Target-24 handoff shape.",
+        "analysisOnly="
+            + primitiveBoundaryAnalysis.analysisOnly()
+            + ", classLoadingOccurred="
+            + primitiveBoundaryAnalysis.classLoadingOccurred()
+            + ", injectionOccurred="
+            + primitiveBoundaryAnalysis.injectionOccurred()
+            + ", transformationOccurred="
+            + primitiveBoundaryAnalysis.transformationOccurred()
+            + ", patchingOccurred="
+            + primitiveBoundaryAnalysis.patchingOccurred()
+            + ", hookInstallationOccurred="
+            + primitiveBoundaryAnalysis.hookInstallationOccurred()
+            + ", runtimeDispatchOccurred="
+            + primitiveBoundaryAnalysis.runtimeDispatchOccurred()
+            + ", publicApiExposed="
+            + primitiveBoundaryAnalysis.publicApiExposed()
+            + ", javaModExecutionSandboxed="
+            + primitiveBoundaryAnalysis.javaModExecutionSandboxed());
+    if (!primitiveAnalysisOnly) {
+      return buildBlocked(
+          primitiveBoundaryAnalysis.minecraftVersion(),
+          side,
+          "Target-23 analysis-only invariants drifted from the Target-24 handoff boundary.",
+          SteelHook02ContractGeneralizationStatus.CONTRACT_GENERALIZATION_BLOCKED,
+          SteelHook02ContractGeneralizationNextDirection.RESTORE_TARGET_23_PRIMITIVE_BOUNDARY,
+          TARGET_23_RESTORE_ACTION,
+          findings);
+    }
+
     if (patchPlan == null) {
       addFinding(
           findings,
-          7,
+          8,
           "Target-7 patch plan exists.",
           SteelHook02ContractGeneralizationFindingStatus.FAIL,
           true,
@@ -234,7 +284,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
 
     addFinding(
         findings,
-        7,
+        8,
         "Target-7 patch plan exists.",
         SteelHook02ContractGeneralizationFindingStatus.PASS,
         true,
@@ -243,7 +293,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
     boolean patchPlanGatePassed = patchPlan.gatePassed();
     addFinding(
         findings,
-        8,
+        9,
         "Target-7 patch plan gate passed.",
         patchPlanGatePassed
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -269,7 +319,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
     boolean milestoneMatches = SOURCE_PATCH_PLAN_MILESTONE.equals(patchPlan.milestoneName());
     addFinding(
         findings,
-        9,
+        10,
         "Target-7 patch plan milestone name remains Target-7.",
         milestoneMatches
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -293,7 +343,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
     boolean onePlannedPatch = patchPlan.plannedPatches().size() == 1;
     addFinding(
         findings,
-        10,
+        11,
         "Target-7 patch plan has exactly one planned patch.",
         onePlannedPatch
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -320,7 +370,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
     boolean candidateMatchesSourcePatchId = patch.id().equals(candidate.sourcePatchId());
     addFinding(
         findings,
-        11,
+        12,
         "Approved Target-23 candidate source patch id matches the Target-7 planned patch.",
         candidateMatchesSourcePatchId
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -374,7 +424,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
             && runtimeReadyMatches;
     addFinding(
         findings,
-        12,
+        13,
         "Approved Target-23 candidate matches the Target-7 planned patch shape.",
         shapeMatches
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -417,7 +467,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
             && patch.insertionOffset() == 0;
     addFinding(
         findings,
-        13,
+        14,
         "Target remains net/minecraft/server/Main.main([Ljava/lang/String;)V at insertion offset 0.",
         targetShapeMatches
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -452,7 +502,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
             && EXPECTED_DISPATCHER_DESCRIPTOR.equals(patch.codeInsertion().dispatcherDescriptor());
     addFinding(
         findings,
-        14,
+        15,
         "Dispatcher remains SteelHookDispatcher.beforeMinecraftServerMain:()V.",
         dispatcherShapeMatches
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -505,7 +555,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
             && noApiOrSandbox;
     addFinding(
         findings,
-        15,
+        16,
         "Target-24 boundary invariants remain analysis-only and runtime-blocked.",
         invariantsHold
             ? SteelHook02ContractGeneralizationFindingStatus.PASS
@@ -628,7 +678,7 @@ public final class SteelHook02ContractGeneralizationAnalyzer {
 
     addFinding(
         findings,
-        16,
+        17,
         "Target-24 generalized descriptors were created without enabling runtime transformation.",
         SteelHook02ContractGeneralizationFindingStatus.PASS,
         true,
