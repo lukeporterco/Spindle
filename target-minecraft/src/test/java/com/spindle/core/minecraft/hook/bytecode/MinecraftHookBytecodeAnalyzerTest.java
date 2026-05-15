@@ -478,16 +478,24 @@ class MinecraftHookBytecodeAnalyzerTest {
       output.writeInt(codeLength);
       output.write(input.readNBytes(codeLength));
       int exceptionTableCount = input.readUnsignedShort();
-      output.writeShort(exceptionTableCount);
-      for (int index = 0; index < exceptionTableCount; index++) {
-        int startPc = input.readUnsignedShort();
-        int endPc = input.readUnsignedShort();
-        int handlerPc = input.readUnsignedShort();
-        int catchType = input.readUnsignedShort();
-        output.writeShort(startPc);
-        output.writeShort(endPc);
-        output.writeShort(index == 0 ? invalidHandlerPc : handlerPc);
-        output.writeShort(catchType);
+      if (exceptionTableCount == 0) {
+        output.writeShort(1);
+        output.writeShort(0);
+        output.writeShort(codeLength);
+        output.writeShort(invalidHandlerPc);
+        output.writeShort(0);
+      } else {
+        output.writeShort(exceptionTableCount);
+        for (int index = 0; index < exceptionTableCount; index++) {
+          int startPc = input.readUnsignedShort();
+          int endPc = input.readUnsignedShort();
+          int handlerPc = input.readUnsignedShort();
+          int catchType = input.readUnsignedShort();
+          output.writeShort(startPc);
+          output.writeShort(endPc);
+          output.writeShort(index == 0 ? invalidHandlerPc : handlerPc);
+          output.writeShort(catchType);
+        }
       }
       output.write(input.readAllBytes());
       return outputBytes.toByteArray();

@@ -1,0 +1,7 @@
+package com.spindle.core.minecraft.hook.steelhook;
+
+public enum SteelHook02NextDirection {
+  MOVE_TO_TARGET_24_CONTRACT_AND_PATCH_PLAN_GENERALIZATION,
+  RESTORE_UPSTREAM_STEELHOOK_0_1_CHAIN,
+  CONTINUE_TARGET_LAYER_CONCEPT_ANALYSIS
+}

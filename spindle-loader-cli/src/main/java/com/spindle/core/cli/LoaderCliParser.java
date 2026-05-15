@@ -97,6 +97,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainHookBytecodeAnalysis = false;
     boolean minecraftHookPatchPlan = false;
     boolean minecraftExplainHookPatchPlan = false;
+    boolean minecraftSteelHook02PrimitiveBoundary = false;
+    boolean minecraftExplainSteelHook02PrimitiveBoundary = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -732,6 +734,33 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-2-primitive-boundary".equals(argument)) {
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-2-primitive-boundary".equals(argument)) {
+        minecraftExplainSteelHook02PrimitiveBoundary = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -882,6 +911,10 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft SteelHook 0.1 completion check cannot be combined with --minecraft-install-hooks.");
     }
+    if (minecraftSteelHook02PrimitiveBoundary && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.2 primitive boundary analysis cannot be combined with --minecraft-install-hooks.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -963,6 +996,8 @@ public final class LoaderCliParser {
             minecraftExplainHookBytecodeAnalysis,
             minecraftHookPatchPlan,
             minecraftExplainHookPatchPlan,
+            minecraftSteelHook02PrimitiveBoundary,
+            minecraftExplainSteelHook02PrimitiveBoundary,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,

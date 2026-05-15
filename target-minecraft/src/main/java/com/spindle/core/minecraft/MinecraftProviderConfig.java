@@ -81,6 +81,8 @@ public record MinecraftProviderConfig(
     boolean explainHookBytecodeAnalysis,
     boolean hookPatchPlan,
     boolean explainHookPatchPlan,
+    boolean steelHook02PrimitiveBoundary,
+    boolean explainSteelHook02PrimitiveBoundary,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -214,6 +216,8 @@ public record MinecraftProviderConfig(
         false, // explainHookBytecodeAnalysis
         false, // hookPatchPlan
         false, // explainHookPatchPlan
+        false, // steelHook02PrimitiveBoundary
+        false, // explainSteelHook02PrimitiveBoundary
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -375,6 +379,8 @@ public record MinecraftProviderConfig(
         explainHookBytecodeAnalysis,
         hookPatchPlan,
         explainHookPatchPlan,
+        steelHook02PrimitiveBoundary,
+        explainSteelHook02PrimitiveBoundary,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -479,6 +485,8 @@ public record MinecraftProviderConfig(
         explainHookBytecodeAnalysis,
         hookPatchPlan,
         explainHookPatchPlan,
+        steelHook02PrimitiveBoundary,
+        explainSteelHook02PrimitiveBoundary,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -586,6 +594,10 @@ public record MinecraftProviderConfig(
       boolean explainHookPlacement,
       boolean hookBytecodeAnalysis,
       boolean explainHookBytecodeAnalysis,
+      boolean hookPatchPlan,
+      boolean explainHookPatchPlan,
+      boolean steelHook02PrimitiveBoundary,
+      boolean explainSteelHook02PrimitiveBoundary,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -676,8 +688,10 @@ public record MinecraftProviderConfig(
         explainHookPlacement,
         hookBytecodeAnalysis,
         explainHookBytecodeAnalysis,
-        false,
-        false,
+        hookPatchPlan,
+        explainHookPatchPlan,
+        steelHook02PrimitiveBoundary,
+        explainSteelHook02PrimitiveBoundary,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

@@ -374,6 +374,55 @@ class Milestone1LaunchArchitectureTest {
   }
 
   @Test
+  void minecraftSteelHook02PrimitiveBoundaryEnablesRequiredPlanningFlags() throws LoaderException {
+    LaunchArguments arguments =
+        LoaderMain.parseArguments(
+            new String[] {
+              "--game-main",
+              "unused.for.minecraft.Target23",
+              "--game-provider",
+              "minecraft",
+              "--minecraft-version",
+              "26.1.2",
+              "--minecraft-dry-run",
+              "--minecraft-steelhook-0-2-primitive-boundary"
+            });
+
+    assertTrue(arguments.minecraftProviderConfig().steelHook02PrimitiveBoundary());
+    assertTrue(arguments.minecraftProviderConfig().hookPatchPlan());
+    assertTrue(arguments.minecraftProviderConfig().hookBytecodeAnalysis());
+    assertTrue(arguments.minecraftProviderConfig().hookPlacementPlan());
+  }
+
+  @Test
+  void minecraftExplainSteelHook02PrimitiveBoundarySetsExplainFlag() throws LoaderException {
+    LaunchArguments arguments =
+        LoaderMain.parseArguments(
+            new String[] {
+              "--game-main",
+              "unused.for.minecraft.Target23Explain",
+              "--game-provider",
+              "minecraft",
+              "--minecraft-version",
+              "26.1.2",
+              "--minecraft-dry-run",
+              "--minecraft-explain-steelhook-0-2-primitive-boundary"
+            });
+
+    assertTrue(arguments.minecraftProviderConfig().explainSteelHook02PrimitiveBoundary());
+    assertTrue(arguments.minecraftProviderConfig().steelHook02PrimitiveBoundary());
+    assertTrue(arguments.minecraftProviderConfig().hookPatchPlan());
+    assertTrue(arguments.minecraftProviderConfig().hookBytecodeAnalysis());
+    assertTrue(arguments.minecraftProviderConfig().hookPlacementPlan());
+    assertTrue(arguments.minecraftProviderConfig().hookContracts());
+    assertTrue(arguments.minecraftProviderConfig().interpretArtifact());
+    assertTrue(arguments.minecraftProviderConfig().runtimePlan());
+    assertTrue(arguments.minecraftProviderConfig().boundaryReport());
+    assertTrue(arguments.minecraftProviderConfig().integrationPlan());
+    assertTrue(arguments.minecraftProviderConfig().executionPlan());
+  }
+
+  @Test
   void launchTimeoutRequiresPositiveInteger() {
     LoaderException exception =
         assertThrows(

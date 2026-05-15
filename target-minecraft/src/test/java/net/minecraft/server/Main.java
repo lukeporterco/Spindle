@@ -8,12 +8,8 @@ public final class Main {
   private Main() {}
 
   public static void main(String[] args) {
-    try {
-      writeMarker(args);
-      failIfRequested(args);
-    } catch (RuntimeException exception) {
-      throw exception;
-    }
+    writeMarker(args);
+    failIfRequested(args);
   }
 
   private static void writeMarker(String[] args) {

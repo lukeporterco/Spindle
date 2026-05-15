@@ -70,6 +70,9 @@ import com.spindle.core.minecraft.hook.patch.MinecraftHookPatchPlanner;
 import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlan;
 import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanWriter;
 import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanner;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalysis;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalysisWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalyzer;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
@@ -171,8 +174,10 @@ public final class MinecraftDryRunFlow {
             || config.hookBytecodeAnalysis()
             || config.explainHookBytecodeAnalysis()
             || config.hookPatchPlan()
+            || config.steelHook02PrimitiveBoundary()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
+            || config.explainSteelHook02PrimitiveBoundary()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -420,8 +425,10 @@ public final class MinecraftDryRunFlow {
                 || config.hookBytecodeAnalysis()
                 || config.explainHookBytecodeAnalysis()
                 || config.hookPatchPlan()
+                || config.steelHook02PrimitiveBoundary()
                 || config.bootstrapTransformHooks()
                 || config.explainHookPatchPlan()
+                || config.explainSteelHook02PrimitiveBoundary()
                 || config.hookInstallationPlan()
                 || config.installHooks()
                 || config.integrationPlan()
@@ -498,8 +505,10 @@ public final class MinecraftDryRunFlow {
               || config.hookBytecodeAnalysis()
               || config.explainHookBytecodeAnalysis()
               || config.hookPatchPlan()
+              || config.steelHook02PrimitiveBoundary()
               || config.bootstrapTransformHooks()
               || config.explainHookPatchPlan()
+              || config.explainSteelHook02PrimitiveBoundary()
               || config.hookInstallationPlan()
               || config.installHooks();
       if (shouldCreateInterpretation) {
@@ -576,7 +585,9 @@ public final class MinecraftDryRunFlow {
           || config.hookBytecodeAnalysis()
           || config.explainHookBytecodeAnalysis()
           || config.hookPatchPlan()
+          || config.steelHook02PrimitiveBoundary()
           || config.explainHookPatchPlan()
+          || config.explainSteelHook02PrimitiveBoundary()
           || config.hookInstallationPlan()
           || config.installHooks()) {
         MinecraftArtifactInterpretation finalInterpretation =
@@ -1230,6 +1241,7 @@ public final class MinecraftDryRunFlow {
           || config.hookPlacementPlan()
           || config.hookBytecodeAnalysis()
           || config.hookPatchPlan()
+          || config.steelHook02PrimitiveBoundary()
           || config.hookInstallationPlan()
           || config.installHooks()
           || config.preflight()
@@ -1338,6 +1350,7 @@ public final class MinecraftDryRunFlow {
               || config.hookPlacementPlan()
               || config.hookBytecodeAnalysis()
               || config.hookPatchPlan()
+              || config.steelHook02PrimitiveBoundary()
               || config.installHooks()
               || config.bootstrapClassloaderGraph()
               || config.bootstrapServer()
@@ -1402,6 +1415,7 @@ public final class MinecraftDryRunFlow {
         if (config.hookPlacementPlan()
             || config.hookBytecodeAnalysis()
             || config.hookPatchPlan()
+            || config.steelHook02PrimitiveBoundary()
             || config.bootstrapTransformHooks()) {
           MinecraftHookContractReport finalHookContractReport = hookContractReport;
           MinecraftHookPlacementPlan hookPlacementPlan =
@@ -1446,6 +1460,7 @@ public final class MinecraftDryRunFlow {
           MinecraftHookBytecodeAnalysisReport hookBytecodeAnalysisReport = null;
           if (config.hookBytecodeAnalysis()
               || config.hookPatchPlan()
+              || config.steelHook02PrimitiveBoundary()
               || config.bootstrapTransformHooks()) {
             hookBytecodeAnalysisReport =
                 DiagnosticMeasurements.measure(
@@ -1490,7 +1505,9 @@ public final class MinecraftDryRunFlow {
             }
           }
 
-          if (config.hookPatchPlan() || config.bootstrapTransformHooks()) {
+          if (config.hookPatchPlan()
+              || config.steelHook02PrimitiveBoundary()
+              || config.bootstrapTransformHooks()) {
             MinecraftHookBytecodeAnalysisReport finalHookBytecodeAnalysisReport =
                 hookBytecodeAnalysisReport;
             MinecraftHookPatchPlan hookPatchPlan =
@@ -1530,6 +1547,46 @@ public final class MinecraftDryRunFlow {
             megaMilestoneReports.add("minecraft-hook-patch-plan.json");
             if (config.explainHookPatchPlan()) {
               printMinecraftHookPatchPlanExplain(hookPatchPlan);
+            }
+            if (config.steelHook02PrimitiveBoundary()
+                || config.explainSteelHook02PrimitiveBoundary()) {
+              SteelHook02PrimitiveBoundaryAnalysis steelHook02PrimitiveBoundaryAnalysis =
+                  DiagnosticMeasurements.measure(
+                      diagnosticSink,
+                      "minecraft.steelhook_0_2.primitive_boundary",
+                      LaunchPhase.COMPLETE,
+                      () -> new SteelHook02PrimitiveBoundaryAnalyzer().analyze(hookPatchPlan),
+                      analysis ->
+                          DiagnosticMeasurements.details(
+                              "gatePassed",
+                              Boolean.toString(analysis.gatePassed()),
+                              "boundaryStatus",
+                              analysis.boundaryStatus().name(),
+                              "approvedCandidateCount",
+                              Integer.toString(analysis.approvedCandidateCount()),
+                              "nextDirection",
+                              analysis.nextDirection().name()));
+              DiagnosticMeasurements.measure(
+                  diagnosticSink,
+                  "minecraft.steelhook_0_2.primitive_boundary.write",
+                  LaunchPhase.COMPLETE,
+                  () -> {
+                    Path outputPath =
+                        context
+                            .workingDirectory()
+                            .resolve("minecraft-steelhook-0-2-primitive-boundary.json");
+                    new SteelHook02PrimitiveBoundaryAnalysisWriter()
+                        .write(outputPath, steelHook02PrimitiveBoundaryAnalysis);
+                    return outputPath;
+                  },
+                  outputPath ->
+                      DiagnosticMeasurements.details(
+                          "steelHook02PrimitiveBoundaryOutputPath",
+                          DisplayPaths.displayPath(context, outputPath)));
+              megaMilestoneReports.add("minecraft-steelhook-0-2-primitive-boundary.json");
+              if (config.explainSteelHook02PrimitiveBoundary()) {
+                printSteelHook02PrimitiveBoundaryExplain(steelHook02PrimitiveBoundaryAnalysis);
+              }
             }
           }
         }
@@ -2195,5 +2252,31 @@ public final class MinecraftDryRunFlow {
     System.out.println(
         "[spindle] explain-hook-patch-plan: planned patches " + plan.plannedPatchCount());
     System.out.println("[spindle] explain-hook-patch-plan: wrote minecraft-hook-patch-plan.json");
+  }
+
+  private static void printSteelHook02PrimitiveBoundaryExplain(
+      SteelHook02PrimitiveBoundaryAnalysis analysis) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: Target-23 is analysis-only");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: gatePassed " + analysis.gatePassed());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: boundaryStatus "
+            + analysis.boundaryStatus().name());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: approved candidates "
+            + analysis.approvedCandidateCount());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: selected primitive "
+            + (analysis.candidates().isEmpty()
+                ? "none"
+                : analysis.candidates().getFirst().primitiveKind().name()));
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: runtime transformation readiness remains false");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: next action "
+            + analysis.nextRecommendedAction());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-primitive-boundary: wrote minecraft-steelhook-0-2-primitive-boundary.json");
   }
 }
