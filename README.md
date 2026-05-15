@@ -782,4 +782,8 @@ Do not add unrelated ECS, threading, simulation, compatibility, or optimization 
 
 ## License
 
-See `LICENSE`.
+Spindle is licensed under the Mozilla Public License 2.0.
+
+Copyright (c) 2026 Axen-o7.
+
+Mods, plugins, and external tools that merely use Spindle’s public APIs are not required to use the MPL-2.0. Changes to Spindle’s own MPL-covered source files must comply with the MPL-2.0.
