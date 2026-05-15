@@ -303,6 +303,12 @@ Caboose, closure, hardening, and synthesis documents should clearly record compl
 
 Do not move or rename existing docs during a normal implementation pass unless docs organization is explicitly in scope. If docs are moved, update nearby README files and relative links in the same change.
 
+## Project stats
+
+The root-level `PROJECT-STATS.md` file is a manually refreshed snapshot of repository size, module distribution, source/test balance, file types, package counts, test inventory, and documentation inventory.
+
+When planning or reviewing repo-wide work, skim `PROJECT-STATS.md` for current project shape and scale. Do not treat the numbers as quality metrics or update them casually. Refresh the file only when intentionally updating project metrics from the current repository state.
+
 ## Before finalizing a change
 
 Check:
