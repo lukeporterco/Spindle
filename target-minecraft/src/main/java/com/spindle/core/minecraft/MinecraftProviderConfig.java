@@ -87,6 +87,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook02ContractGeneralization,
     boolean steelHook02MethodEntryTransformer,
     boolean explainSteelHook02MethodEntryTransformer,
+    boolean steelHook02GatedRuntimeTransformation,
+    boolean explainSteelHook02GatedRuntimeTransformation,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -226,6 +228,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook02ContractGeneralization
         false, // steelHook02MethodEntryTransformer
         false, // explainSteelHook02MethodEntryTransformer
+        false, // steelHook02GatedRuntimeTransformation
+        false, // explainSteelHook02GatedRuntimeTransformation
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -393,6 +397,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02ContractGeneralization,
         steelHook02MethodEntryTransformer,
         explainSteelHook02MethodEntryTransformer,
+        steelHook02GatedRuntimeTransformation,
+        explainSteelHook02GatedRuntimeTransformation,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -503,6 +509,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02ContractGeneralization,
         steelHook02MethodEntryTransformer,
         explainSteelHook02MethodEntryTransformer,
+        steelHook02GatedRuntimeTransformation,
+        explainSteelHook02GatedRuntimeTransformation,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -618,6 +626,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook02ContractGeneralization,
       boolean steelHook02MethodEntryTransformer,
       boolean explainSteelHook02MethodEntryTransformer,
+      boolean steelHook02GatedRuntimeTransformation,
+      boolean explainSteelHook02GatedRuntimeTransformation,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -716,6 +726,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02ContractGeneralization,
         steelHook02MethodEntryTransformer,
         explainSteelHook02MethodEntryTransformer,
+        steelHook02GatedRuntimeTransformation,
+        explainSteelHook02GatedRuntimeTransformation,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

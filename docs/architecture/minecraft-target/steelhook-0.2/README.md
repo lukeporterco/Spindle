@@ -10,4 +10,6 @@ Target-24 is also analysis-only. It generalizes that one approved Target-23 cand
 
 Target-25 extracts the reusable method-entry bytecode transformer and proves it through local/offline class-byte transformation. It still does not classload transformed bytes into Minecraft or make runtime transformation ready.
 
+Target-26 enables the gated runtime classloader transformation path for the single approved method-entry static-dispatch primitive. It defines the transformed target class through the runtime classloader, but it does not invoke Minecraft main, launch a server, install hooks, or observe dispatcher execution.
+
 SteelHook 0.2 still does not transform real Minecraft classes, expose a public API, or claim Java mod execution sandboxing.

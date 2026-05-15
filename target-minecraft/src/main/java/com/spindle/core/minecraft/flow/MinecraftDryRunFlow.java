@@ -73,6 +73,9 @@ import com.spindle.core.minecraft.hook.place.MinecraftHookPlacementPlanner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02ContractGeneralizationAnalysis;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02ContractGeneralizationAnalysisWriter;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02ContractGeneralizationAnalyzer;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02GatedRuntimeTransformationResult;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02GatedRuntimeTransformationResultWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02GatedRuntimeTransformationRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02MethodEntryTransformer;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02MethodEntryTransformerResult;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02MethodEntryTransformerResultWriter;
@@ -185,11 +188,13 @@ public final class MinecraftDryRunFlow {
             || config.steelHook02PrimitiveBoundary()
             || config.steelHook02ContractGeneralization()
             || config.steelHook02MethodEntryTransformer()
+            || config.steelHook02GatedRuntimeTransformation()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
             || config.explainSteelHook02ContractGeneralization()
             || config.explainSteelHook02MethodEntryTransformer()
+            || config.explainSteelHook02GatedRuntimeTransformation()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -440,11 +445,13 @@ public final class MinecraftDryRunFlow {
                 || config.steelHook02PrimitiveBoundary()
                 || config.steelHook02ContractGeneralization()
                 || config.steelHook02MethodEntryTransformer()
+                || config.steelHook02GatedRuntimeTransformation()
                 || config.bootstrapTransformHooks()
                 || config.explainHookPatchPlan()
                 || config.explainSteelHook02PrimitiveBoundary()
                 || config.explainSteelHook02ContractGeneralization()
                 || config.explainSteelHook02MethodEntryTransformer()
+                || config.explainSteelHook02GatedRuntimeTransformation()
                 || config.hookInstallationPlan()
                 || config.installHooks()
                 || config.integrationPlan()
@@ -524,11 +531,13 @@ public final class MinecraftDryRunFlow {
               || config.steelHook02PrimitiveBoundary()
               || config.steelHook02ContractGeneralization()
               || config.steelHook02MethodEntryTransformer()
+              || config.steelHook02GatedRuntimeTransformation()
               || config.bootstrapTransformHooks()
               || config.explainHookPatchPlan()
               || config.explainSteelHook02PrimitiveBoundary()
               || config.explainSteelHook02ContractGeneralization()
               || config.explainSteelHook02MethodEntryTransformer()
+              || config.explainSteelHook02GatedRuntimeTransformation()
               || config.hookInstallationPlan()
               || config.installHooks();
       if (shouldCreateInterpretation) {
@@ -608,10 +617,12 @@ public final class MinecraftDryRunFlow {
           || config.steelHook02PrimitiveBoundary()
           || config.steelHook02ContractGeneralization()
           || config.steelHook02MethodEntryTransformer()
+          || config.steelHook02GatedRuntimeTransformation()
           || config.explainHookPatchPlan()
           || config.explainSteelHook02PrimitiveBoundary()
           || config.explainSteelHook02ContractGeneralization()
           || config.explainSteelHook02MethodEntryTransformer()
+          || config.explainSteelHook02GatedRuntimeTransformation()
           || config.hookInstallationPlan()
           || config.installHooks()) {
         MinecraftArtifactInterpretation finalInterpretation =
@@ -1268,6 +1279,7 @@ public final class MinecraftDryRunFlow {
           || config.steelHook02PrimitiveBoundary()
           || config.steelHook02ContractGeneralization()
           || config.steelHook02MethodEntryTransformer()
+          || config.steelHook02GatedRuntimeTransformation()
           || config.hookInstallationPlan()
           || config.installHooks()
           || config.preflight()
@@ -1448,6 +1460,7 @@ public final class MinecraftDryRunFlow {
             || config.steelHook02PrimitiveBoundary()
             || config.steelHook02ContractGeneralization()
             || config.steelHook02MethodEntryTransformer()
+            || config.steelHook02GatedRuntimeTransformation()
             || config.bootstrapTransformHooks()) {
           MinecraftHookContractReport finalHookContractReport = hookContractReport;
           MinecraftHookPlacementPlan hookPlacementPlan =
@@ -1495,6 +1508,7 @@ public final class MinecraftDryRunFlow {
               || config.steelHook02PrimitiveBoundary()
               || config.steelHook02ContractGeneralization()
               || config.steelHook02MethodEntryTransformer()
+              || config.steelHook02GatedRuntimeTransformation()
               || config.bootstrapTransformHooks()) {
             hookBytecodeAnalysisReport =
                 DiagnosticMeasurements.measure(
@@ -1543,6 +1557,7 @@ public final class MinecraftDryRunFlow {
               || config.steelHook02PrimitiveBoundary()
               || config.steelHook02ContractGeneralization()
               || config.steelHook02MethodEntryTransformer()
+              || config.steelHook02GatedRuntimeTransformation()
               || config.bootstrapTransformHooks()) {
             MinecraftHookBytecodeAnalysisReport finalHookBytecodeAnalysisReport =
                 hookBytecodeAnalysisReport;
@@ -1589,7 +1604,9 @@ public final class MinecraftDryRunFlow {
                 || config.steelHook02ContractGeneralization()
                 || config.explainSteelHook02ContractGeneralization()
                 || config.steelHook02MethodEntryTransformer()
-                || config.explainSteelHook02MethodEntryTransformer()) {
+                || config.explainSteelHook02MethodEntryTransformer()
+                || config.steelHook02GatedRuntimeTransformation()
+                || config.explainSteelHook02GatedRuntimeTransformation()) {
               SteelHook02PrimitiveBoundaryAnalysis steelHook02PrimitiveBoundaryAnalysis =
                   DiagnosticMeasurements.measure(
                       diagnosticSink,
@@ -1630,7 +1647,9 @@ public final class MinecraftDryRunFlow {
               if (config.steelHook02ContractGeneralization()
                   || config.explainSteelHook02ContractGeneralization()
                   || config.steelHook02MethodEntryTransformer()
-                  || config.explainSteelHook02MethodEntryTransformer()) {
+                  || config.explainSteelHook02MethodEntryTransformer()
+                  || config.steelHook02GatedRuntimeTransformation()
+                  || config.explainSteelHook02GatedRuntimeTransformation()) {
                 SteelHook02ContractGeneralizationAnalysis contractGeneralizationAnalysis =
                     DiagnosticMeasurements.measure(
                         diagnosticSink,
@@ -1672,7 +1691,9 @@ public final class MinecraftDryRunFlow {
                   printSteelHook02ContractGeneralizationExplain(contractGeneralizationAnalysis);
                 }
                 if (config.steelHook02MethodEntryTransformer()
-                    || config.explainSteelHook02MethodEntryTransformer()) {
+                    || config.explainSteelHook02MethodEntryTransformer()
+                    || config.steelHook02GatedRuntimeTransformation()
+                    || config.explainSteelHook02GatedRuntimeTransformation()) {
                   SteelHook02TargetClassBytes targetClassBytes =
                       new SteelHook02TargetClassBytesReader()
                           .read(
@@ -1770,6 +1791,53 @@ public final class MinecraftDryRunFlow {
                       "minecraft-steelhook-0-2-method-entry-transformer-result.json");
                   if (config.explainSteelHook02MethodEntryTransformer()) {
                     printSteelHook02MethodEntryTransformerExplain(transformerResult);
+                  }
+                  if (config.steelHook02GatedRuntimeTransformation()
+                      || config.explainSteelHook02GatedRuntimeTransformation()) {
+                    SteelHook02GatedRuntimeTransformationResult gatedRuntimeResult =
+                        DiagnosticMeasurements.measure(
+                            diagnosticSink,
+                            "minecraft.steelhook_0_2.gated_runtime_transformation",
+                            LaunchPhase.COMPLETE,
+                            () ->
+                                new SteelHook02GatedRuntimeTransformationRunner()
+                                    .run(
+                                        executionPlannedRuntime.plan(),
+                                        contractGeneralizationAnalysis,
+                                        finalTransformerResult),
+                            result ->
+                                DiagnosticMeasurements.details(
+                                    "gatePassed",
+                                    Boolean.toString(result.gatePassed()),
+                                    "status",
+                                    result.status().name(),
+                                    "runtimeClassLoadingSucceeded",
+                                    Boolean.toString(result.runtimeClassLoadingSucceeded()),
+                                    "targetClassDefined",
+                                    Boolean.toString(result.targetClassDefined())));
+                    DiagnosticMeasurements.measure(
+                        diagnosticSink,
+                        "minecraft.steelhook_0_2.gated_runtime_transformation.write",
+                        LaunchPhase.COMPLETE,
+                        () -> {
+                          Path outputPath =
+                              context
+                                  .workingDirectory()
+                                  .resolve(
+                                      "minecraft-steelhook-0-2-gated-runtime-transformation-result.json");
+                          new SteelHook02GatedRuntimeTransformationResultWriter()
+                              .write(outputPath, gatedRuntimeResult);
+                          return outputPath;
+                        },
+                        outputPath ->
+                            DiagnosticMeasurements.details(
+                                "steelHook02GatedRuntimeTransformationOutputPath",
+                                DisplayPaths.displayPath(context, outputPath)));
+                    megaMilestoneReports.add(
+                        "minecraft-steelhook-0-2-gated-runtime-transformation-result.json");
+                    if (config.explainSteelHook02GatedRuntimeTransformation()) {
+                      printSteelHook02GatedRuntimeTransformationExplain(gatedRuntimeResult);
+                    }
                   }
                 }
               }
@@ -2515,5 +2583,34 @@ public final class MinecraftDryRunFlow {
             + result.transformedClassBytesProduced());
     System.out.println(
         "[spindle] explain-steelhook-0-2-method-entry-transformer: wrote minecraft-steelhook-0-2-method-entry-transformer-result.json");
+  }
+
+  private static void printSteelHook02GatedRuntimeTransformationExplain(
+      SteelHook02GatedRuntimeTransformationResult result) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: Target-26 enabled the gated runtime classloader transformation path.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: gatePassed "
+            + result.gatePassed());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: status "
+            + result.status().name());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: runtime classloading enabled true");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: approved target class defined through runtime classloader "
+            + result.targetClassDefined());
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: Minecraft main was not invoked");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: no hook installation occurred");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: no runtime dispatch was observed or required");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: Java mod execution is not sandboxed");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: Target-27 should complete SteelHook 0.2 verification");
+    System.out.println(
+        "[spindle] explain-steelhook-0-2-gated-runtime-transformation: wrote minecraft-steelhook-0-2-gated-runtime-transformation-result.json");
   }
 }

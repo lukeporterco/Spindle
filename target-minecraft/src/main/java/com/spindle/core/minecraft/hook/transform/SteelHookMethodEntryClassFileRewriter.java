@@ -199,9 +199,6 @@ public final class SteelHookMethodEntryClassFileRewriter {
     if (request.instructionLength() != 3) {
       return "Method-entry rewriting supports instruction length 3 only.";
     }
-    if (request.runtimeClassLoadingPathEnabled()) {
-      return "Method-entry rewriting must not enable runtime classloading.";
-    }
     if (request.publicApiExposed()) {
       return "Method-entry rewriting must not expose public API.";
     }

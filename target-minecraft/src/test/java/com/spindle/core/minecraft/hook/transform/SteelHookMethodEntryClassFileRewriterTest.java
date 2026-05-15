@@ -144,13 +144,13 @@ class SteelHookMethodEntryClassFileRewriterTest {
   }
 
   @Test
-  void runtimeClassLoadingPathEnabledIsRejectedBeforeRewrite() throws Exception {
+  void runtimeClassLoadingPathEnabledRemainsSupportedForTarget26Reuse() throws Exception {
     SteelHookMethodEntryRewriteResult result =
         rewriter.rewrite(
             requestBuilder(validRequest()).runtimeClassLoadingPathEnabled(true).build(),
             readResourceBytes("net/minecraft/server/Main.class"));
 
-    assertRejectedWith(result, "must not enable runtime classloading");
+    assertEquals(SteelHookMethodEntryRewriteStatus.TRANSFORMED, result.status());
   }
 
   @Test
