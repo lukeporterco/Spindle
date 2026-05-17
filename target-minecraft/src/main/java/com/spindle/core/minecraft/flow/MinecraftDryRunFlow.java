@@ -84,6 +84,9 @@ import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAna
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02PrimitiveBoundaryAnalyzer;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02TargetClassBytes;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook02TargetClassBytesReader;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationReport;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationRunner;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionInput;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReport;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReportWriter;
@@ -194,6 +197,7 @@ public final class MinecraftDryRunFlow {
             || config.steelHook02MethodEntryTransformer()
             || config.steelHook02GatedRuntimeTransformation()
             || config.steelHook02CompletionCheck()
+            || config.steelHook03FramedMethodFoundation()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
@@ -201,6 +205,7 @@ public final class MinecraftDryRunFlow {
             || config.explainSteelHook02MethodEntryTransformer()
             || config.explainSteelHook02GatedRuntimeTransformation()
             || config.explainSteelHook02CompletionCheck()
+            || config.explainSteelHook03FramedMethodFoundation()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -1864,7 +1869,9 @@ public final class MinecraftDryRunFlow {
                     if (config.explainSteelHook02GatedRuntimeTransformation()) {
                       printSteelHook02GatedRuntimeTransformationExplain(gatedRuntimeResult);
                     }
-                    if (config.steelHook02CompletionCheck()) {
+                    if (config.steelHook02CompletionCheck()
+                        || config.steelHook03FramedMethodFoundation()
+                        || config.explainSteelHook03FramedMethodFoundation()) {
                       SteelHook02CompletionInput completionInput =
                           SteelHook02CompletionInput.fromWorkingDirectory(
                               context.workingDirectory());
@@ -1902,6 +1909,53 @@ public final class MinecraftDryRunFlow {
                         printSteelHook02CompletionExplain(
                             completionReport,
                             SteelHook02CompletionInput.reportPath(context.workingDirectory()));
+                      }
+                      if (config.steelHook03FramedMethodFoundation()
+                          || config.explainSteelHook03FramedMethodFoundation()) {
+                        SteelHook03FramedMethodFoundationRunner framedMethodFoundationRunner =
+                            new SteelHook03FramedMethodFoundationRunner();
+                        SteelHook03FramedMethodFoundationReport framedMethodFoundationReport =
+                            DiagnosticMeasurements.measure(
+                                diagnosticSink,
+                                "minecraft.steelhook_0_3.framed_method_foundation",
+                                LaunchPhase.COMPLETE,
+                                () ->
+                                    framedMethodFoundationRunner.run(
+                                        completionReport,
+                                        framedMethodFoundationRunner
+                                            .defaultFramedFixtureClassBytes()),
+                                report ->
+                                    DiagnosticMeasurements.details(
+                                        "status",
+                                        report.status().id(),
+                                        "framedMethodFoundationReady",
+                                        Boolean.toString(report.framedMethodFoundationReady()),
+                                        "stackMapTableRewriteApplied",
+                                        Boolean.toString(report.stackMapTableRewriteApplied())));
+                        DiagnosticMeasurements.measure(
+                            diagnosticSink,
+                            "minecraft.steelhook_0_3.framed_method_foundation.write",
+                            LaunchPhase.COMPLETE,
+                            () -> {
+                              Path outputPath =
+                                  context
+                                      .workingDirectory()
+                                      .resolve(
+                                          SteelHook03FramedMethodFoundationRunner.REPORT_FILE_NAME);
+                              new SteelHook03FramedMethodFoundationReportWriter()
+                                  .write(outputPath, framedMethodFoundationReport);
+                              return outputPath;
+                            },
+                            outputPath ->
+                                DiagnosticMeasurements.details(
+                                    "steelHook03FramedMethodFoundationOutputPath",
+                                    DisplayPaths.displayPath(context, outputPath)));
+                        megaMilestoneReports.add(
+                            SteelHook03FramedMethodFoundationRunner.REPORT_FILE_NAME);
+                        if (config.explainSteelHook03FramedMethodFoundation()) {
+                          printSteelHook03FramedMethodFoundationExplain(
+                              framedMethodFoundationReport);
+                        }
                       }
                     }
                   }
@@ -2706,5 +2760,24 @@ public final class MinecraftDryRunFlow {
         "[spindle] explain-steelhook-0-2-check: next direction "
             + (report.nextDirection() == null ? "none" : report.nextDirection().id()));
     System.out.println("[spindle] explain-steelhook-0-2-check: wrote " + reportPath.getFileName());
+  }
+
+  private static void printSteelHook03FramedMethodFoundationExplain(
+      SteelHook03FramedMethodFoundationReport report) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: SteelHook 0.3 framed method foundation ran after SteelHook 0.2 completion.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: StackMapTable first-frame shifting is supported for method-entry offset 0 only.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: runtime classloading remains disabled for Target-28.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: Minecraft main was not invoked.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: Java mod execution is not sandboxed.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: status " + report.status().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-framed-method-foundation: wrote "
+            + SteelHook03FramedMethodFoundationRunner.REPORT_FILE_NAME);
   }
 }

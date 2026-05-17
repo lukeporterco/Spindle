@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.spindle.core.minecraft.hook.place.MinecraftMethodCodeReader;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook02TestFixtures;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03TestFixtures;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +38,8 @@ class SteelHookMethodEntryClassFileRewriterTest {
     assertEquals(first.constantPoolCountBefore() + 6, first.constantPoolCountAfter());
     assertEquals(first.constantPoolCountBefore() + 5, first.methodrefIndex());
     assertTrue(first.insertedInstructionHex().startsWith("b8 "));
+    assertFalse(first.stackMapTablePresent());
+    assertFalse(first.stackMapTableRewriteApplied());
     assertArrayEquals(originalSnapshot, originalClassBytes);
     assertNotEquals(first.originalClassSha256(), first.transformedClassSha256());
     assertEquals(first.originalClassSha256(), second.originalClassSha256());
@@ -201,6 +205,74 @@ class SteelHookMethodEntryClassFileRewriterTest {
     assertRejectedWith(blankDispatcherDescriptor, "must be nonblank");
   }
 
+  @Test
+  void framedMethodWithStackMapTableRewriteSupportedFalseIsRejectedWithExistingFailure() {
+    SteelHookMethodEntryRewriteResult result =
+        rewriter.rewrite(
+            framedRequestBuilder().build(), SteelHook03TestFixtures.framedFixtureClassBytes());
+
+    assertRejectedWith(result, "StackMapTable rewriting is not supported");
+    assertTrue(result.stackMapTablePresent());
+    assertTrue(result.stackMapTableRejected());
+  }
+
+  @Test
+  void framedMethodWithStackMapTableRewriteSupportedTrueTransformsSuccessfully() throws Exception {
+    SteelHookMethodEntryRewriteResult result =
+        rewriter.rewrite(
+            framedRequestBuilder().stackMapTableRewriteSupported(true).build(),
+            SteelHook03TestFixtures.framedFixtureClassBytes());
+
+    assertEquals(SteelHookMethodEntryRewriteStatus.TRANSFORMED, result.status());
+    assertTrue(result.stackMapTablePresent());
+    assertTrue(result.stackMapTableRewriteSupported());
+    assertTrue(result.stackMapTableRewriteApplied());
+    assertEquals(1, result.stackMapTableEntryCountBefore());
+    assertEquals(1, result.stackMapTableEntryCountAfter());
+    assertEquals(5, result.firstFrameOffsetDeltaBefore());
+    assertEquals(8, result.firstFrameOffsetDeltaAfter());
+
+    byte[] transformedMethodCode =
+        methodCodeReader
+            .readDecodedCode(
+                result.transformedClass().classBytes(),
+                "com/spindle/steelhook/Target28FramedMain",
+                TARGET_METHOD,
+                TARGET_DESCRIPTOR)
+            .code();
+    assertEquals(0xb8, transformedMethodCode[0] & 0xFF);
+  }
+
+  @Test
+  void emptyStackMapTableIsAcceptedWhenRewriteSupportIsTrueAndReportsRewriteAppliedFalse() {
+    SteelHookMethodEntryRewriteResult result =
+        rewriter.rewrite(
+            requestBuilder(validRequest()).stackMapTableRewriteSupported(true).build(),
+            SteelHook02TestFixtures.fixtureClassBytes(
+                "net/minecraft/server/Main", TARGET_DESCRIPTOR, true, true));
+
+    assertEquals(SteelHookMethodEntryRewriteStatus.TRANSFORMED, result.status());
+    assertTrue(result.stackMapTablePresent());
+    assertFalse(result.stackMapTableRewriteApplied());
+    assertEquals(0, result.stackMapTableEntryCountBefore());
+    assertEquals(0, result.stackMapTableEntryCountAfter());
+  }
+
+  @Test
+  void malformedStackMapTableIsRejectedDeterministically() {
+    SteelHookMethodEntryRewriteResult result =
+        rewriter.rewrite(
+            requestBuilder(validRequest())
+                .targetOwnerInternalName("com/spindle/steelhook/TestTarget")
+                .targetBinaryName("com.spindle.steelhook.TestTarget")
+                .targetClassEntryName("com/spindle/steelhook/TestTarget.class")
+                .stackMapTableRewriteSupported(true)
+                .build(),
+            SteelHook03TestFixtures.malformedStackMapFixtureClassBytes());
+
+    assertRejectedWith(result, "Malformed StackMapTable");
+  }
+
   private void assertRejectedWith(SteelHookMethodEntryRewriteResult result, String fragment) {
     assertEquals(SteelHookMethodEntryRewriteStatus.REJECTED, result.status());
     assertFalse(result.methodEntryTransformationOccurred());
@@ -208,6 +280,13 @@ class SteelHookMethodEntryClassFileRewriterTest {
     assertFalse(result.transformedClassBytesProduced());
     assertNotNull(result.failureReason());
     assertTrue(result.failureReason().contains(fragment));
+  }
+
+  private RequestBuilder framedRequestBuilder() {
+    return requestBuilder(validRequest())
+        .targetOwnerInternalName("com/spindle/steelhook/Target28FramedMain")
+        .targetBinaryName("com.spindle.steelhook.Target28FramedMain")
+        .targetClassEntryName("com/spindle/steelhook/Target28FramedMain.class");
   }
 
   private RequestBuilder requestBuilder(SteelHookMethodEntryRewriteRequest request) {
@@ -303,6 +382,16 @@ class SteelHookMethodEntryClassFileRewriterTest {
       return this;
     }
 
+    private RequestBuilder targetBinaryName(String value) {
+      targetBinaryName = value;
+      return this;
+    }
+
+    private RequestBuilder targetClassEntryName(String value) {
+      targetClassEntryName = value;
+      return this;
+    }
+
     private RequestBuilder targetMethodName(String value) {
       targetMethodName = value;
       return this;
@@ -345,6 +434,11 @@ class SteelHookMethodEntryClassFileRewriterTest {
 
     private RequestBuilder instructionLength(int value) {
       instructionLength = value;
+      return this;
+    }
+
+    private RequestBuilder stackMapTableRewriteSupported(boolean value) {
+      stackMapTableRewriteSupported = value;
       return this;
     }
 

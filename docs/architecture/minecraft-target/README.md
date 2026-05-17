@@ -2,13 +2,15 @@
 
 This folder records Minecraft Target Layer concept grounding, Target-* pass history, and internal boundaries.
 
-Current status: Target-1 through Target-10 complete the narrow SteelHook 0.1 fake-server hook spine. Target-11 through Target-22 ground server lifecycle, command registration, resource/reload, and registry bootstrap/content registration concept families as analysis-only or synthesis passes. Target-23 through Target-27 complete SteelHook 0.2 in the narrow capability-ladder sense.
+Current status: Target-1 through Target-10 complete the narrow SteelHook 0.1 fake-server hook spine. Target-11 through Target-22 ground server lifecycle, command registration, resource/reload, and registry bootstrap/content registration concept families as analysis-only or synthesis passes. Target-23 through Target-27 complete SteelHook 0.2 in the narrow capability-ladder sense. Target-28 begins SteelHook 0.3 with a bounded framed-method foundation for the existing method-entry static-dispatch primitive.
 
 SteelHook 0.1 proves the first bounded hook spine against controlled fixtures. It establishes Minecraft artifact interpretation, hook contract validation, known-symbol selection, hook placement analysis, instruction-aware bytecode modeling, dry-run patch planning, fixture-only transformation, bootstrap class transformation plumbing, and a hardening caboose. It does not expose a public hook API or support broad bytecode mutation.
 
 SteelHook 0.2 proves one approved method-entry static-dispatch primitive through a gated runtime classloader definition path. Its completed capability is intentionally narrow: the approved target is `net.minecraft.server.Main.main([Ljava/lang/String;)V`, the dispatcher is `SteelHookDispatcher.beforeMinecraftServerMain()V`, and the runtime proof defines the transformed target class without initializing it or invoking Minecraft main.
 
 SteelHook 0.2 does not mean arbitrary bytecode editing, Mixin replacement, public SteelHook APIs, Java mod execution sandboxing, StackMapTable rewriting, method-exit hooks, cancellable hooks, callsite redirects, return-value interception, field hooks, constructor hooks, multi-hook composition, registry/command/resource/lifecycle implementation, server launch, hook installation, or dispatcher observation.
+
+SteelHook 0.3 has now begun, but Target-28 is still deliberately narrow. It supports bounded first-frame StackMapTable shifting for method-entry insertion at offset `0`; it does not add full frame recomputation, method-exit hooks, runtime framed-target classloading, hook installation, public API exposure, server launch, or sandbox claims.
 
 The Target Layer concept arcs after SteelHook 0.1 remain analysis/synthesis grounding work. Server lifecycle, commands, resources/reload, and registry bootstrap/content registration identify Minecraft-facing concepts, symbols, boundaries, and next-direction decisions. They do not yet turn those concepts into a public modding API.
 
@@ -22,6 +24,7 @@ Future Target Layer, SteelHook, and Modding API planning should inspect `minecra
 - `resources-reload/`: Target-16 through Target-20 resource/reload grounding and caboose decision.
 - `registry-bootstrap/`: Target-21 and Target-22 registry bootstrap/content registration grounding.
 - `steelhook-0.2/`: Target-23 through Target-27 and the completed bounded SteelHook 0.2 primitive path.
+- `steelhook-0.3/`: Target-28 onward and the bounded framed-method expansion path.
 
 ## Target pass index
 
@@ -69,6 +72,10 @@ Future Target Layer, SteelHook, and Modding API planning should inspect `minecra
 - Target-25: SteelHook 0.2 method-entry transformer.
 - Target-26: SteelHook 0.2 gated runtime transformation.
 - Target-27: SteelHook 0.2 completion.
+
+### SteelHook 0.3
+
+- Target-28: Framed method foundation.
 
 ## SteelHook 0.2 completion boundary
 

@@ -31,20 +31,27 @@ public final class SteelHookMethodEntryClassFileRewriter {
   private static final int ACCESS_ABSTRACT = 0x0400;
   private static final int ACCESS_NATIVE = 0x0100;
 
+  private final SteelHookStackMapTableRewriter stackMapTableRewriter =
+      new SteelHookStackMapTableRewriter();
+
   public SteelHookMethodEntryRewriteResult rewrite(
       SteelHookMethodEntryRewriteRequest request, byte[] originalClassBytes) {
     byte[] immutableOriginal = originalClassBytes == null ? null : originalClassBytes.clone();
     if (request == null) {
-      return failedResult(null, null, "Method-entry rewrite request is required.", false, false);
+      return failedResult(
+          null, null, "Method-entry rewrite request is required.", false, false, false, null);
     }
     String requestFailureReason = validateRequest(request);
     if (requestFailureReason != null) {
-      return failedResult(request, immutableOriginal, requestFailureReason, false, false);
+      return failedResult(
+          request, immutableOriginal, requestFailureReason, false, false, false, null);
     }
     if (immutableOriginal == null || immutableOriginal.length == 0) {
-      return failedResult(request, null, request.scope() + " requires class bytes.", false, false);
+      return failedResult(
+          request, null, request.scope() + " requires class bytes.", false, false, false, null);
     }
 
+    CodeAttributeLayout codeAttribute = null;
     try {
       ClassFileLayout classFile = parseClassFile(request, immutableOriginal);
       if (!request.targetOwnerInternalName().equals(classFile.thisClassName())) {
@@ -57,7 +64,9 @@ public final class SteelHookMethodEntryClassFileRewriter {
                 + classFile.thisClassName()
                 + ".",
             false,
-            false);
+            false,
+            false,
+            null);
       }
       MethodLayout targetMethod = findTargetMethod(request, classFile.methods());
       if (targetMethod == null) {
@@ -71,21 +80,41 @@ public final class SteelHookMethodEntryClassFileRewriter {
                 + request.targetDescriptor()
                 + ".",
             false,
-            false);
+            false,
+            false,
+            null);
       }
       if ((targetMethod.accessFlags() & (ACCESS_ABSTRACT | ACCESS_NATIVE)) != 0) {
         return failedResult(
-            request, immutableOriginal, "Target method is abstract or native.", false, false);
+            request,
+            immutableOriginal,
+            "Target method is abstract or native.",
+            false,
+            false,
+            false,
+            null);
       }
       if (targetMethod.codeAttribute() == null) {
         return failedResult(
-            request, immutableOriginal, "Target method is missing a Code attribute.", false, false);
+            request,
+            immutableOriginal,
+            "Target method is missing a Code attribute.",
+            false,
+            false,
+            false,
+            null);
       }
 
-      CodeAttributeLayout codeAttribute = targetMethod.codeAttribute();
+      codeAttribute = targetMethod.codeAttribute();
       if (codeAttribute.stackMapTablePresent() && !request.stackMapTableRewriteSupported()) {
         return failedResult(
-            request, immutableOriginal, "StackMapTable rewriting is not supported.", true, true);
+            request,
+            immutableOriginal,
+            "StackMapTable rewriting is not supported.",
+            true,
+            false,
+            true,
+            null);
       }
       if (codeAttribute.code().length + request.instructionLength() > 65535) {
         return failedResult(
@@ -93,7 +122,9 @@ public final class SteelHookMethodEntryClassFileRewriter {
             immutableOriginal,
             "Code length exceeds the JVM limit after insertion.",
             codeAttribute.stackMapTablePresent(),
-            false);
+            request.stackMapTableRewriteSupported(),
+            false,
+            null);
       }
       if (classFile.constantPoolCount() + 6 > 0xFFFF) {
         return failedResult(
@@ -101,7 +132,9 @@ public final class SteelHookMethodEntryClassFileRewriter {
             immutableOriginal,
             "Constant pool count exceeds the JVM limit after insertion.",
             codeAttribute.stackMapTablePresent(),
-            false);
+            request.stackMapTableRewriteSupported(),
+            false,
+            null);
       }
 
       SteelHookMethodEntryConstantPoolPatch constantPoolPatch =
@@ -109,7 +142,8 @@ public final class SteelHookMethodEntryClassFileRewriter {
       byte[] insertedInstruction =
           invokestaticInstruction(constantPoolPatch.dispatcherMethodrefIndex());
       byte[] transformedCode = prepend(insertedInstruction, codeAttribute.code());
-      byte[] rewrittenCodeAttribute = rewriteCodeAttribute(request, codeAttribute, transformedCode);
+      RewrittenCodeAttribute rewrittenCodeAttribute =
+          rewriteCodeAttribute(request, codeAttribute, transformedCode);
       byte[] transformedClassBytes =
           rewriteClassBytes(
               request,
@@ -118,9 +152,9 @@ public final class SteelHookMethodEntryClassFileRewriter {
               appendConstantPoolEntries(request, constantPoolPatch),
               constantPoolPatch.constantPoolCountAfter(),
               codeAttribute.attributeLengthOffset(),
-              rewrittenCodeAttribute.length,
+              rewrittenCodeAttribute.body().length,
               codeAttribute.bodyEnd(),
-              rewrittenCodeAttribute);
+              rewrittenCodeAttribute.body());
 
       String insertedInstructionHex = hex(insertedInstruction);
       String originalClassSha256 = sha256Hex(immutableOriginal);
@@ -140,6 +174,20 @@ public final class SteelHookMethodEntryClassFileRewriter {
               codeAttribute.exceptionTableCount(),
               codeAttribute.exceptionTableCount() > 0,
               insertedInstructionHex);
+      SteelHookStackMapTablePatch stackMapTablePatch =
+          rewrittenCodeAttribute.stackMapTablePatch() == null
+              ? new SteelHookStackMapTablePatch(
+                  codeAttribute.stackMapTablePresent(),
+                  request.stackMapTableRewriteSupported(),
+                  false,
+                  false,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null)
+              : rewrittenCodeAttribute.stackMapTablePatch();
       SteelHookMethodEntryTransformedClass transformedClass =
           new SteelHookMethodEntryTransformedClass(
               classFile.thisClassName(), transformedClassBytes, transformedClassSha256);
@@ -160,13 +208,28 @@ public final class SteelHookMethodEntryClassFileRewriter {
           true,
           true,
           true,
-          codeAttribute.stackMapTablePresent(),
-          false,
+          stackMapTablePatch.present(),
+          stackMapTablePatch.rewriteSupported(),
+          stackMapTablePatch.rewriteApplied(),
+          stackMapTablePatch.rejected(),
+          stackMapTablePatch.entryCountBefore(),
+          stackMapTablePatch.entryCountAfter(),
+          stackMapTablePatch.firstFrameOffsetDeltaBefore(),
+          stackMapTablePatch.firstFrameOffsetDeltaAfter(),
+          stackMapTablePatch.originalBodyLength(),
+          stackMapTablePatch.transformedBodyLength(),
           constantPoolPatch,
           codePatch,
           transformedClass);
     } catch (TransformationException exception) {
-      return failedResult(request, immutableOriginal, exception.getMessage(), false, false);
+      return failedResult(
+          request,
+          immutableOriginal,
+          exception.getMessage(),
+          codeAttribute != null && codeAttribute.stackMapTablePresent(),
+          request != null && request.stackMapTableRewriteSupported(),
+          codeAttribute != null && codeAttribute.stackMapTablePresent(),
+          null);
     }
   }
 
@@ -373,23 +436,34 @@ public final class SteelHookMethodEntryClassFileRewriter {
               reader.readUnsignedShort(),
               reader.readUnsignedShort()));
     }
-    int nestedAttributesOffset = reader.position();
     int nestedAttributeCount = reader.readUnsignedShort();
     boolean stackMapTablePresent = false;
+    int stackMapTableCount = 0;
+    List<NestedAttributeLayout> nestedAttributes = new ArrayList<>(nestedAttributeCount);
     for (int index = 0; index < nestedAttributeCount; index++) {
-      String nestedName = constantPool.utf8(reader.readUnsignedShort());
+      int nestedNameIndex = reader.readUnsignedShort();
+      String nestedName = constantPool.utf8(nestedNameIndex);
       int nestedLength = reader.readInt();
+      int bodyStart = reader.position();
+      if (bodyStart + nestedLength > bodyOffset + attributeLength) {
+        throw new TransformationException(
+            "Malformed Code attribute bounds for " + request.scope() + ".");
+      }
       if ("StackMapTable".equals(nestedName)) {
         stackMapTablePresent = true;
+        stackMapTableCount++;
       }
+      nestedAttributes.add(
+          new NestedAttributeLayout(
+              nestedNameIndex,
+              nestedName,
+              Arrays.copyOfRange(classBytes, bodyStart, bodyStart + nestedLength)));
       reader.skip(nestedLength);
     }
     if (reader.position() != bodyOffset + attributeLength) {
       throw new TransformationException(
           "Malformed Code attribute bounds for " + request.scope() + ".");
     }
-    byte[] nestedAttributesBlock =
-        Arrays.copyOfRange(classBytes, nestedAttributesOffset, bodyOffset + attributeLength);
     return new CodeAttributeLayout(
         attributeLengthOffset,
         bodyOffset + attributeLength,
@@ -398,8 +472,9 @@ public final class SteelHookMethodEntryClassFileRewriter {
         code,
         exceptionTableCount,
         exceptionTable,
-        nestedAttributesBlock,
-        stackMapTablePresent);
+        nestedAttributes,
+        stackMapTablePresent,
+        stackMapTableCount);
   }
 
   private void skipMember(ClassReader reader) throws TransformationException {
@@ -466,13 +541,14 @@ public final class SteelHookMethodEntryClassFileRewriter {
     output.writeUTF(value);
   }
 
-  private byte[] rewriteCodeAttribute(
+  private RewrittenCodeAttribute rewriteCodeAttribute(
       SteelHookMethodEntryRewriteRequest request,
       CodeAttributeLayout codeAttribute,
       byte[] transformedCode)
       throws TransformationException {
     try {
       ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+      SteelHookStackMapTablePatch stackMapTablePatch = null;
       try (DataOutputStream output = new DataOutputStream(bytes)) {
         output.writeShort(codeAttribute.maxStack());
         output.writeShort(codeAttribute.maxLocals());
@@ -485,9 +561,31 @@ public final class SteelHookMethodEntryClassFileRewriter {
           output.writeShort(entry.handlerPc() + request.instructionLength());
           output.writeShort(entry.catchType());
         }
-        output.write(codeAttribute.nestedAttributesBlock());
+        output.writeShort(codeAttribute.nestedAttributes().size());
+        for (NestedAttributeLayout nestedAttribute : codeAttribute.nestedAttributes()) {
+          output.writeShort(nestedAttribute.nameIndex());
+          byte[] nestedBody = nestedAttribute.body();
+          if ("StackMapTable".equals(nestedAttribute.name())) {
+            if (codeAttribute.stackMapTableCount() > 1) {
+              throw new TransformationException(
+                  "Multiple StackMapTable attributes are not supported for "
+                      + request.scope()
+                      + ".");
+            }
+            SteelHookStackMapTableRewriteResult rewriteResult =
+                stackMapTableRewriter.rewrite(
+                    nestedAttribute.body(), request.instructionLength(), request.scope());
+            if (rewriteResult.status() == SteelHookStackMapTableRewriteStatus.REJECTED) {
+              throw new TransformationException(rewriteResult.failureReason());
+            }
+            nestedBody = rewriteResult.transformedBody();
+            stackMapTablePatch = rewriteResult.patch(request.stackMapTableRewriteSupported());
+          }
+          output.writeInt(nestedBody.length);
+          output.write(nestedBody);
+        }
       }
-      return bytes.toByteArray();
+      return new RewrittenCodeAttribute(bytes.toByteArray(), stackMapTablePatch);
     } catch (IOException exception) {
       throw new TransformationException(
           "Failed to rewrite Code attribute for " + request.scope() + ".");
@@ -549,7 +647,23 @@ public final class SteelHookMethodEntryClassFileRewriter {
       byte[] originalClassBytes,
       String failureReason,
       boolean stackMapTablePresent,
-      boolean stackMapTableRejected) {
+      boolean stackMapTableRewriteSupported,
+      boolean stackMapTableRejected,
+      SteelHookStackMapTablePatch stackMapTablePatch) {
+    SteelHookStackMapTablePatch resolvedStackMapTablePatch =
+        stackMapTablePatch == null
+            ? new SteelHookStackMapTablePatch(
+                stackMapTablePresent,
+                stackMapTableRewriteSupported,
+                false,
+                stackMapTableRejected,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null)
+            : stackMapTablePatch;
     return new SteelHookMethodEntryRewriteResult(
         SteelHookMethodEntryRewriteStatus.REJECTED,
         failureReason,
@@ -567,8 +681,16 @@ public final class SteelHookMethodEntryClassFileRewriter {
         false,
         false,
         false,
-        stackMapTablePresent,
-        stackMapTableRejected,
+        resolvedStackMapTablePatch.present(),
+        resolvedStackMapTablePatch.rewriteSupported(),
+        resolvedStackMapTablePatch.rewriteApplied(),
+        resolvedStackMapTablePatch.rejected(),
+        resolvedStackMapTablePatch.entryCountBefore(),
+        resolvedStackMapTablePatch.entryCountAfter(),
+        resolvedStackMapTablePatch.firstFrameOffsetDeltaBefore(),
+        resolvedStackMapTablePatch.firstFrameOffsetDeltaAfter(),
+        resolvedStackMapTablePatch.originalBodyLength(),
+        resolvedStackMapTablePatch.transformedBodyLength(),
         null,
         null,
         null);
@@ -621,16 +743,30 @@ public final class SteelHookMethodEntryClassFileRewriter {
       byte[] code,
       int exceptionTableCount,
       List<ExceptionTableEntry> exceptionTable,
-      byte[] nestedAttributesBlock,
-      boolean stackMapTablePresent) {
+      List<NestedAttributeLayout> nestedAttributes,
+      boolean stackMapTablePresent,
+      int stackMapTableCount) {
     private CodeAttributeLayout {
       code = code.clone();
       exceptionTable = List.copyOf(exceptionTable);
-      nestedAttributesBlock = nestedAttributesBlock.clone();
+      nestedAttributes = List.copyOf(nestedAttributes);
     }
   }
 
   private record ExceptionTableEntry(int startPc, int endPc, int handlerPc, int catchType) {}
+
+  private record NestedAttributeLayout(int nameIndex, String name, byte[] body) {
+    private NestedAttributeLayout {
+      body = body.clone();
+    }
+  }
+
+  private record RewrittenCodeAttribute(
+      byte[] body, SteelHookStackMapTablePatch stackMapTablePatch) {
+    private RewrittenCodeAttribute {
+      body = body.clone();
+    }
+  }
 
   private static final class ConstantPool {
     private final int[] tags;

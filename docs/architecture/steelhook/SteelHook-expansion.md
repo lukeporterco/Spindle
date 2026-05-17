@@ -163,7 +163,7 @@ SteelHook 0.2:
 Supports real Minecraft runtime transformation for one or two carefully chosen no-StackMap or manageable targets, with stronger verifier checks.
 
 SteelHook 0.3:
-Adds StackMapTable handling and more insertion modes, probably method exit and cancellable entry hooks.
+Begins with Target-28 bounded StackMapTable first-frame shifting for method-entry insertion at offset `0`, then can expand toward additional insertion modes such as method exit and later dispatcher conventions. Target-28 is foundation work, not full StackMapTable recomputation.
 
 SteelHook 0.4:
 Adds callsite redirection/wrapping and return-value interception.

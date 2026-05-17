@@ -91,6 +91,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook02GatedRuntimeTransformation,
     boolean steelHook02CompletionCheck,
     boolean explainSteelHook02CompletionCheck,
+    boolean steelHook03FramedMethodFoundation,
+    boolean explainSteelHook03FramedMethodFoundation,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -234,6 +236,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook02GatedRuntimeTransformation
         false, // steelHook02CompletionCheck
         false, // explainSteelHook02CompletionCheck
+        false, // steelHook03FramedMethodFoundation
+        false, // explainSteelHook03FramedMethodFoundation
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -405,6 +409,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02GatedRuntimeTransformation,
         steelHook02CompletionCheck,
         explainSteelHook02CompletionCheck,
+        steelHook03FramedMethodFoundation,
+        explainSteelHook03FramedMethodFoundation,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -519,6 +525,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02GatedRuntimeTransformation,
         steelHook02CompletionCheck,
         explainSteelHook02CompletionCheck,
+        steelHook03FramedMethodFoundation,
+        explainSteelHook03FramedMethodFoundation,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -638,6 +646,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook02GatedRuntimeTransformation,
       boolean steelHook02CompletionCheck,
       boolean explainSteelHook02CompletionCheck,
+      boolean steelHook03FramedMethodFoundation,
+      boolean explainSteelHook03FramedMethodFoundation,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -740,6 +750,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02GatedRuntimeTransformation,
         steelHook02CompletionCheck,
         explainSteelHook02CompletionCheck,
+        steelHook03FramedMethodFoundation,
+        explainSteelHook03FramedMethodFoundation,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
