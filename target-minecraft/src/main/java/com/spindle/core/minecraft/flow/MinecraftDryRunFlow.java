@@ -93,6 +93,9 @@ import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRe
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04PrimitiveBoundaryAnalyzer;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04PrimitiveBoundaryReport;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04PrimitiveBoundaryReportWriter;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionInput;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReport;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReportWriter;
@@ -2085,7 +2088,9 @@ public final class MinecraftDryRunFlow {
                               printSteelHook03GatedRuntimeProofExplain(gatedRuntimeProofReport);
                             }
                             if (config.steelHook03CompletionCheck()
-                                || config.explainSteelHook03CompletionCheck()) {
+                                || config.explainSteelHook03CompletionCheck()
+                                || config.steelHook04PrimitiveBoundary()
+                                || config.explainSteelHook04PrimitiveBoundary()) {
                               SteelHook03CompletionInput completionInput03 =
                                   SteelHook03CompletionInput.fromWorkingDirectory(
                                       context.workingDirectory());
@@ -2127,6 +2132,55 @@ public final class MinecraftDryRunFlow {
                                     completionReport03,
                                     SteelHook03CompletionInput.reportPath(
                                         context.workingDirectory()));
+                              }
+                              if (config.steelHook04PrimitiveBoundary()
+                                  || config.explainSteelHook04PrimitiveBoundary()) {
+                                SteelHook04PrimitiveBoundaryReport primitiveBoundaryReport04 =
+                                    DiagnosticMeasurements.measure(
+                                        diagnosticSink,
+                                        "minecraft.steelhook_0_4.primitive_boundary",
+                                        LaunchPhase.COMPLETE,
+                                        () ->
+                                            new SteelHook04PrimitiveBoundaryAnalyzer()
+                                                .analyze(completionReport03),
+                                        report ->
+                                            DiagnosticMeasurements.details(
+                                                "gatePassed",
+                                                Boolean.toString(report.gatePassed()),
+                                                "boundaryStatus",
+                                                report.boundaryStatus().id(),
+                                                "approvedPrimitiveCount",
+                                                Integer.toString(report.approvedPrimitiveCount())));
+                                DiagnosticMeasurements.measure(
+                                    diagnosticSink,
+                                    "minecraft.steelhook_0_4.primitive_boundary.write",
+                                    LaunchPhase.COMPLETE,
+                                    () -> {
+                                      Path outputPath =
+                                          context
+                                              .workingDirectory()
+                                              .resolve(
+                                                  SteelHook04PrimitiveBoundaryReportWriter
+                                                      .REPORT_FILE_NAME);
+                                      new SteelHook04PrimitiveBoundaryReportWriter()
+                                          .write(outputPath, primitiveBoundaryReport04);
+                                      return outputPath;
+                                    },
+                                    outputPath ->
+                                        DiagnosticMeasurements.details(
+                                            "steelHook04PrimitiveBoundaryOutputPath",
+                                            DisplayPaths.displayPath(context, outputPath)));
+                                megaMilestoneReports.add(
+                                    SteelHook04PrimitiveBoundaryReportWriter.REPORT_FILE_NAME);
+                                if (config.explainSteelHook04PrimitiveBoundary()) {
+                                  printSteelHook04PrimitiveBoundaryExplain(
+                                      primitiveBoundaryReport04,
+                                      context
+                                          .workingDirectory()
+                                          .resolve(
+                                              SteelHook04PrimitiveBoundaryReportWriter
+                                                  .REPORT_FILE_NAME));
+                                }
                               }
                             }
                           }
@@ -3031,5 +3085,26 @@ public final class MinecraftDryRunFlow {
         "[spindle] explain-steelhook-0-3-check: Java mod execution is not sandboxed.");
     System.out.println("[spindle] explain-steelhook-0-3-check: status " + report.status().id());
     System.out.println("[spindle] explain-steelhook-0-3-check: wrote " + reportPath.getFileName());
+  }
+
+  private static void printSteelHook04PrimitiveBoundaryExplain(
+      SteelHook04PrimitiveBoundaryReport report, Path reportPath) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: Target-32 ran as an analysis-only SteelHook 0.4 primitive boundary pass.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: Internal planned primitives: RETURN_VALUE_INTERCEPT, INVOKE_REDIRECT, INVOKE_WRAP.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: No hook installation occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: Minecraft launch and Minecraft main invocation remain disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: Dispatcher execution did not occur.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: No public API exposure or sandbox claim occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: boundaryStatus "
+            + report.boundaryStatus().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-primitive-boundary: wrote " + reportPath.getFileName());
   }
 }

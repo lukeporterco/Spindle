@@ -99,6 +99,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook03GatedRuntimeProof,
     boolean steelHook03CompletionCheck,
     boolean explainSteelHook03CompletionCheck,
+    boolean steelHook04PrimitiveBoundary,
+    boolean explainSteelHook04PrimitiveBoundary,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -250,6 +252,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook03GatedRuntimeProof
         false, // steelHook03CompletionCheck
         false, // explainSteelHook03CompletionCheck
+        false, // steelHook04PrimitiveBoundary
+        false, // explainSteelHook04PrimitiveBoundary
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -429,6 +433,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03GatedRuntimeProof,
         steelHook03CompletionCheck,
         explainSteelHook03CompletionCheck,
+        steelHook04PrimitiveBoundary,
+        explainSteelHook04PrimitiveBoundary,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -551,6 +557,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03GatedRuntimeProof,
         steelHook03CompletionCheck,
         explainSteelHook03CompletionCheck,
+        steelHook04PrimitiveBoundary,
+        explainSteelHook04PrimitiveBoundary,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -678,6 +686,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook03GatedRuntimeProof,
       boolean steelHook03CompletionCheck,
       boolean explainSteelHook03CompletionCheck,
+      boolean steelHook04PrimitiveBoundary,
+      boolean explainSteelHook04PrimitiveBoundary,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -788,6 +798,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03GatedRuntimeProof,
         steelHook03CompletionCheck,
         explainSteelHook03CompletionCheck,
+        steelHook04PrimitiveBoundary,
+        explainSteelHook04PrimitiveBoundary,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
