@@ -93,6 +93,9 @@ import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRe
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04InvokeRedirectWrapOfflineProofReport;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04InvokeRedirectWrapOfflineProofReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04InvokeRedirectWrapOfflineProofRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook04PrimitiveBoundaryAnalyzer;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook04PrimitiveBoundaryReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook04PrimitiveBoundaryReportWriter;
@@ -217,6 +220,12 @@ public final class MinecraftDryRunFlow {
             || config.steelHook03MethodExitStaticDispatch()
             || config.steelHook03GatedRuntimeProof()
             || config.steelHook03CompletionCheck()
+            || config.steelHook04PrimitiveBoundary()
+            || config.explainSteelHook04PrimitiveBoundary()
+            || config.steelHook04ReturnValueInterceptOfflineProof()
+            || config.explainSteelHook04ReturnValueInterceptOfflineProof()
+            || config.steelHook04InvokeRedirectWrapOfflineProof()
+            || config.explainSteelHook04InvokeRedirectWrapOfflineProof()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
@@ -2095,7 +2104,9 @@ public final class MinecraftDryRunFlow {
                                 || config.steelHook04PrimitiveBoundary()
                                 || config.explainSteelHook04PrimitiveBoundary()
                                 || config.steelHook04ReturnValueInterceptOfflineProof()
-                                || config.explainSteelHook04ReturnValueInterceptOfflineProof()) {
+                                || config.explainSteelHook04ReturnValueInterceptOfflineProof()
+                                || config.steelHook04InvokeRedirectWrapOfflineProof()
+                                || config.explainSteelHook04InvokeRedirectWrapOfflineProof()) {
                               SteelHook03CompletionInput completionInput03 =
                                   SteelHook03CompletionInput.fromWorkingDirectory(
                                       context.workingDirectory());
@@ -2141,7 +2152,9 @@ public final class MinecraftDryRunFlow {
                               if (config.steelHook04PrimitiveBoundary()
                                   || config.explainSteelHook04PrimitiveBoundary()
                                   || config.steelHook04ReturnValueInterceptOfflineProof()
-                                  || config.explainSteelHook04ReturnValueInterceptOfflineProof()) {
+                                  || config.explainSteelHook04ReturnValueInterceptOfflineProof()
+                                  || config.steelHook04InvokeRedirectWrapOfflineProof()
+                                  || config.explainSteelHook04InvokeRedirectWrapOfflineProof()) {
                                 SteelHook04PrimitiveBoundaryReport primitiveBoundaryReport04 =
                                     DiagnosticMeasurements.measure(
                                         diagnosticSink,
@@ -2238,6 +2251,60 @@ public final class MinecraftDryRunFlow {
                                             .resolve(
                                                 SteelHook04ReturnValueInterceptOfflineProofReportWriter
                                                     .REPORT_FILE_NAME));
+                                  }
+                                  if (config.steelHook04InvokeRedirectWrapOfflineProof()
+                                      || config
+                                          .explainSteelHook04InvokeRedirectWrapOfflineProof()) {
+                                    SteelHook04InvokeRedirectWrapOfflineProofReport
+                                        invokeProofReport =
+                                            DiagnosticMeasurements.measure(
+                                                diagnosticSink,
+                                                "minecraft.steelhook_0_4.invoke_redirect_wrap_offline_proof",
+                                                LaunchPhase.COMPLETE,
+                                                () ->
+                                                    new SteelHook04InvokeRedirectWrapOfflineProofRunner()
+                                                        .run(
+                                                            primitiveBoundaryReport04, proofReport),
+                                                report ->
+                                                    DiagnosticMeasurements.details(
+                                                        "proofReady",
+                                                        Boolean.toString(report.proofReady()),
+                                                        "proofStatus",
+                                                        report.proofStatus().id(),
+                                                        "successfulProofCaseCount",
+                                                        Integer.toString(
+                                                            report.successfulProofCaseCount())));
+                                    DiagnosticMeasurements.measure(
+                                        diagnosticSink,
+                                        "minecraft.steelhook_0_4.invoke_redirect_wrap_offline_proof.write",
+                                        LaunchPhase.COMPLETE,
+                                        () -> {
+                                          Path outputPath =
+                                              context
+                                                  .workingDirectory()
+                                                  .resolve(
+                                                      SteelHook04InvokeRedirectWrapOfflineProofReportWriter
+                                                          .REPORT_FILE_NAME);
+                                          new SteelHook04InvokeRedirectWrapOfflineProofReportWriter()
+                                              .write(outputPath, invokeProofReport);
+                                          return outputPath;
+                                        },
+                                        outputPath ->
+                                            DiagnosticMeasurements.details(
+                                                "steelHook04InvokeRedirectWrapOfflineProofOutputPath",
+                                                DisplayPaths.displayPath(context, outputPath)));
+                                    megaMilestoneReports.add(
+                                        SteelHook04InvokeRedirectWrapOfflineProofReportWriter
+                                            .REPORT_FILE_NAME);
+                                    if (config.explainSteelHook04InvokeRedirectWrapOfflineProof()) {
+                                      printSteelHook04InvokeRedirectWrapOfflineProofExplain(
+                                          invokeProofReport,
+                                          context
+                                              .workingDirectory()
+                                              .resolve(
+                                                  SteelHook04InvokeRedirectWrapOfflineProofReportWriter
+                                                      .REPORT_FILE_NAME));
+                                    }
                                   }
                                 }
                               }
@@ -3188,6 +3255,30 @@ public final class MinecraftDryRunFlow {
             + report.proofStatus().id());
     System.out.println(
         "[spindle] explain-steelhook-0-4-return-value-intercept-proof: wrote "
+            + reportPath.getFileName());
+  }
+
+  private static void printSteelHook04InvokeRedirectWrapOfflineProofExplain(
+      SteelHook04InvokeRedirectWrapOfflineProofReport report, Path reportPath) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: Target-34 ran as an offline-only INVOKE_REDIRECT and INVOKE_WRAP proof pass.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: Strict owner, name, descriptor, and opcode matching was used for one controlled invokestatic callsite shape.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: No runtime classloading occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: No hook installation occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: Minecraft launch and Minecraft main invocation remain disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: Dispatcher execution did not occur.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: No public API exposure or sandbox claim occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: proofStatus "
+            + report.proofStatus().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: wrote "
             + reportPath.getFileName());
   }
 }

@@ -2,7 +2,7 @@
 
 This folder records the SteelHook 0.4 Target arc beginning with Target-32.
 
-Current status: SteelHook 0.4 is not complete. Target-32 begins the arc as an analysis-only primitive-boundary pass over the completed Target-31 SteelHook 0.3 handoff, and Target-33 adds the first offline-only primitive proof for bounded `RETURN_VALUE_INTERCEPT` fixtures. The arc still does not define transformed classes, install hooks, execute dispatchers, invoke Minecraft, launch a server, expose public APIs, or claim Java mod execution sandboxing.
+Current status: SteelHook 0.4 is not complete. Target-32 begins the arc as an analysis-only primitive-boundary pass over the completed Target-31 SteelHook 0.3 handoff, Target-33 adds the first offline-only primitive proof for bounded `RETURN_VALUE_INTERCEPT` fixtures, and Target-34 adds the second offline-only primitive proof for bounded `INVOKE_REDIRECT` and `INVOKE_WRAP` fixtures. The arc still does not define transformed classes, install hooks, execute dispatchers, invoke Minecraft, launch a server, expose public APIs, or claim Java mod execution sandboxing.
 
 Planned arc:
 

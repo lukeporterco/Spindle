@@ -1,0 +1,41 @@
+package com.spindle.core.minecraft.hook.steelhook;
+
+import com.spindle.core.minecraft.hook.transform.SteelHookInvokeCallsiteRewriteMode;
+import com.spindle.core.minecraft.hook.transform.SteelHookInvokeOpcode;
+
+public record SteelHook04InvokeCallsiteProofCase(
+    String id,
+    String label,
+    SteelHook04PrimitiveKind primitiveKind,
+    SteelHookInvokeCallsiteRewriteMode rewriteMode,
+    SteelHook04FixtureShape fixtureShape,
+    String targetOwnerInternalName,
+    String targetMethodName,
+    String targetDescriptor,
+    String expectedInvokeOwnerInternalName,
+    String expectedInvokeName,
+    String expectedInvokeDescriptor,
+    SteelHookInvokeOpcode expectedInvokeOpcode,
+    String replacementInvokeOwnerInternalName,
+    String replacementInvokeName,
+    String replacementInvokeDescriptor,
+    SteelHookInvokeOpcode replacementInvokeOpcode,
+    String matchedInvokeOpcode,
+    int matchedCallsiteCount,
+    String originalClassSha256,
+    String transformedClassSha256,
+    String originalCodeSha256,
+    String transformedCodeSha256,
+    int originalCodeLength,
+    int transformedCodeLength,
+    boolean bytecodeModified,
+    boolean transformedClassBytesProduced,
+    String replacementSummary,
+    String wrappedDelegateOwnerInternalName,
+    String wrappedDelegateName,
+    String wrappedDelegateDescriptor,
+    SteelHookInvokeOpcode wrappedDelegateOpcode,
+    String wrapperOwnerInternalName,
+    String wrapperName,
+    String wrapperDescriptor,
+    SteelHookInvokeOpcode wrapperOpcode) {}
