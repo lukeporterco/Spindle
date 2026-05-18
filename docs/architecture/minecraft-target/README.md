@@ -12,7 +12,7 @@ SteelHook 0.2 does not mean arbitrary bytecode editing, Mixin replacement, publi
 
 SteelHook 0.3 is now complete, but the completed boundary remains deliberately narrow. Target-28 supports bounded first-frame StackMapTable shifting for method-entry insertion at offset `0`, Target-29 supports offline-only method-exit static dispatch before supported normal return opcodes in controlled unframed fixtures, Target-30 proves isolated gated runtime class definition for those two primitives without composing hooks, invoking Minecraft main, launching Minecraft, installing hooks, executing dispatchers, exposing public APIs, or claiming sandboxing, and Target-31 verifies that evidence chain and writes `minecraft-steelhook-0-3-report.json`. SteelHook 0.3 still does not add full frame recomputation, exceptional-exit observation, return-value interception, hook installation, public API exposure, server launch, or sandbox claims.
 
-SteelHook 0.4 has begun, but it is not complete after Target-32. Target-32 records only the approved planned internal primitive families `RETURN_VALUE_INTERCEPT`, `INVOKE_REDIRECT`, and `INVOKE_WRAP`, plus the evidence requirements and rejection taxonomy that later Target-33 through Target-36 passes must satisfy. Target-32 does not transform bytecode, define transformed classes, install hooks, execute dispatchers, invoke Minecraft, expose public APIs, or claim sandboxing.
+SteelHook 0.4 has begun, but it is not complete after Target-33. Target-32 records only the approved planned internal primitive families `RETURN_VALUE_INTERCEPT`, `INVOKE_REDIRECT`, and `INVOKE_WRAP`, and Target-33 proves `RETURN_VALUE_INTERCEPT` offline only against one controlled primitive-return fixture and one controlled reference-return fixture in both observation-only and replacement modes. Target-33 reports hashes and deterministic evidence rather than raw byte payloads, and it still does not perform runtime classloading, define transformed classes, install hooks, execute dispatchers, invoke Minecraft, expose public APIs, or claim sandboxing. Targets 34 through 36 remain required.
 
 The Target Layer concept arcs after SteelHook 0.1 remain analysis/synthesis grounding work. Server lifecycle, commands, resources/reload, and registry bootstrap/content registration identify Minecraft-facing concepts, symbols, boundaries, and next-direction decisions. They do not yet turn those concepts into a public modding API.
 
@@ -86,6 +86,7 @@ Future Target Layer, SteelHook, and Modding API planning should inspect `minecra
 ### SteelHook 0.4
 
 - Target-32: SteelHook 0.4 primitive boundary.
+- Target-33: Return-value intercept offline proof.
 
 ## SteelHook 0.2 completion boundary
 

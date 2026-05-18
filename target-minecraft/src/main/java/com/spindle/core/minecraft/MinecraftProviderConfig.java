@@ -101,6 +101,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook03CompletionCheck,
     boolean steelHook04PrimitiveBoundary,
     boolean explainSteelHook04PrimitiveBoundary,
+    boolean steelHook04ReturnValueInterceptOfflineProof,
+    boolean explainSteelHook04ReturnValueInterceptOfflineProof,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -254,6 +256,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook03CompletionCheck
         false, // steelHook04PrimitiveBoundary
         false, // explainSteelHook04PrimitiveBoundary
+        false, // steelHook04ReturnValueInterceptOfflineProof
+        false, // explainSteelHook04ReturnValueInterceptOfflineProof
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -435,6 +439,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03CompletionCheck,
         steelHook04PrimitiveBoundary,
         explainSteelHook04PrimitiveBoundary,
+        steelHook04ReturnValueInterceptOfflineProof,
+        explainSteelHook04ReturnValueInterceptOfflineProof,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -559,6 +565,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03CompletionCheck,
         steelHook04PrimitiveBoundary,
         explainSteelHook04PrimitiveBoundary,
+        steelHook04ReturnValueInterceptOfflineProof,
+        explainSteelHook04ReturnValueInterceptOfflineProof,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -688,6 +696,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook03CompletionCheck,
       boolean steelHook04PrimitiveBoundary,
       boolean explainSteelHook04PrimitiveBoundary,
+      boolean steelHook04ReturnValueInterceptOfflineProof,
+      boolean explainSteelHook04ReturnValueInterceptOfflineProof,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -800,6 +810,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03CompletionCheck,
         steelHook04PrimitiveBoundary,
         explainSteelHook04PrimitiveBoundary,
+        steelHook04ReturnValueInterceptOfflineProof,
+        explainSteelHook04ReturnValueInterceptOfflineProof,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

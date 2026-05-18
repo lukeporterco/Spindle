@@ -117,6 +117,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainSteelHook03CompletionCheck = false;
     boolean minecraftSteelHook04PrimitiveBoundary = false;
     boolean minecraftExplainSteelHook04PrimitiveBoundary = false;
+    boolean minecraftSteelHook04ReturnValueInterceptOfflineProof = false;
+    boolean minecraftExplainSteelHook04ReturnValueInterceptOfflineProof = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -1112,6 +1114,53 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-4-return-value-intercept-proof".equals(argument)) {
+        minecraftSteelHook04ReturnValueInterceptOfflineProof = true;
+        minecraftSteelHook04PrimitiveBoundary = true;
+        minecraftSteelHook03CompletionCheck = true;
+        minecraftSteelHook03GatedRuntimeProof = true;
+        minecraftSteelHook03MethodExitStaticDispatch = true;
+        minecraftSteelHook03FramedMethodFoundation = true;
+        minecraftSteelHook02CompletionCheck = true;
+        minecraftSteelHook02GatedRuntimeTransformation = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-4-return-value-intercept-proof".equals(argument)) {
+        minecraftExplainSteelHook04ReturnValueInterceptOfflineProof = true;
+        minecraftSteelHook04ReturnValueInterceptOfflineProof = true;
+        minecraftSteelHook04PrimitiveBoundary = true;
+        minecraftSteelHook03CompletionCheck = true;
+        minecraftSteelHook03GatedRuntimeProof = true;
+        minecraftSteelHook03MethodExitStaticDispatch = true;
+        minecraftSteelHook03FramedMethodFoundation = true;
+        minecraftSteelHook02CompletionCheck = true;
+        minecraftSteelHook02GatedRuntimeTransformation = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -1318,6 +1367,14 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft SteelHook 0.4 primitive boundary cannot be combined with --minecraft-bootstrap-server.");
     }
+    if (minecraftSteelHook04ReturnValueInterceptOfflineProof && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.4 return-value intercept offline proof cannot be combined with --minecraft-install-hooks.");
+    }
+    if (minecraftSteelHook04ReturnValueInterceptOfflineProof && minecraftBootstrapServer) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.4 return-value intercept offline proof cannot be combined with --minecraft-bootstrap-server.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -1419,6 +1476,8 @@ public final class LoaderCliParser {
             minecraftExplainSteelHook03CompletionCheck,
             minecraftSteelHook04PrimitiveBoundary,
             minecraftExplainSteelHook04PrimitiveBoundary,
+            minecraftSteelHook04ReturnValueInterceptOfflineProof,
+            minecraftExplainSteelHook04ReturnValueInterceptOfflineProof,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,
