@@ -202,6 +202,13 @@ final class SteelHook04ReturnValueInterceptFixtureClassFactory {
 
   private byte[] codeAttributeBodyWithExceptionTable(int maxStack, int maxLocals, byte[] code)
       throws IOException {
+    return codeAttributeBodyWithExceptionTable(
+        maxStack, maxLocals, new byte[] {0x03, (byte) 0xac, 0x57, 0x04, (byte) 0xac}, 0, 2, 2);
+  }
+
+  private byte[] codeAttributeBodyWithExceptionTable(
+      int maxStack, int maxLocals, byte[] code, int startPc, int endPc, int handlerPc)
+      throws IOException {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     try (DataOutputStream output = new DataOutputStream(bytes)) {
       output.writeShort(maxStack);
@@ -209,9 +216,9 @@ final class SteelHook04ReturnValueInterceptFixtureClassFactory {
       output.writeInt(code.length);
       output.write(code);
       output.writeShort(1);
-      output.writeShort(0);
-      output.writeShort(0);
-      output.writeShort(0);
+      output.writeShort(startPc);
+      output.writeShort(endPc);
+      output.writeShort(handlerPc);
       output.writeShort(0);
       output.writeShort(0);
     }

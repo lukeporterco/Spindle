@@ -63,6 +63,11 @@ public final class SteelHook04TestFixtures {
     return new SteelHook04ReturnValueInterceptOfflineProofRunner().run(passedTarget32Report());
   }
 
+  public static SteelHook04InvokeRedirectWrapOfflineProofReport passedTarget34Report() {
+    return new SteelHook04InvokeRedirectWrapOfflineProofRunner()
+        .run(passedTarget32Report(), passedTarget33Report());
+  }
+
   public static SteelHook03CompletionReport passedTarget31Report() {
     return new SteelHook03CompletionReport(
         1,

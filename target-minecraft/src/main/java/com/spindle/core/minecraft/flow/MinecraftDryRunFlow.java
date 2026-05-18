@@ -93,6 +93,9 @@ import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRe
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04GatedRuntimeProofReport;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04GatedRuntimeProofReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook04GatedRuntimeProofRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook04InvokeRedirectWrapOfflineProofReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook04InvokeRedirectWrapOfflineProofReportWriter;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook04InvokeRedirectWrapOfflineProofRunner;
@@ -226,6 +229,8 @@ public final class MinecraftDryRunFlow {
             || config.explainSteelHook04ReturnValueInterceptOfflineProof()
             || config.steelHook04InvokeRedirectWrapOfflineProof()
             || config.explainSteelHook04InvokeRedirectWrapOfflineProof()
+            || config.steelHook04GatedRuntimeProof()
+            || config.explainSteelHook04GatedRuntimeProof()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
@@ -2154,7 +2159,9 @@ public final class MinecraftDryRunFlow {
                                   || config.steelHook04ReturnValueInterceptOfflineProof()
                                   || config.explainSteelHook04ReturnValueInterceptOfflineProof()
                                   || config.steelHook04InvokeRedirectWrapOfflineProof()
-                                  || config.explainSteelHook04InvokeRedirectWrapOfflineProof()) {
+                                  || config.explainSteelHook04InvokeRedirectWrapOfflineProof()
+                                  || config.steelHook04GatedRuntimeProof()
+                                  || config.explainSteelHook04GatedRuntimeProof()) {
                                 SteelHook04PrimitiveBoundaryReport primitiveBoundaryReport04 =
                                     DiagnosticMeasurements.measure(
                                         diagnosticSink,
@@ -2304,6 +2311,68 @@ public final class MinecraftDryRunFlow {
                                               .resolve(
                                                   SteelHook04InvokeRedirectWrapOfflineProofReportWriter
                                                       .REPORT_FILE_NAME));
+                                    }
+                                    if (config.steelHook04GatedRuntimeProof()
+                                        || config.explainSteelHook04GatedRuntimeProof()) {
+                                      SteelHook04GatedRuntimeProofReport
+                                          steelHook04GatedRuntimeProofReport =
+                                              DiagnosticMeasurements.measure(
+                                                  diagnosticSink,
+                                                  "minecraft.steelhook_0_4.gated_runtime_proof",
+                                                  LaunchPhase.COMPLETE,
+                                                  () ->
+                                                      new SteelHook04GatedRuntimeProofRunner()
+                                                          .run(
+                                                              minecraftHookPlacementRuntimePlan(
+                                                                  context,
+                                                                  executionPlannedRuntime.plan()),
+                                                              primitiveBoundaryReport04,
+                                                              proofReport,
+                                                              invokeProofReport,
+                                                              context.workingDirectory()),
+                                                  report ->
+                                                      DiagnosticMeasurements.details(
+                                                          "gatedRuntimeProofReady",
+                                                          Boolean.toString(
+                                                              report.gatedRuntimeProofReady()),
+                                                          "status",
+                                                          report.status().id(),
+                                                          "runtimeClassLoaderSuccessCount",
+                                                          Integer.toString(
+                                                              report
+                                                                  .runtimeClassLoaderSuccessCount())));
+                                      DiagnosticMeasurements.measure(
+                                          diagnosticSink,
+                                          "minecraft.steelhook_0_4.gated_runtime_proof.write",
+                                          LaunchPhase.COMPLETE,
+                                          () -> {
+                                            Path outputPath =
+                                                context
+                                                    .workingDirectory()
+                                                    .resolve(
+                                                        SteelHook04GatedRuntimeProofReportWriter
+                                                            .REPORT_FILE_NAME);
+                                            new SteelHook04GatedRuntimeProofReportWriter()
+                                                .write(
+                                                    outputPath, steelHook04GatedRuntimeProofReport);
+                                            return outputPath;
+                                          },
+                                          outputPath ->
+                                              DiagnosticMeasurements.details(
+                                                  "steelHook04GatedRuntimeProofOutputPath",
+                                                  DisplayPaths.displayPath(context, outputPath)));
+                                      megaMilestoneReports.add(
+                                          SteelHook04GatedRuntimeProofReportWriter
+                                              .REPORT_FILE_NAME);
+                                      if (config.explainSteelHook04GatedRuntimeProof()) {
+                                        printSteelHook04GatedRuntimeProofExplain(
+                                            steelHook04GatedRuntimeProofReport,
+                                            context
+                                                .workingDirectory()
+                                                .resolve(
+                                                    SteelHook04GatedRuntimeProofReportWriter
+                                                        .REPORT_FILE_NAME));
+                                      }
                                     }
                                   }
                                 }
@@ -3280,5 +3349,31 @@ public final class MinecraftDryRunFlow {
     System.out.println(
         "[spindle] explain-steelhook-0-4-invoke-redirect-wrap-proof: wrote "
             + reportPath.getFileName());
+  }
+
+  private static void printSteelHook04GatedRuntimeProofExplain(
+      SteelHook04GatedRuntimeProofReport report, Path reportPath) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: Target-35 proves isolated gated runtime class definition for RETURN_VALUE_INTERCEPT, INVOKE_REDIRECT, and INVOKE_WRAP.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: Target-35 uses Class.forName(binaryName, false, runtimeClassLoader).");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: Unsupported primitive plans are rejected before class definition.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: No class initialization occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: No transformed method or wrapper execution occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: No hook installation occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: Minecraft launch and Minecraft main invocation remain disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: Dispatcher execution did not occur.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: No public API exposure or sandbox claim occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: status " + report.status().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-gated-runtime-proof: wrote " + reportPath.getFileName());
   }
 }

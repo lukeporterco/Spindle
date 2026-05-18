@@ -229,8 +229,17 @@ final class SteelHook04InvokeCallsiteFixtureClassFactory {
                 1,
                 0,
                 new byte[] {
-                  (byte) 0xb8, hi(originalMethodref), lo(originalMethodref), (byte) 0xac
-                }));
+                  (byte) 0xb8,
+                  hi(originalMethodref),
+                  lo(originalMethodref),
+                  (byte) 0xac,
+                  0x57,
+                  0x04,
+                  (byte) 0xac
+                },
+                0,
+                3,
+                4));
         writeMethod(
             output,
             0x0009,
@@ -293,7 +302,8 @@ final class SteelHook04InvokeCallsiteFixtureClassFactory {
     return bytes.toByteArray();
   }
 
-  private byte[] codeAttributeBodyWithExceptionTable(int maxStack, int maxLocals, byte[] code)
+  private byte[] codeAttributeBodyWithExceptionTable(
+      int maxStack, int maxLocals, byte[] code, int startPc, int endPc, int handlerPc)
       throws IOException {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     try (DataOutputStream output = new DataOutputStream(bytes)) {
@@ -302,9 +312,9 @@ final class SteelHook04InvokeCallsiteFixtureClassFactory {
       output.writeInt(code.length);
       output.write(code);
       output.writeShort(1);
-      output.writeShort(0);
-      output.writeShort(0);
-      output.writeShort(0);
+      output.writeShort(startPc);
+      output.writeShort(endPc);
+      output.writeShort(handlerPc);
       output.writeShort(0);
       output.writeShort(0);
     }

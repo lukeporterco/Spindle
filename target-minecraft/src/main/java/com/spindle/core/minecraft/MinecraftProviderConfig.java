@@ -105,6 +105,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook04ReturnValueInterceptOfflineProof,
     boolean steelHook04InvokeRedirectWrapOfflineProof,
     boolean explainSteelHook04InvokeRedirectWrapOfflineProof,
+    boolean steelHook04GatedRuntimeProof,
+    boolean explainSteelHook04GatedRuntimeProof,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -262,6 +264,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook04ReturnValueInterceptOfflineProof
         false, // steelHook04InvokeRedirectWrapOfflineProof
         false, // explainSteelHook04InvokeRedirectWrapOfflineProof
+        false, // steelHook04GatedRuntimeProof
+        false, // explainSteelHook04GatedRuntimeProof
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -447,6 +451,8 @@ public record MinecraftProviderConfig(
         explainSteelHook04ReturnValueInterceptOfflineProof,
         steelHook04InvokeRedirectWrapOfflineProof,
         explainSteelHook04InvokeRedirectWrapOfflineProof,
+        steelHook04GatedRuntimeProof,
+        explainSteelHook04GatedRuntimeProof,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -575,6 +581,8 @@ public record MinecraftProviderConfig(
         explainSteelHook04ReturnValueInterceptOfflineProof,
         steelHook04InvokeRedirectWrapOfflineProof,
         explainSteelHook04InvokeRedirectWrapOfflineProof,
+        steelHook04GatedRuntimeProof,
+        explainSteelHook04GatedRuntimeProof,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -708,6 +716,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook04ReturnValueInterceptOfflineProof,
       boolean steelHook04InvokeRedirectWrapOfflineProof,
       boolean explainSteelHook04InvokeRedirectWrapOfflineProof,
+      boolean steelHook04GatedRuntimeProof,
+      boolean explainSteelHook04GatedRuntimeProof,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -824,6 +834,8 @@ public record MinecraftProviderConfig(
         explainSteelHook04ReturnValueInterceptOfflineProof,
         steelHook04InvokeRedirectWrapOfflineProof,
         explainSteelHook04InvokeRedirectWrapOfflineProof,
+        steelHook04GatedRuntimeProof,
+        explainSteelHook04GatedRuntimeProof,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
