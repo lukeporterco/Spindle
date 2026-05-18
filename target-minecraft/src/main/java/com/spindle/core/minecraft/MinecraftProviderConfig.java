@@ -93,6 +93,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook02CompletionCheck,
     boolean steelHook03FramedMethodFoundation,
     boolean explainSteelHook03FramedMethodFoundation,
+    boolean steelHook03MethodExitStaticDispatch,
+    boolean explainSteelHook03MethodExitStaticDispatch,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -238,6 +240,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook02CompletionCheck
         false, // steelHook03FramedMethodFoundation
         false, // explainSteelHook03FramedMethodFoundation
+        false, // steelHook03MethodExitStaticDispatch
+        false, // explainSteelHook03MethodExitStaticDispatch
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -411,6 +415,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02CompletionCheck,
         steelHook03FramedMethodFoundation,
         explainSteelHook03FramedMethodFoundation,
+        steelHook03MethodExitStaticDispatch,
+        explainSteelHook03MethodExitStaticDispatch,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -527,6 +533,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02CompletionCheck,
         steelHook03FramedMethodFoundation,
         explainSteelHook03FramedMethodFoundation,
+        steelHook03MethodExitStaticDispatch,
+        explainSteelHook03MethodExitStaticDispatch,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -648,6 +656,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook02CompletionCheck,
       boolean steelHook03FramedMethodFoundation,
       boolean explainSteelHook03FramedMethodFoundation,
+      boolean steelHook03MethodExitStaticDispatch,
+      boolean explainSteelHook03MethodExitStaticDispatch,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -752,6 +762,8 @@ public record MinecraftProviderConfig(
         explainSteelHook02CompletionCheck,
         steelHook03FramedMethodFoundation,
         explainSteelHook03FramedMethodFoundation,
+        steelHook03MethodExitStaticDispatch,
+        explainSteelHook03MethodExitStaticDispatch,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

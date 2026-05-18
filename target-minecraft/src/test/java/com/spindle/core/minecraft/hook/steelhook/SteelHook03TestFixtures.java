@@ -20,6 +20,10 @@ public final class SteelHook03TestFixtures {
     return new SteelHook03FramedMethodFoundationRunner().defaultFramedFixtureClassBytes();
   }
 
+  public static byte[] methodExitFixtureClassBytes() {
+    return new SteelHook03MethodExitDispatchRunner().defaultMethodExitFixtureClassBytes();
+  }
+
   public static byte[] emptyStackMapFixtureClassBytes() {
     return fixtureClassBytes(new byte[] {0x00, 0x00});
   }
@@ -47,6 +51,85 @@ public final class SteelHook03TestFixtures {
         SteelHook02CompletionStatus.PASSED,
         SteelHook02CompletionHandoffStatus.STEELHOOK_0_2_BLOCKED,
         false);
+  }
+
+  public static SteelHook03FramedMethodFoundationReport passedTarget28Report() {
+    return new SteelHook03FramedMethodFoundationRunner()
+        .run(passedCompletionReport(), framedFixtureClassBytes());
+  }
+
+  public static SteelHook03FramedMethodFoundationReport failedTarget28Report() {
+    return new SteelHook03FramedMethodFoundationReport(
+        1,
+        "Target-28",
+        "minecraft",
+        "0.3",
+        "Target-27",
+        true,
+        SteelHook02CompletionHandoffStatus.STEELHOOK_0_2_COMPLETE.id(),
+        false,
+        SteelHook03FramedMethodFoundationStatus.FAILED,
+        SteelHook03FramedMethodFoundationNextDirection.RESTORE_TARGET_28_FRAMED_METHOD_FOUNDATION,
+        true,
+        false,
+        false,
+        null,
+        null,
+        null,
+        null,
+        0,
+        3,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        "failed",
+        List.of(new SteelHook03FramedMethodFoundationFinding("target28.failed", true, "failed")));
+  }
+
+  public static SteelHook03FramedMethodFoundationReport nextDirectionMismatchTarget28Report() {
+    return new SteelHook03FramedMethodFoundationReport(
+        1,
+        "Target-28",
+        "minecraft",
+        "0.3",
+        "Target-27",
+        true,
+        SteelHook02CompletionHandoffStatus.STEELHOOK_0_2_COMPLETE.id(),
+        true,
+        SteelHook03FramedMethodFoundationStatus.FOUNDATION_READY,
+        SteelHook03FramedMethodFoundationNextDirection.RESTORE_TARGET_28_FRAMED_METHOD_FOUNDATION,
+        true,
+        true,
+        true,
+        1,
+        1,
+        5,
+        8,
+        0,
+        3,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        List.of());
   }
 
   private static SteelHook02CompletionReport completionReport(

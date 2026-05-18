@@ -87,6 +87,9 @@ import com.spindle.core.minecraft.hook.steelhook.SteelHook02TargetClassBytesRead
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationReportWriter;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationRunner;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchReport;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchReportWriter;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRunner;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionInput;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReport;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReportWriter;
@@ -198,6 +201,7 @@ public final class MinecraftDryRunFlow {
             || config.steelHook02GatedRuntimeTransformation()
             || config.steelHook02CompletionCheck()
             || config.steelHook03FramedMethodFoundation()
+            || config.steelHook03MethodExitStaticDispatch()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
@@ -206,6 +210,7 @@ public final class MinecraftDryRunFlow {
             || config.explainSteelHook02GatedRuntimeTransformation()
             || config.explainSteelHook02CompletionCheck()
             || config.explainSteelHook03FramedMethodFoundation()
+            || config.explainSteelHook03MethodExitStaticDispatch()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -1911,7 +1916,9 @@ public final class MinecraftDryRunFlow {
                             SteelHook02CompletionInput.reportPath(context.workingDirectory()));
                       }
                       if (config.steelHook03FramedMethodFoundation()
-                          || config.explainSteelHook03FramedMethodFoundation()) {
+                          || config.explainSteelHook03FramedMethodFoundation()
+                          || config.steelHook03MethodExitStaticDispatch()
+                          || config.explainSteelHook03MethodExitStaticDispatch()) {
                         SteelHook03FramedMethodFoundationRunner framedMethodFoundationRunner =
                             new SteelHook03FramedMethodFoundationRunner();
                         SteelHook03FramedMethodFoundationReport framedMethodFoundationReport =
@@ -1955,6 +1962,56 @@ public final class MinecraftDryRunFlow {
                         if (config.explainSteelHook03FramedMethodFoundation()) {
                           printSteelHook03FramedMethodFoundationExplain(
                               framedMethodFoundationReport);
+                        }
+                        if (config.steelHook03MethodExitStaticDispatch()
+                            || config.explainSteelHook03MethodExitStaticDispatch()) {
+                          SteelHook03MethodExitDispatchRunner methodExitDispatchRunner =
+                              new SteelHook03MethodExitDispatchRunner();
+                          SteelHook03MethodExitDispatchReport methodExitDispatchReport =
+                              DiagnosticMeasurements.measure(
+                                  diagnosticSink,
+                                  "minecraft.steelhook_0_3.method_exit_static_dispatch",
+                                  LaunchPhase.COMPLETE,
+                                  () ->
+                                      methodExitDispatchRunner.run(
+                                          framedMethodFoundationReport,
+                                          methodExitDispatchRunner
+                                              .defaultMethodExitFixtureClassBytes()),
+                                  report ->
+                                      DiagnosticMeasurements.details(
+                                          "status",
+                                          report.status().id(),
+                                          "methodExitDispatchReady",
+                                          Boolean.toString(report.methodExitDispatchReady()),
+                                          "insertionCount",
+                                          Integer.toString(
+                                              report.insertionCount() == null
+                                                  ? 0
+                                                  : report.insertionCount())));
+                          DiagnosticMeasurements.measure(
+                              diagnosticSink,
+                              "minecraft.steelhook_0_3.method_exit_static_dispatch.write",
+                              LaunchPhase.COMPLETE,
+                              () -> {
+                                Path outputPath =
+                                    context
+                                        .workingDirectory()
+                                        .resolve(
+                                            SteelHook03MethodExitDispatchRunner.REPORT_FILE_NAME);
+                                new SteelHook03MethodExitDispatchReportWriter()
+                                    .write(outputPath, methodExitDispatchReport);
+                                return outputPath;
+                              },
+                              outputPath ->
+                                  DiagnosticMeasurements.details(
+                                      "steelHook03MethodExitStaticDispatchOutputPath",
+                                      DisplayPaths.displayPath(context, outputPath)));
+                          megaMilestoneReports.add(
+                              SteelHook03MethodExitDispatchRunner.REPORT_FILE_NAME);
+                          if (config.explainSteelHook03MethodExitStaticDispatch()) {
+                            printSteelHook03MethodExitStaticDispatchExplain(
+                                methodExitDispatchReport);
+                          }
                         }
                       }
                     }
@@ -2779,5 +2836,29 @@ public final class MinecraftDryRunFlow {
     System.out.println(
         "[spindle] explain-steelhook-0-3-framed-method-foundation: wrote "
             + SteelHook03FramedMethodFoundationRunner.REPORT_FILE_NAME);
+  }
+
+  private static void printSteelHook03MethodExitStaticDispatchExplain(
+      SteelHook03MethodExitDispatchReport report) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: Target-29 proves METHOD_EXIT_STATIC_DISPATCH offline.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: The dispatcher is inserted immediately before supported normal return opcodes.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: Target-29 rejects StackMapTable, exception table, branch, switch, wide, athrow, synchronized, constructor, and class initializer cases.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: Runtime classloading remains disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: Minecraft main was not invoked.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: The method-exit dispatcher was not executed.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: Java mod execution is not sandboxed.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: status "
+            + report.status().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: wrote "
+            + SteelHook03MethodExitDispatchRunner.REPORT_FILE_NAME);
   }
 }
