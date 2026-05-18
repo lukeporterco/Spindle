@@ -2,7 +2,7 @@
 
 This folder records Minecraft Target Layer concept grounding, Target-* pass history, and internal boundaries.
 
-Current status: Target-1 through Target-10 complete the narrow SteelHook 0.1 fake-server hook spine. Target-11 through Target-22 ground server lifecycle, command registration, resource/reload, and registry bootstrap/content registration concept families as analysis-only or synthesis passes. Target-23 through Target-27 complete SteelHook 0.2 in the narrow capability-ladder sense. Target-28 adds the bounded framed-method foundation for the existing method-entry static-dispatch primitive, Target-29 adds bounded offline `METHOD_EXIT_STATIC_DISPATCH` proof before supported normal return opcodes, Target-30 proves both approved SteelHook 0.3 primitives through isolated gated runtime class-definition sessions, Target-31 completes SteelHook 0.3 through deterministic handoff verification, and Target-32 begins SteelHook 0.4 as an analysis-only primitive-boundary pass.
+Current status: Target-1 through Target-10 complete the narrow SteelHook 0.1 fake-server hook spine. Target-11 through Target-22 ground server lifecycle, command registration, resource/reload, and registry bootstrap/content registration concept families as analysis-only or synthesis passes. Target-23 through Target-27 complete SteelHook 0.2 in the narrow capability-ladder sense. Target-28 through Target-31 complete SteelHook 0.3 as a bounded framed-method expansion path. Target-32 through Target-36 complete SteelHook 0.4 inside a strict verifier-backed boundary covering only the approved internal primitive families `RETURN_VALUE_INTERCEPT`, `INVOKE_REDIRECT`, and `INVOKE_WRAP`.
 
 SteelHook 0.1 proves the first bounded hook spine against controlled fixtures. It establishes Minecraft artifact interpretation, hook contract validation, known-symbol selection, hook placement analysis, instruction-aware bytecode modeling, dry-run patch planning, fixture-only transformation, bootstrap class transformation plumbing, and a hardening caboose. It does not expose a public hook API or support broad bytecode mutation.
 
@@ -24,10 +24,10 @@ Future Target Layer, SteelHook, and Modding API planning should inspect `minecra
 - `server-lifecycle/`: Target-11 and Target-12 lifecycle grounding.
 - `commands/`: Target-13 through Target-15 command grounding.
 - `resources-reload/`: Target-16 through Target-20 resource/reload grounding and caboose decision.
-- `registry-bootstrap/`: Target-21 and Target-22 registry bootstrap/content registration grounding.
+- `registry-bootstrap/`: Target-21 and Target-22 registry bootstrap/content registration grounding and handoff.
 - `steelhook-0.2/`: Target-23 through Target-27 and the completed bounded SteelHook 0.2 primitive path.
-- `steelhook-0.3/`: Target-28 onward and the bounded framed-method expansion path.
-- `steelhook-0.4/`: Target-32 onward and the bounded internal primitive-family boundary for SteelHook 0.4.
+- `steelhook-0.3/`: Target-28 through Target-31 and the bounded framed-method expansion path.
+- `steelhook-0.4/`: Target-32 through Target-36 and the bounded internal primitive-family boundary for SteelHook 0.4.
 
 ## Target pass index
 
@@ -91,10 +91,10 @@ Future Target Layer, SteelHook, and Modding API planning should inspect `minecra
 - Target-35: Gated runtime proof.
 - Target-36: SteelHook 0.4 completion.
 
-## SteelHook 0.2 completion boundary
+## Latest handoff
 
-SteelHook 0.2 is complete only within the documented Target-27 handoff boundary. The completed proof verifies the Target-7 through Target-26 report chain, confirms the approved primitive and patch-plan descriptors, checks the offline method-entry transformer result, checks the gated runtime transformation result, and rejects stale or unsafe side-effect reports.
+The latest completed handoff is SteelHook 0.4 at Target-36. That verifier accepts the persisted Target-32 through Target-35 evidence chain only when the approved primitive set remains exactly `RETURN_VALUE_INTERCEPT`, `INVOKE_REDIRECT`, and `INVOKE_WRAP`, no unsupported primitive evidence leaks into the reports, no raw byte payloads are serialized, and no report implies execution beyond isolated class definition.
 
-The handoff state for SteelHook 0.2 is `steelhook-0-2-complete` when the completion verifier reports `status: "passed"` and `completionReady: true`.
+That handoff is intentionally still internal-only. It does not install hooks into real Minecraft runtime execution, expose a public SteelHook API, expose a public Minecraft modding API, launch Minecraft through transformed production classes, or change the project's non-sandboxed Java execution posture.
 
-This completion boundary preserves the existing runtime and security semantics. Java mod execution is not sandboxed. SteelHook 0.2 does not claim sandboxing and does not broaden runtime behavior beyond the single gated class-definition proof.
+The next handoff, when work resumes, should build from this completed SteelHook 0.4 boundary or from one of the grounded Minecraft concept arcs without broadening capability claims retroactively.
