@@ -1,5 +1,6 @@
 package com.spindle.core.minecraft.hook.steelhook;
 
+import com.spindle.core.minecraft.MinecraftServerRuntimePlan;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionHandoffStatus;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionNextDirection;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReport;
@@ -18,6 +19,10 @@ public final class SteelHook03TestFixtures {
 
   public static byte[] framedFixtureClassBytes() {
     return new SteelHook03FramedMethodFoundationRunner().defaultFramedFixtureClassBytes();
+  }
+
+  public static byte[] runtimeFramedMainFixtureClassBytes() {
+    return new SteelHook03FramedMethodFixtureClassFactory().createRuntimeMainFixtureClassBytes();
   }
 
   public static byte[] methodExitFixtureClassBytes() {
@@ -56,6 +61,125 @@ public final class SteelHook03TestFixtures {
   public static SteelHook03FramedMethodFoundationReport passedTarget28Report() {
     return new SteelHook03FramedMethodFoundationRunner()
         .run(passedCompletionReport(), framedFixtureClassBytes());
+  }
+
+  public static SteelHook03MethodExitDispatchReport passedTarget29Report() {
+    return new SteelHook03MethodExitDispatchRunner()
+        .run(passedTarget28Report(), methodExitFixtureClassBytes());
+  }
+
+  public static SteelHook03MethodExitDispatchReport failedTarget29Report() {
+    return new SteelHook03MethodExitDispatchReport(
+        1,
+        "Target-29",
+        "minecraft",
+        "0.3",
+        SteelHook03PrimitiveKind.METHOD_EXIT_STATIC_DISPATCH,
+        "Target-28",
+        SteelHook03FramedMethodFoundationStatus.FAILED.id(),
+        false,
+        SteelHook03FramedMethodFoundationNextDirection.RESTORE_TARGET_28_FRAMED_METHOD_FOUNDATION
+            .id(),
+        false,
+        SteelHook03MethodExitDispatchStatus.FAILED,
+        SteelHook03MethodExitDispatchNextDirection.RESTORE_TARGET_29_METHOD_EXIT_STATIC_DISPATCH,
+        "net/minecraft/server/Main",
+        "main",
+        "([Ljava/lang/String;)V",
+        "com/spindle/core/minecraft/hook/runtime/SteelHookDispatcher",
+        "afterMinecraftServerMain",
+        "()V",
+        "invokestatic",
+        "b8",
+        3,
+        List.of("return"),
+        null,
+        null,
+        List.of(),
+        List.of(),
+        null,
+        null,
+        null,
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        "failed",
+        List.of(new SteelHook03MethodExitDispatchFinding("target29.failed", true, "failed")));
+  }
+
+  public static SteelHook03MethodExitDispatchReport nextDirectionMismatchTarget29Report() {
+    return new SteelHook03MethodExitDispatchReport(
+        1,
+        "Target-29",
+        "minecraft",
+        "0.3",
+        SteelHook03PrimitiveKind.METHOD_EXIT_STATIC_DISPATCH,
+        "Target-28",
+        SteelHook03FramedMethodFoundationStatus.FOUNDATION_READY.id(),
+        true,
+        SteelHook03FramedMethodFoundationNextDirection.MOVE_TO_TARGET_29_METHOD_EXIT_STATIC_DISPATCH
+            .id(),
+        true,
+        SteelHook03MethodExitDispatchStatus.METHOD_EXIT_DISPATCH_READY,
+        SteelHook03MethodExitDispatchNextDirection.RESTORE_TARGET_29_METHOD_EXIT_STATIC_DISPATCH,
+        "net/minecraft/server/Main",
+        "main",
+        "([Ljava/lang/String;)V",
+        "com/spindle/core/minecraft/hook/runtime/SteelHookDispatcher",
+        "afterMinecraftServerMain",
+        "()V",
+        "invokestatic",
+        "b8",
+        3,
+        List.of("return"),
+        1,
+        1,
+        List.of(0),
+        List.of(0),
+        1,
+        4,
+        10,
+        16,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        List.of());
+  }
+
+  public static MinecraftServerRuntimePlan runtimePlan(java.nio.file.Path serverJar) {
+    return SteelHook02TestFixtures.runtimePlan(serverJar);
   }
 
   public static SteelHook03FramedMethodFoundationReport failedTarget28Report() {

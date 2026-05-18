@@ -274,9 +274,6 @@ public final class SteelHookMethodExitClassFileRewriter {
     if (request.stackMapTableRewriteSupported()) {
       return "Method-exit rewriting does not support StackMapTable rewriting.";
     }
-    if (request.runtimeClassLoadingPathEnabled()) {
-      return "Method-exit rewriting must keep runtime classloading disabled.";
-    }
     if (request.publicApiExposed()) {
       return "Method-exit rewriting must not expose public API.";
     }

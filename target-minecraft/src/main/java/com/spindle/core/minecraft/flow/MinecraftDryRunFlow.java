@@ -87,9 +87,12 @@ import com.spindle.core.minecraft.hook.steelhook.SteelHook02TargetClassBytesRead
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationReportWriter;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03FramedMethodFoundationRunner;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03GatedRuntimeProofRunner;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchReport;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchReportWriter;
 import com.spindle.core.minecraft.hook.steelhook.SteelHook03MethodExitDispatchRunner;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReport;
+import com.spindle.core.minecraft.hook.steelhook.SteelHook03RuntimeProofReportWriter;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionInput;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReport;
 import com.spindle.core.minecraft.hook.verify.SteelHook02CompletionReportWriter;
@@ -202,6 +205,7 @@ public final class MinecraftDryRunFlow {
             || config.steelHook02CompletionCheck()
             || config.steelHook03FramedMethodFoundation()
             || config.steelHook03MethodExitStaticDispatch()
+            || config.steelHook03GatedRuntimeProof()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
@@ -211,6 +215,7 @@ public final class MinecraftDryRunFlow {
             || config.explainSteelHook02CompletionCheck()
             || config.explainSteelHook03FramedMethodFoundation()
             || config.explainSteelHook03MethodExitStaticDispatch()
+            || config.explainSteelHook03GatedRuntimeProof()
             || config.hookInstallationPlan()
             || config.installHooks())
         && config.side() != MinecraftSide.SERVER) {
@@ -551,6 +556,9 @@ public final class MinecraftDryRunFlow {
               || config.steelHook02MethodEntryTransformer()
               || config.steelHook02GatedRuntimeTransformation()
               || config.steelHook02CompletionCheck()
+              || config.steelHook03FramedMethodFoundation()
+              || config.steelHook03MethodExitStaticDispatch()
+              || config.steelHook03GatedRuntimeProof()
               || config.bootstrapTransformHooks()
               || config.explainHookPatchPlan()
               || config.explainSteelHook02PrimitiveBoundary()
@@ -558,6 +566,9 @@ public final class MinecraftDryRunFlow {
               || config.explainSteelHook02MethodEntryTransformer()
               || config.explainSteelHook02GatedRuntimeTransformation()
               || config.explainSteelHook02CompletionCheck()
+              || config.explainSteelHook03FramedMethodFoundation()
+              || config.explainSteelHook03MethodExitStaticDispatch()
+              || config.explainSteelHook03GatedRuntimeProof()
               || config.hookInstallationPlan()
               || config.installHooks();
       if (shouldCreateInterpretation) {
@@ -1918,7 +1929,9 @@ public final class MinecraftDryRunFlow {
                       if (config.steelHook03FramedMethodFoundation()
                           || config.explainSteelHook03FramedMethodFoundation()
                           || config.steelHook03MethodExitStaticDispatch()
-                          || config.explainSteelHook03MethodExitStaticDispatch()) {
+                          || config.explainSteelHook03MethodExitStaticDispatch()
+                          || config.steelHook03GatedRuntimeProof()
+                          || config.explainSteelHook03GatedRuntimeProof()) {
                         SteelHook03FramedMethodFoundationRunner framedMethodFoundationRunner =
                             new SteelHook03FramedMethodFoundationRunner();
                         SteelHook03FramedMethodFoundationReport framedMethodFoundationReport =
@@ -1964,7 +1977,9 @@ public final class MinecraftDryRunFlow {
                               framedMethodFoundationReport);
                         }
                         if (config.steelHook03MethodExitStaticDispatch()
-                            || config.explainSteelHook03MethodExitStaticDispatch()) {
+                            || config.explainSteelHook03MethodExitStaticDispatch()
+                            || config.steelHook03GatedRuntimeProof()
+                            || config.explainSteelHook03GatedRuntimeProof()) {
                           SteelHook03MethodExitDispatchRunner methodExitDispatchRunner =
                               new SteelHook03MethodExitDispatchRunner();
                           SteelHook03MethodExitDispatchReport methodExitDispatchReport =
@@ -2011,6 +2026,54 @@ public final class MinecraftDryRunFlow {
                           if (config.explainSteelHook03MethodExitStaticDispatch()) {
                             printSteelHook03MethodExitStaticDispatchExplain(
                                 methodExitDispatchReport);
+                          }
+                          if (config.steelHook03GatedRuntimeProof()
+                              || config.explainSteelHook03GatedRuntimeProof()) {
+                            SteelHook03GatedRuntimeProofRunner gatedRuntimeProofRunner =
+                                new SteelHook03GatedRuntimeProofRunner();
+                            SteelHook03RuntimeProofReport gatedRuntimeProofReport =
+                                DiagnosticMeasurements.measure(
+                                    diagnosticSink,
+                                    "minecraft.steelhook_0_3.gated_runtime_proof",
+                                    LaunchPhase.COMPLETE,
+                                    () ->
+                                        gatedRuntimeProofRunner.run(
+                                            finalPlannedRuntime.plan(),
+                                            framedMethodFoundationReport,
+                                            methodExitDispatchReport,
+                                            context.workingDirectory()),
+                                    report ->
+                                        DiagnosticMeasurements.details(
+                                            "status",
+                                            report.status().id(),
+                                            "gatedRuntimeProofReady",
+                                            Boolean.toString(report.gatedRuntimeProofReady()),
+                                            "runtimeClassLoaderSuccessCount",
+                                            Integer.toString(
+                                                report.runtimeClassLoaderSuccessCount())));
+                            DiagnosticMeasurements.measure(
+                                diagnosticSink,
+                                "minecraft.steelhook_0_3.gated_runtime_proof.write",
+                                LaunchPhase.COMPLETE,
+                                () -> {
+                                  Path outputPath =
+                                      context
+                                          .workingDirectory()
+                                          .resolve(
+                                              SteelHook03GatedRuntimeProofRunner.REPORT_FILE_NAME);
+                                  new SteelHook03RuntimeProofReportWriter()
+                                      .write(outputPath, gatedRuntimeProofReport);
+                                  return outputPath;
+                                },
+                                outputPath ->
+                                    DiagnosticMeasurements.details(
+                                        "steelHook03GatedRuntimeProofOutputPath",
+                                        DisplayPaths.displayPath(context, outputPath)));
+                            megaMilestoneReports.add(
+                                SteelHook03GatedRuntimeProofRunner.REPORT_FILE_NAME);
+                            if (config.explainSteelHook03GatedRuntimeProof()) {
+                              printSteelHook03GatedRuntimeProofExplain(gatedRuntimeProofReport);
+                            }
                           }
                         }
                       }
@@ -2860,5 +2923,34 @@ public final class MinecraftDryRunFlow {
     System.out.println(
         "[spindle] explain-steelhook-0-3-method-exit-static-dispatch: wrote "
             + SteelHook03MethodExitDispatchRunner.REPORT_FILE_NAME);
+  }
+
+  private static void printSteelHook03GatedRuntimeProofExplain(
+      SteelHook03RuntimeProofReport report) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Target-30 proves SteelHook 0.3 transformed class definition through isolated gated runtime classloader sessions.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: METHOD_ENTRY_STATIC_DISPATCH and METHOD_EXIT_STATIC_DISPATCH are proven separately.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Target-30 does not compose multiple hooks into one class.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Target-30 does not initialize net.minecraft.server.Main.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Minecraft main was not invoked.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Minecraft server launch remains disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Hook installation remains disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: beforeMinecraftServerMain was not executed.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: afterMinecraftServerMain was not executed.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: Java mod execution is not sandboxed.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: status " + report.status().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-3-gated-runtime-proof: wrote "
+            + SteelHook03GatedRuntimeProofRunner.REPORT_FILE_NAME);
   }
 }

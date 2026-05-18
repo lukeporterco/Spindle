@@ -163,7 +163,7 @@ SteelHook 0.2:
 Supports real Minecraft runtime transformation for one or two carefully chosen no-StackMap or manageable targets, with stronger verifier checks.
 
 SteelHook 0.3:
-Begins with Target-28 bounded StackMapTable first-frame shifting for method-entry insertion at offset `0`, then Target-29 adds bounded offline `METHOD_EXIT_STATIC_DISPATCH` insertion immediately before supported normal return opcodes. These passes are still foundation work, not full StackMapTable recomputation, exceptional-exit observation, return-value interception, runtime classloading proof for method exit, or sandboxing.
+Begins with Target-28 bounded StackMapTable first-frame shifting for method-entry insertion at offset `0`, then Target-29 adds bounded offline `METHOD_EXIT_STATIC_DISPATCH` insertion immediately before supported normal return opcodes, and Target-30 proves that both approved SteelHook 0.3 primitives can define transformed classes through isolated gated runtime classloader sessions without composing hooks, installing hooks, invoking Minecraft main, launching Minecraft, executing either dispatcher, exposing public APIs, or claiming sandboxing. These passes are still foundation work, not full StackMapTable recomputation, exceptional-exit observation, return-value interception, or multi-hook composition.
 
 SteelHook 0.4:
 Adds callsite redirection/wrapping and return-value interception.

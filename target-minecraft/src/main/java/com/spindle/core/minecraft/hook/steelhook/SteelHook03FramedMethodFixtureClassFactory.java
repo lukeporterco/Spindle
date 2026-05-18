@@ -14,9 +14,22 @@ final class SteelHook03FramedMethodFixtureClassFactory {
   static final String TARGET_DESCRIPTOR = "([Ljava/lang/String;)V";
 
   byte[] createFramedMethodFixtureClassBytes() {
+    return createFixtureClassBytes(
+        TARGET_OWNER_INTERNAL_NAME, TARGET_BINARY_NAME, TARGET_CLASS_ENTRY_NAME);
+  }
+
+  byte[] createRuntimeMainFixtureClassBytes() {
+    return createFixtureClassBytes(
+        "net/minecraft/server/Main",
+        "net.minecraft.server.Main",
+        "net/minecraft/server/Main.class");
+  }
+
+  private byte[] createFixtureClassBytes(
+      String targetOwnerInternalName, String targetBinaryName, String targetClassEntryName) {
     try {
       ConstantPoolBuilder constantPool = new ConstantPoolBuilder();
-      int thisClassUtf8 = constantPool.addUtf8(TARGET_OWNER_INTERNAL_NAME);
+      int thisClassUtf8 = constantPool.addUtf8(targetOwnerInternalName);
       int thisClass = constantPool.addClass(thisClassUtf8);
       int objectUtf8 = constantPool.addUtf8("java/lang/Object");
       int objectClass = constantPool.addClass(objectUtf8);
@@ -50,7 +63,7 @@ final class SteelHook03FramedMethodFixtureClassFactory {
       return bytes.toByteArray();
     } catch (IOException exception) {
       throw new IllegalStateException(
-          "Failed to build Target-28 framed method fixture class.", exception);
+          "Failed to build framed method fixture class for " + targetBinaryName + ".", exception);
     }
   }
 
