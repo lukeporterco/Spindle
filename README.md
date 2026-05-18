@@ -16,17 +16,39 @@ Spindle is not currently a Fabric/Forge/NeoForge/Quilt compatibility layer, a ga
 ## Repository Layout
 
 ```text
-spindle-loader-api/     Stable runtime-facing public loader API
-spindle-loader-core/    Target-neutral loader planning, diagnostics, security, classloading, lifecycle
-spindle-loader-cli/     CLI entrypoint and provider wiring
-target-minecraft/       Minecraft Target Layer, planning, bootstrap, SteelHook internals
-sample-game/            Fake game provider fixture
-sample-mod/             Basic sample mod
-sample-runtime-mod/     Runtime API sample
-sample-server-fixture/  Fake Minecraft server fixture
-sample-minecraft-mod/   Guarded Minecraft bootstrap fixture mod
-docs/                   Architecture and mod-facing documentation
-backlog/                Longer-term notes
+Spindle repo
+├─ spindle-loader-api/
+│  └─ Stable runtime-facing public loader API
+│
+├─ spindle-loader-core/
+│  └─ Target-neutral loader planning, diagnostics, security, classloading, lifecycle
+│
+├─ spindle-loader-cli/
+│  └─ CLI entrypoint and provider wiring
+│
+├─ target-minecraft/
+│  └─ Minecraft Target Layer, planning, bootstrap, SteelHook internals
+│
+├─ sample-game/
+│  └─ Fake game provider fixture
+│
+├─ sample-mod/
+│  └─ Basic sample mod
+│
+├─ sample-runtime-mod/
+│  └─ Runtime API sample
+│
+├─ sample-server-fixture/
+│  └─ Fake Minecraft server fixture
+│
+├─ sample-minecraft-mod/
+│  └─ Guarded Minecraft bootstrap fixture mod
+│
+├─ docs/
+│  └─ Architecture and mod-facing documentation
+│
+└─ backlog/
+   └─ Longer-term notes
 ```
 
 ## What Works Today
