@@ -123,6 +123,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainSteelHook04InvokeRedirectWrapOfflineProof = false;
     boolean minecraftSteelHook04GatedRuntimeProof = false;
     boolean minecraftExplainSteelHook04GatedRuntimeProof = false;
+    boolean minecraftSteelHook04CompletionCheck = false;
+    boolean minecraftExplainSteelHook04CompletionCheck = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -1265,6 +1267,59 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-4-completion-check".equals(argument)) {
+        minecraftSteelHook04CompletionCheck = true;
+        minecraftSteelHook04GatedRuntimeProof = true;
+        minecraftSteelHook04InvokeRedirectWrapOfflineProof = true;
+        minecraftSteelHook04ReturnValueInterceptOfflineProof = true;
+        minecraftSteelHook04PrimitiveBoundary = true;
+        minecraftSteelHook03CompletionCheck = true;
+        minecraftSteelHook03GatedRuntimeProof = true;
+        minecraftSteelHook03MethodExitStaticDispatch = true;
+        minecraftSteelHook03FramedMethodFoundation = true;
+        minecraftSteelHook02CompletionCheck = true;
+        minecraftSteelHook02GatedRuntimeTransformation = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-4-completion-check".equals(argument)) {
+        minecraftExplainSteelHook04CompletionCheck = true;
+        minecraftSteelHook04CompletionCheck = true;
+        minecraftSteelHook04GatedRuntimeProof = true;
+        minecraftSteelHook04InvokeRedirectWrapOfflineProof = true;
+        minecraftSteelHook04ReturnValueInterceptOfflineProof = true;
+        minecraftSteelHook04PrimitiveBoundary = true;
+        minecraftSteelHook03CompletionCheck = true;
+        minecraftSteelHook03GatedRuntimeProof = true;
+        minecraftSteelHook03MethodExitStaticDispatch = true;
+        minecraftSteelHook03FramedMethodFoundation = true;
+        minecraftSteelHook02CompletionCheck = true;
+        minecraftSteelHook02GatedRuntimeTransformation = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -1495,6 +1550,14 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft SteelHook 0.4 gated runtime proof cannot be combined with --minecraft-bootstrap-server.");
     }
+    if (minecraftSteelHook04CompletionCheck && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.4 completion check cannot be combined with --minecraft-install-hooks.");
+    }
+    if (minecraftSteelHook04CompletionCheck && minecraftBootstrapServer) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.4 completion check cannot be combined with --minecraft-bootstrap-server.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -1602,6 +1665,8 @@ public final class LoaderCliParser {
             minecraftExplainSteelHook04InvokeRedirectWrapOfflineProof,
             minecraftSteelHook04GatedRuntimeProof,
             minecraftExplainSteelHook04GatedRuntimeProof,
+            minecraftSteelHook04CompletionCheck,
+            minecraftExplainSteelHook04CompletionCheck,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,

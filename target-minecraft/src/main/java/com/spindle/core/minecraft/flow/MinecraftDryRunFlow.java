@@ -113,6 +113,10 @@ import com.spindle.core.minecraft.hook.verify.SteelHook03CompletionInput;
 import com.spindle.core.minecraft.hook.verify.SteelHook03CompletionReport;
 import com.spindle.core.minecraft.hook.verify.SteelHook03CompletionReportWriter;
 import com.spindle.core.minecraft.hook.verify.SteelHook03CompletionVerifier;
+import com.spindle.core.minecraft.hook.verify.SteelHook04CompletionInput;
+import com.spindle.core.minecraft.hook.verify.SteelHook04CompletionReport;
+import com.spindle.core.minecraft.hook.verify.SteelHook04CompletionReportWriter;
+import com.spindle.core.minecraft.hook.verify.SteelHook04CompletionVerifier;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretation;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpretationWriter;
 import com.spindle.core.minecraft.interpret.MinecraftArtifactInterpreter;
@@ -231,6 +235,8 @@ public final class MinecraftDryRunFlow {
             || config.explainSteelHook04InvokeRedirectWrapOfflineProof()
             || config.steelHook04GatedRuntimeProof()
             || config.explainSteelHook04GatedRuntimeProof()
+            || config.steelHook04CompletionCheck()
+            || config.explainSteelHook04CompletionCheck()
             || config.bootstrapTransformHooks()
             || config.explainHookPatchPlan()
             || config.explainSteelHook02PrimitiveBoundary()
@@ -2161,7 +2167,9 @@ public final class MinecraftDryRunFlow {
                                   || config.steelHook04InvokeRedirectWrapOfflineProof()
                                   || config.explainSteelHook04InvokeRedirectWrapOfflineProof()
                                   || config.steelHook04GatedRuntimeProof()
-                                  || config.explainSteelHook04GatedRuntimeProof()) {
+                                  || config.explainSteelHook04GatedRuntimeProof()
+                                  || config.steelHook04CompletionCheck()
+                                  || config.explainSteelHook04CompletionCheck()) {
                                 SteelHook04PrimitiveBoundaryReport primitiveBoundaryReport04 =
                                     DiagnosticMeasurements.measure(
                                         diagnosticSink,
@@ -2313,7 +2321,9 @@ public final class MinecraftDryRunFlow {
                                                       .REPORT_FILE_NAME));
                                     }
                                     if (config.steelHook04GatedRuntimeProof()
-                                        || config.explainSteelHook04GatedRuntimeProof()) {
+                                        || config.explainSteelHook04GatedRuntimeProof()
+                                        || config.steelHook04CompletionCheck()
+                                        || config.explainSteelHook04CompletionCheck()) {
                                       SteelHook04GatedRuntimeProofReport
                                           steelHook04GatedRuntimeProofReport =
                                               DiagnosticMeasurements.measure(
@@ -2372,6 +2382,53 @@ public final class MinecraftDryRunFlow {
                                                 .resolve(
                                                     SteelHook04GatedRuntimeProofReportWriter
                                                         .REPORT_FILE_NAME));
+                                      }
+                                      if (config.steelHook04CompletionCheck()
+                                          || config.explainSteelHook04CompletionCheck()) {
+                                        SteelHook04CompletionInput completionInput04 =
+                                            SteelHook04CompletionInput.fromWorkingDirectory(
+                                                context.workingDirectory());
+                                        SteelHook04CompletionReport steelHook04CompletionReport =
+                                            DiagnosticMeasurements.measure(
+                                                diagnosticSink,
+                                                "minecraft.steelhook_0_4.completion.verify",
+                                                LaunchPhase.COMPLETE,
+                                                () ->
+                                                    new SteelHook04CompletionVerifier()
+                                                        .verify(completionInput04),
+                                                report ->
+                                                    DiagnosticMeasurements.details(
+                                                        "status",
+                                                        report.status().id(),
+                                                        "completionReady",
+                                                        Boolean.toString(report.completionReady()),
+                                                        "handoffStatus",
+                                                        report.handoffStatus().id()));
+                                        Path outputPath =
+                                            DiagnosticMeasurements.measure(
+                                                diagnosticSink,
+                                                "minecraft.steelhook_0_4.completion.write",
+                                                LaunchPhase.COMPLETE,
+                                                () -> {
+                                                  Path reportPath =
+                                                      SteelHook04CompletionInput.reportPath(
+                                                          context.workingDirectory());
+                                                  new SteelHook04CompletionReportWriter()
+                                                      .write(
+                                                          reportPath, steelHook04CompletionReport);
+                                                  return reportPath;
+                                                },
+                                                reportPath ->
+                                                    DiagnosticMeasurements.details(
+                                                        "steelHook04CompletionOutputPath",
+                                                        DisplayPaths.displayPath(
+                                                            context, reportPath)));
+                                        megaMilestoneReports.add(
+                                            SteelHook04CompletionInput.REPORT_FILE_NAME);
+                                        if (config.explainSteelHook04CompletionCheck()) {
+                                          printSteelHook04CompletionExplain(
+                                              steelHook04CompletionReport, outputPath);
+                                        }
                                       }
                                     }
                                   }
@@ -3375,5 +3432,34 @@ public final class MinecraftDryRunFlow {
         "[spindle] explain-steelhook-0-4-gated-runtime-proof: status " + report.status().id());
     System.out.println(
         "[spindle] explain-steelhook-0-4-gated-runtime-proof: wrote " + reportPath.getFileName());
+  }
+
+  private static void printSteelHook04CompletionExplain(
+      SteelHook04CompletionReport report, Path reportPath) {
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: Target-36 verifies the SteelHook 0.4 evidence chain.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: Target-32 through Target-35 persisted reports were verified.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: stale side-effect reports are rejected.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: raw byte payloads are absent.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: unsupported primitive leakage is absent.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: no execution beyond Target-35 class definition occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: no hook installation occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: Minecraft launch and Minecraft main invocation remain disabled.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: dispatcher execution did not occur.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: no public API exposure or sandbox claim occurred.");
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: handoffStatus "
+            + report.handoffStatus().id());
+    System.out.println(
+        "[spindle] explain-steelhook-0-4-completion-check: wrote " + reportPath.getFileName());
   }
 }

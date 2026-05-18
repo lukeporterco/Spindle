@@ -107,6 +107,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook04InvokeRedirectWrapOfflineProof,
     boolean steelHook04GatedRuntimeProof,
     boolean explainSteelHook04GatedRuntimeProof,
+    boolean steelHook04CompletionCheck,
+    boolean explainSteelHook04CompletionCheck,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -266,6 +268,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook04InvokeRedirectWrapOfflineProof
         false, // steelHook04GatedRuntimeProof
         false, // explainSteelHook04GatedRuntimeProof
+        false, // steelHook04CompletionCheck
+        false, // explainSteelHook04CompletionCheck
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -453,6 +457,8 @@ public record MinecraftProviderConfig(
         explainSteelHook04InvokeRedirectWrapOfflineProof,
         steelHook04GatedRuntimeProof,
         explainSteelHook04GatedRuntimeProof,
+        steelHook04CompletionCheck,
+        explainSteelHook04CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -583,6 +589,8 @@ public record MinecraftProviderConfig(
         explainSteelHook04InvokeRedirectWrapOfflineProof,
         steelHook04GatedRuntimeProof,
         explainSteelHook04GatedRuntimeProof,
+        steelHook04CompletionCheck,
+        explainSteelHook04CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -718,6 +726,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook04InvokeRedirectWrapOfflineProof,
       boolean steelHook04GatedRuntimeProof,
       boolean explainSteelHook04GatedRuntimeProof,
+      boolean steelHook04CompletionCheck,
+      boolean explainSteelHook04CompletionCheck,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -836,6 +846,8 @@ public record MinecraftProviderConfig(
         explainSteelHook04InvokeRedirectWrapOfflineProof,
         steelHook04GatedRuntimeProof,
         explainSteelHook04GatedRuntimeProof,
+        steelHook04CompletionCheck,
+        explainSteelHook04CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
