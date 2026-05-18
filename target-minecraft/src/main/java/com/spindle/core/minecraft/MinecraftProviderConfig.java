@@ -97,6 +97,8 @@ public record MinecraftProviderConfig(
     boolean explainSteelHook03MethodExitStaticDispatch,
     boolean steelHook03GatedRuntimeProof,
     boolean explainSteelHook03GatedRuntimeProof,
+    boolean steelHook03CompletionCheck,
+    boolean explainSteelHook03CompletionCheck,
     boolean hookInstallationPlan,
     boolean reproducibilityCheck,
     boolean executionPlan,
@@ -246,6 +248,8 @@ public record MinecraftProviderConfig(
         false, // explainSteelHook03MethodExitStaticDispatch
         false, // steelHook03GatedRuntimeProof
         false, // explainSteelHook03GatedRuntimeProof
+        false, // steelHook03CompletionCheck
+        false, // explainSteelHook03CompletionCheck
         false, // hookInstallationPlan
         false, // reproducibilityCheck
         false, // executionPlan
@@ -423,6 +427,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03MethodExitStaticDispatch,
         steelHook03GatedRuntimeProof,
         explainSteelHook03GatedRuntimeProof,
+        steelHook03CompletionCheck,
+        explainSteelHook03CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -543,6 +549,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03MethodExitStaticDispatch,
         steelHook03GatedRuntimeProof,
         explainSteelHook03GatedRuntimeProof,
+        steelHook03CompletionCheck,
+        explainSteelHook03CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,
@@ -668,6 +676,8 @@ public record MinecraftProviderConfig(
       boolean explainSteelHook03MethodExitStaticDispatch,
       boolean steelHook03GatedRuntimeProof,
       boolean explainSteelHook03GatedRuntimeProof,
+      boolean steelHook03CompletionCheck,
+      boolean explainSteelHook03CompletionCheck,
       boolean hookInstallationPlan,
       boolean reproducibilityCheck,
       boolean executionPlan,
@@ -776,6 +786,8 @@ public record MinecraftProviderConfig(
         explainSteelHook03MethodExitStaticDispatch,
         steelHook03GatedRuntimeProof,
         explainSteelHook03GatedRuntimeProof,
+        steelHook03CompletionCheck,
+        explainSteelHook03CompletionCheck,
         hookInstallationPlan,
         reproducibilityCheck,
         executionPlan,

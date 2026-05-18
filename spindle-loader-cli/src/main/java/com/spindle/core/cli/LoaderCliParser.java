@@ -113,6 +113,8 @@ public final class LoaderCliParser {
     boolean minecraftExplainSteelHook03MethodExitStaticDispatch = false;
     boolean minecraftSteelHook03GatedRuntimeProof = false;
     boolean minecraftExplainSteelHook03GatedRuntimeProof = false;
+    boolean minecraftSteelHook03CompletionCheck = false;
+    boolean minecraftExplainSteelHook03CompletionCheck = false;
     boolean minecraftHookInstallationPlan = false;
     boolean minecraftReproducibilityCheck = false;
     boolean minecraftExecutionPlan = false;
@@ -1020,6 +1022,49 @@ public final class LoaderCliParser {
         minecraftExecutionPlan = true;
         continue;
       }
+      if ("--minecraft-steelhook-0-3-check".equals(argument)) {
+        minecraftSteelHook03CompletionCheck = true;
+        minecraftSteelHook03GatedRuntimeProof = true;
+        minecraftSteelHook03MethodExitStaticDispatch = true;
+        minecraftSteelHook03FramedMethodFoundation = true;
+        minecraftSteelHook02CompletionCheck = true;
+        minecraftSteelHook02GatedRuntimeTransformation = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
+      if ("--minecraft-explain-steelhook-0-3-check".equals(argument)) {
+        minecraftExplainSteelHook03CompletionCheck = true;
+        minecraftSteelHook03CompletionCheck = true;
+        minecraftSteelHook03GatedRuntimeProof = true;
+        minecraftSteelHook03MethodExitStaticDispatch = true;
+        minecraftSteelHook03FramedMethodFoundation = true;
+        minecraftSteelHook02CompletionCheck = true;
+        minecraftSteelHook02GatedRuntimeTransformation = true;
+        minecraftSteelHook02MethodEntryTransformer = true;
+        minecraftSteelHook02ContractGeneralization = true;
+        minecraftSteelHook02PrimitiveBoundary = true;
+        minecraftHookPatchPlan = true;
+        minecraftHookBytecodeAnalysis = true;
+        minecraftHookPlacementPlan = true;
+        minecraftHookContracts = true;
+        minecraftInterpretArtifact = true;
+        minecraftRuntimePlan = true;
+        minecraftBoundaryReport = true;
+        minecraftIntegrationPlan = true;
+        minecraftExecutionPlan = true;
+        continue;
+      }
       if ("--minecraft-hook-installation-plan".equals(argument)) {
         minecraftHookInstallationPlan = true;
         minecraftHookContracts = true;
@@ -1210,6 +1255,14 @@ public final class LoaderCliParser {
       throw new LoaderException(
           "Minecraft SteelHook 0.3 gated runtime proof cannot be combined with --minecraft-bootstrap-server.");
     }
+    if (minecraftSteelHook03CompletionCheck && minecraftInstallHooks) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.3 completion check cannot be combined with --minecraft-install-hooks.");
+    }
+    if (minecraftSteelHook03CompletionCheck && minecraftBootstrapServer) {
+      throw new LoaderException(
+          "Minecraft SteelHook 0.3 completion check cannot be combined with --minecraft-bootstrap-server.");
+    }
 
     MinecraftProviderConfig minecraftProviderConfig =
         new MinecraftProviderConfig(
@@ -1307,6 +1360,8 @@ public final class LoaderCliParser {
             minecraftExplainSteelHook03MethodExitStaticDispatch,
             minecraftSteelHook03GatedRuntimeProof,
             minecraftExplainSteelHook03GatedRuntimeProof,
+            minecraftSteelHook03CompletionCheck,
+            minecraftExplainSteelHook03CompletionCheck,
             minecraftHookInstallationPlan,
             minecraftReproducibilityCheck,
             minecraftExecutionPlan,

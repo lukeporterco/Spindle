@@ -32,6 +32,18 @@ Target-20 now adds the caboose decision layer for data, resources, reload, and f
 
 The first planned subsystem in that arc is the Injection Hook Subsystem, which remains inside `target-minecraft` and is not a standalone public API.
 
+## SteelHook 0.3 completion
+
+Target-31 completes SteelHook 0.3 as a deterministic handoff verification pass. It writes `minecraft-steelhook-0-3-report.json` and reports `handoffStatus: "steelhook-0-3-complete"` only when the accepted SteelHook 0.2 completion handoff plus the Target-28, Target-29, and Target-30 reports all remain coherent and all safety invariants pass.
+
+The completed SteelHook 0.3 boundary is still narrow:
+
+- bounded method-entry static dispatch with first-frame `StackMapTable` shifting at offset `0`
+- bounded method-exit static dispatch before supported normal return opcodes
+- isolated gated runtime class definition proof for each approved primitive
+
+SteelHook 0.3 still does not compose hooks into one class, install hooks, launch Minecraft, invoke Minecraft main, execute dispatchers, expose a public SteelHook API, or claim Java mod execution sandboxing.
+
 ## Target-1 artifact interpretation
 
 Target-1 adds an internal artifact interpretation scaffold before any hook contracts or hook installation work.
