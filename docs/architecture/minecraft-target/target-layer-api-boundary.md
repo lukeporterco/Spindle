@@ -2,6 +2,8 @@
 
 This pass defines the next Minecraft-facing boundary before any injection hook implementation lands.
 
+First-wave Minecraft API boundary planning should use the imported Minecraft `26.1.2` refined packets under [v26.1.2-data/refined/](v26.1.2-data/refined/). Those packets preserve the current constraints: lifecycle is limited and must not become a universal public ready event, registries are lookup-only, and world/level access is guarded lookup/enumeration only. This note does not add API definitions.
+
 Target-1 now adds artifact interpretation before hook contracts. That pass remains analysis-only and stays inside `target-minecraft`.
 
 Target-2 now adds explicit hook point contract validation on top of Target-1 interpretation. That pass also remains analysis-only and stays inside `target-minecraft`.

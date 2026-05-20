@@ -2,6 +2,8 @@
 
 This folder records Minecraft Target Layer concept grounding, Target-* pass history, and internal boundaries.
 
+The imported Minecraft `26.1.2` research data now lives under `v26.1.2-data/`. Its `refined/` folder is the canonical version-specific planning input for future Minecraft Target Layer and SteelHook passes, while `source/internals-analysis/` preserves the full evidence archive. The import is documentation and data only; it does not add APIs, hooks, runtime transformations, compatibility behavior, or sandboxing.
+
 Current status: Target-1 through Target-10 complete the narrow SteelHook 0.1 fake-server hook spine. Target-11 through Target-22 ground server lifecycle, command registration, resource/reload, and registry bootstrap/content registration concept families as analysis-only or synthesis passes. Target-23 through Target-27 complete SteelHook 0.2 in the narrow capability-ladder sense. Target-28 through Target-31 complete SteelHook 0.3 as a bounded framed-method expansion path. Target-32 through Target-36 complete SteelHook 0.4 inside a strict verifier-backed boundary covering only the approved internal primitive families `RETURN_VALUE_INTERCEPT`, `INVOKE_REDIRECT`, and `INVOKE_WRAP`.
 
 SteelHook 0.1 proves the first bounded hook spine against controlled fixtures. It establishes Minecraft artifact interpretation, hook contract validation, known-symbol selection, hook placement analysis, instruction-aware bytecode modeling, dry-run patch planning, fixture-only transformation, bootstrap class transformation plumbing, and a hardening caboose. It does not expose a public hook API or support broad bytecode mutation.
@@ -20,6 +22,7 @@ Future Target Layer, SteelHook, and Modding API planning should inspect `minecra
 
 ## Concept folders
 
+- `v26.1.2-data/`: imported Minecraft `26.1.2` research archive and refined Spindle-facing planning data.
 - `steelhook-0.1/`: Target-1 through Target-10 and the SteelHook 0.1 capability boundary.
 - `server-lifecycle/`: Target-11 and Target-12 lifecycle grounding.
 - `commands/`: Target-13 through Target-15 command grounding.

@@ -8,6 +8,10 @@ SteelHook remains the internal machine layer inside `target-minecraft`. It is no
 
 Java mod execution is still not sandboxed. Nothing in this roadmap changes that security posture.
 
+## Current Version-Specific Research Data
+
+Minecraft `26.1.2` research data is imported under [v26.1.2-data/](v26.1.2-data/). Future Target Layer and SteelHook planning should use the refined handoff data, especially the [target-layer-first-wave-plan.md](v26.1.2-data/refined/target-layer-first-wave-plan.md) and [decision-matrix.md](v26.1.2-data/refined/decision-matrix.md), before converting any concept family into implementation work.
+
 ## Relationship Between Layers
 
 ```text
